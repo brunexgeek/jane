@@ -159,9 +159,82 @@ export function printCompilationUnit(target : tree.CompilationUnit)
 
     openC(target.constructor['name']);
     attributeNC("fileName", target.fileName);
-    //printPackage(target.members);
-    printTypeImportList(target.importList);
+	printTypeImportList(target.importList);
+	printNamespaces([target.members]);
     print("</body></html>");
+}
+
+export function printNamespace( target : tree.Namespace )
+{
+	openC(target.constructor['name']);
+
+	printNamespaces(target.namespaces);
+
+	if (target.name != null)
+		attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
+
+	printAnnotations(target.annotations);
+	printFunctions(target.functions);
+	printStructures(target.structures);
+
+	close();
+}
+
+function printNamespaces( target : tree.Namespace[] )
+{
+	if (target.length == 0) return;
+
+	openNC("namespaces", target.constructor['name']);
+	for (let item of target)
+		printNamespace(item);
+	close();
+}
+
+function printFunctions( target : tree.Function[] )
+{
+	openNC("functions", target.constructor['name']);
+	for (let item of target)
+		printFunction(item);
+	close();
+}
+
+function printStructures( target : tree.Structure[] )
+{
+	openNC("structures", target.constructor['name']);
+	for (let item of target)
+		printStructure(item);
+	close();
+}
+
+function printAnnotations( annots : tree.Annotation[] )
+{
+	if (annots.length == 0) return;
+	openNC("annotations", annots.constructor['name']);
+	for (let item of annots)
+	{
+		openC(item.constructor['name']);
+		attributeNCV("name", item.constructor['name'], item.name.qualifiedName);
+		close();
+	}
+	close();
+}
+
+function printStructure( target : tree.Structure )
+{
+	openC(target.constructor['name']);
+	printAnnotations(target.annotations);
+	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
+	attributeNCV("access", target.access.constructor['name'], target.access.toString());
+
+	close();
+}
+
+function printFunction( target : tree.Function )
+{
+	openC(target.constructor['name']);
+	printAnnotations(target.annotations);
+	attributeNCV('name', target.name.constructor['name'], target.name.qualifiedName);
+	close();
 }
 
 /*

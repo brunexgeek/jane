@@ -60,9 +60,8 @@ else
 	let pa = new beagle.compiler.Parser(ctx, sc);
 	let unit = pa.parse();
 
-	console.log(util.inspect(unit, {showHidden: false, depth: null}))
-
-	//beagle.compiler.printCompilationUnit(unit);
+	//console.log(util.inspect(unit, {showHidden: false, depth: null}))
+	beagle.compiler.printCompilationUnit(unit);
 
 	//beagle.compiler.generator.generate(ctx, unit);
 	//console.log(ctx.generated);

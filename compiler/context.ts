@@ -15,9 +15,16 @@ export interface CompilationListener
 
 export class CompilationContext
 {
-	listener : CompilationListener = null;
-	stringTable : string[] = [];
-	generated : string = "";
+	listener : CompilationListener;
+	stringTable : string[];
+	generated : string;
+
+	constructor()
+	{
+		this.listener = null;
+		this.stringTable = [];
+		this.generated = "";
+	}
 
 	public throwExpected( found : Token, types : TokenType[] )
 	{

@@ -27,20 +27,20 @@ export function generate( context : CompilationContext, unit : tree.CompilationU
 }
 
 function generateStringTable( context : CompilationContext )
+{
+	comment(context, "STRING TABLE");
+	print(context, "static const dynamic_string_ STRING_TABLE[] =\n{\n");
+
+	for (let item of context.stringTable)
 	{
-		comment(context, "STRING TABLE");
-		println(context, "static const dynamic_string_ STRING_TABLE[] =\n{\n");
-
-		for (let item of context.stringTable)
-		{
-			print(context, "   { .type__ = &type_string_, .length = ");
-			print(context, item.length.toString());
-			print(context, ", .content = \"");
-			print(context, item);
-			print(context, "\"},\n");
-		}
-
-		println(context, "};");
+		print(context, "   { .type__ = &type_string_, .length = ");
+		print(context, item.length.toString());
+		print(context, ", .content = \"");
+		print(context, item);
+		print(context, "\"},\n");
 	}
+
+	println(context, "};");
+}
 
 }

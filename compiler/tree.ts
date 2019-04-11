@@ -26,16 +26,13 @@ export class Name
     names : string[] = [];
 	qualifiedName : string;
 	location : SourceLocation;
-}
 
-export function createName(value : string) : Name
-{
-    if (value === "") return null;
-
-    let output = new Name();
-    output.names.push(value);
-    output.qualifiedName = value;
-    return output;
+	constructor(value : string)
+	{
+		if (value == null) value = "<null>";
+		this.names.push(value);
+		this.qualifiedName = value;
+	}
 }
 
 export function appendName(self : Name, value : string )
@@ -134,7 +131,7 @@ export class StorageDeclaration implements IStatement
 
 	constructor( annots : Annotation[], name : Name, type : TypeReference, isConst : boolean, expr : IExpression = null )
 	{
-		this.annots = annots;
+		this.annots = (annots == null) ? [] : annots;
 		this.name = name;
 		this.type = type;
 		this.initializer = expr;
@@ -166,7 +163,7 @@ export class Function
 	constructor( annots : Annotation[], name : Name, type : TypeReference,
 		params : FormalParameter[], body : IStatement )
 	{
-		this.annotations = annots;
+		this.annotations = (annots == null) ? [] : annots;
 		this.access = AccessMode.PROTECTED;
 		this.name = name;
 		this.parameters = params;
@@ -216,18 +213,16 @@ export class Namespace
 	storages : StorageDeclaration[];
 	namespaces : Namespace[];
 	annotations : Annotation[];
-}
 
-export function createNamespace( name : Name) : Namespace
-{
-	let temp = new Namespace();
-	temp.functions = [];
-	temp.storages = [];
-	temp.structures = [];
-	temp.namespaces = [];
-	temp.annotations = [];
-	temp.name = name;
-	return temp;
+	constructor( annots : tree.Annotation[], name : Name)
+	{
+		this.functions = [];
+		this.storages = [];
+		this.structures = [];
+		this.namespaces = [];
+		this.annotations = (annots == null) ? [] : annots;
+		this.name = name;
+	}
 }
 
 export interface IExpression
@@ -396,17 +391,15 @@ export class Structure
 	name : Name;
 	parent : TypeReference;
 	properties : Property[];
-}
 
-export function createStructure() : Structure
-{
-	let temp = new Structure();
-	temp.annotations = [];
-	temp.access = AccessMode.PRIVATE;
-	temp.name = null;
-	temp.parent = null;
-	temp.properties = [];
-	return temp;
+	constructor( annots : Annotation[] )
+	{
+		this.annotations = (annots == null) ? [] : annots;
+		this.access = AccessMode.PRIVATE;
+		this.name = null;
+		this.parent = null;
+		this.properties = [];
+	}
 }
 
 export class Property
@@ -424,7 +417,7 @@ export function createProperty( annots : Annotation[], access : AccessMode, name
 	let temp = new Property();
 	temp.name = name;
 	temp.access = access;
-	temp.annotations = annots;
+	temp.annotations = (annots == null) ? [] : annots;
 	temp.type = type;
 	temp.initializer = initializer;
 	return temp;

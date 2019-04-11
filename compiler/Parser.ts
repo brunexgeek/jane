@@ -12,7 +12,7 @@ namespace beagle.compiler {
 export class TokenArray
 {
 	private scanner : Scanner;
-	private buffer : Token[] = [];
+	private buffer : Token[];
 	private current : number;
 	private size : number;
 
@@ -20,6 +20,7 @@ export class TokenArray
 	{
 		this.current = 0;
 		this.size = Math.max(5, size);
+		this.buffer = [];
 		this.buffer.length = this.size;
 		this.scanner = scanner;
 
@@ -167,7 +168,7 @@ export class Parser
 
 		let unit = new tree.CompilationUnit();
 		unit.importList = [];
-		unit.members = tree.createNamespace(null);
+		unit.members = new tree.Namespace(null, null);
 
 		current = this.tokens.peek();
 		while (current != null && current.type == TokenType.TOK_IMPORT)
@@ -189,7 +190,7 @@ export class Parser
 			return null;
 
 		let location = this.tokens.peek().location;
-		let result = tree.createName(this.tokens.peek().value);
+		let result = new tree.Name(this.tokens.peek().value);
 		this.tokens.discard();
 
 		while (isQualified)
@@ -247,8 +248,7 @@ export class Parser
 		if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACE)) return null;
 		this.tokens.discard();
 
-		let ns = tree.createNamespace(name);
-		ns.annotations = annots;
+		let ns = new tree.Namespace(annots, name);
 		if (!this.parseMembers(ns)) return null;
 
 		// TOK_RIGHT_BRACE
@@ -508,7 +508,7 @@ export class Parser
 	{
 		this.tokens.discard();
 
-		let output = tree.createStructure();
+		let output = new tree.Structure(annots);
 		if (this.expectedOneOf(TokenType.TOK_NAME))
 			output.name = this.parseName();
 
