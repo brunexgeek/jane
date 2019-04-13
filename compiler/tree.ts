@@ -1,12 +1,33 @@
 
 namespace beagle.compiler.tree {
 
+export class MemberContainer
+{
+	classes : Structure[];
+	functions : Function[];
+	storages : StorageDeclaration[];
+	namespaces : Namespace[];
 
-export class CompilationUnit
+	constructor()
+	{
+		this.functions = [];
+		this.storages = [];
+		this.classes = [];
+		this.namespaces = [];
+	}
+}
+
+export class CompilationUnit extends MemberContainer
 {
     fileName : string;
-	importList : TypeImport[];
-	members : Namespace;
+	imports : TypeImport[];
+
+	constructor(fileName : string)
+	{
+		super();
+		this.fileName = fileName;
+		this.imports = [];
+	}
 }
 
 export class Comment
@@ -33,18 +54,20 @@ export class Name
 		this.names.push(value);
 		this.qualifiedName = value;
 	}
+
+	appendName(value : string )
+	{
+		this.names.push(value);
+		this.qualifiedName = this.qualifiedName + "." + value;
+	}
+
+	isQualified() : boolean
+	{
+		return this.names.length > 1;
+	}
 }
 
-export function appendName(self : Name, value : string )
-{
-    self.names.push(value);
-    self.qualifiedName = self.qualifiedName + "." + value;
-}
 
-export function isQualified( self : Name ) : boolean
-{
-	return self.names.length > 1;
-}
 
 class Package
 {
@@ -58,15 +81,13 @@ export class TypeImport
 	name : Name;
 	isWildcard : boolean;
 	alias : Name;
-}
 
-export function createTypeImport( name : Name, isWildcard : boolean = false, alias : Name = null ) : TypeImport
-{
-	let temp = new TypeImport;
-	temp.alias = alias;
-	temp.name = name;
-	temp.isWildcard = isWildcard;
-	return temp;
+	constructor( name : Name, isWildcard : boolean = false, alias : Name = null )
+	{
+		this.alias = alias;
+		this.name = name;
+		this.isWildcard = isWildcard;
+	}
 }
 
 class TypeDeclaration
@@ -112,8 +133,6 @@ export class TypeReference
 	}
 }
 
-
-
 class TypeBody
 {
     storages : StorageDeclaration[];
@@ -138,17 +157,6 @@ export class StorageDeclaration implements IStatement
 		this.isConst = isConst;
 	}
 }
-/*
-export function createStorageDeclaration( annots : Annotation[], name : Name, type : TypeReference, isConst : boolean, expr : IExpression = null ) : StorageDeclaration
-{
-	let temp = new StorageDeclaration();
-	temp.annots = annots;
-	temp.name = name;
-	temp.type = type;
-	temp.initializer = expr;
-	temp.isConst = isConst;
-	return temp;
-}*/
 
 export class Function
 {
@@ -180,48 +188,38 @@ export interface IStatement
 
 export class FormalParameter
 {
-    type : TypeReference;
-    name : Name;
+	public name : Name;
+	public type : TypeReference;
+
+	constructor( name : Name, type : TypeReference )
+	{
+		this.name = name;
+		this.type = type;
+	}
 }
 
-export function createFormalParameter( name : Name, type : TypeReference ) : FormalParameter
-{
-	let temp = new FormalParameter();
-	temp.name = name;
-	temp.type = type;
-	return temp;
-}
 
 
 export class Annotation
 {
 	name : Name;
+
+	constructor( name : Name )
+	{
+		this.name = name;
+	}
 }
 
-export function createAnnotation( name : Name ) : Annotation
-{
-	let temp = new Annotation();
-	temp.name = name;
-	return temp;
-}
-
-export class Namespace
+export class Namespace extends MemberContainer
 {
 	name : Name;
-	structures : Structure[];
-	functions : Function[];
-	storages : StorageDeclaration[];
-	namespaces : Namespace[];
 	annotations : Annotation[];
 
 	constructor( annots : tree.Annotation[], name : Name)
 	{
-		this.functions = [];
-		this.storages = [];
-		this.structures = [];
-		this.namespaces = [];
-		this.annotations = (annots == null) ? [] : annots;
+		super();
 		this.name = name;
+		this.annotations = (annots == null) ? [] : annots;
 	}
 }
 
@@ -279,7 +277,6 @@ export class ArgumentList
 {
 	args : Argument[];
 
-
 	constructor( item : Argument = null )
 	{
 		this.args = [];
@@ -313,15 +310,12 @@ export class ExpressionList
 
 export class AtomicExpression
 {
-	name : Name;
 	value : IExpression;
-}
 
-export function createAtomicExpression( value : IExpression ) : AtomicExpression
-{
-	let temp = new AtomicExpression();
-	this.value = value;
-	return temp;
+	constructor( value : IExpression )
+	{
+		this.value = value;
+	}
 }
 
 export class NullLiteral
@@ -340,18 +334,14 @@ export class IntegerLiteral
 	}
 }
 
-
-
 export class BooleanLiteral
 {
 	value : boolean;
-}
 
-export function createBooleanLiteral( value : boolean ) : BooleanLiteral
-{
-	let temp = new BooleanLiteral();
-	this.value = value;
-	return temp;
+	constructor( value : boolean )
+	{
+		this.value = value;
+	}
 }
 
 export class StringLiteral
@@ -368,13 +358,11 @@ export class StringLiteral
 export class FloatLiteral
 {
 	value : string;
-}
 
-export function createFloatLiteral( value : string ) : FloatLiteral
-{
-	let temp = new FloatLiteral();
-	this.value = value;
-	return temp;
+	constructor( value : string )
+	{
+		this.value = value;
+	}
 }
 
 export enum AccessMode
@@ -409,19 +397,19 @@ export class Property
 	annotations : Annotation[];
 	type : TypeReference;
 	initializer : IExpression;
+
+	constructor( annots : Annotation[], access : AccessMode, name : Name,
+		type : TypeReference, initializer : IExpression = null )
+	{
+		this.name = name;
+		this.access = access;
+		this.annotations = (annots == null) ? [] : annots;
+		this.type = type;
+		this.initializer = initializer;
+	}
 }
 
-export function createProperty( annots : Annotation[], access : AccessMode, name : Name,
-	type : TypeReference, initializer : IExpression = null ) : Property
-{
-	let temp = new Property();
-	temp.name = name;
-	temp.access = access;
-	temp.annotations = (annots == null) ? [] : annots;
-	temp.type = type;
-	temp.initializer = initializer;
-	return temp;
-}
+
 
 export class ReturnStmt
 {

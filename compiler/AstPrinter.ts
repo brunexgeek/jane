@@ -159,8 +159,9 @@ export function printCompilationUnit(target : tree.CompilationUnit)
 
     openC(target.constructor['name']);
     attributeNC("fileName", target.fileName);
-	printTypeImportList(target.importList);
-	printNamespaces([target.members]);
+	printTypeImportList(target.imports);
+	printFunctions(target.functions);
+	//printStorages(target.storages);
     print("</body></html>");
 }
 
@@ -175,7 +176,7 @@ export function printNamespace( target : tree.Namespace )
 
 	printAnnotations(target.annotations);
 	printFunctions(target.functions);
-	printStructures(target.structures);
+	//printStructures(target.structures);
 
 	close();
 }

@@ -166,20 +166,18 @@ export class Parser
 		//if (this.tokens.peekType() == TokenType.TOK_PACKAGE)
 		//	pack = this.parsePackage();
 
-		let unit = new tree.CompilationUnit();
-		unit.importList = [];
-		unit.members = new tree.Namespace(null, null);
+		let unit = new tree.CompilationUnit("builtin");
 
 		current = this.tokens.peek();
 		while (current != null && current.type == TokenType.TOK_IMPORT)
 		{
 			let imp = this.parseImport();
 			if (imp == null) break;
-            unit.importList.push(imp);
+            unit.imports.push(imp);
 			current = this.tokens.peek();
 		}
 
-		if (!this.parseMembers(unit.members)) return null;
+		if (!this.parseMembers(unit)) return null;
 
 		return unit;
 	}
@@ -197,7 +195,7 @@ export class Parser
 		{
 			if (!this.tokens.lookahead(false, TokenType.TOK_DOT, TokenType.TOK_NAME))
 				break;
-			tree.appendName(result, this.tokens.peekAt(1).value);
+				result.appendName(this.tokens.peekAt(1).value);
 			this.tokens.discard(2);
 		}
 
@@ -232,7 +230,7 @@ export class Parser
             if (this.tokens.peekType() != TokenType.TOK_SEMICOLON) return null;
             this.tokens.discard(1);
 
-            return tree.createTypeImport(qualifiedName, isWildcard, alias);
+            return new tree.TypeImport(qualifiedName, isWildcard, alias);
 		}
 		return null;
 	}
@@ -257,12 +255,12 @@ export class Parser
 		return ns;
 	}
 
-    private parseMembers( ns : tree.Namespace ) : boolean
+    private parseMembers( container : tree.MemberContainer ) : boolean
     {
 		while (true)
 		{
 			let tt = this.tokens.peekType();
-			if ((ns.name != null && tt == TokenType.TOK_RIGHT_BRACE) || tt == TokenType.TOK_EOF) break;
+			if ((container instanceof tree.Namespace && tt == TokenType.TOK_RIGHT_BRACE) || tt == TokenType.TOK_EOF) break;
 
 			let annots = null;
 
@@ -279,23 +277,23 @@ export class Parser
 			{
 				let temp = this.parseNamespace(annots);
 				if (temp == null) return null;
-				ns.namespaces.push(temp);
+				container.namespaces.push(temp);
 			}
 			else
 			// parse variables
-			/*if (tt == TokenType.TOK_VAR)
+			if (tt == TokenType.TOK_VAR)
 			{
-				let storage = this.parseVariableOrConstant(annots);
+				let storage = this.parseVariableOrConstant(annots, true);
 				if (storage == null) return null;
-				ns.storages.push(storage);
+				container.storages.push(storage);
 			}
-			else*/
+			else
 			// parse structures
 			if (tt == TokenType.TOK_STRUCT)
 			{
 				let struct = this.parseStructure(annots);
 				if (struct == null) return null;
-				ns.structures.push(struct);
+				container.classes.push(struct);
 			}
 			else
 			// parse functions
@@ -303,7 +301,7 @@ export class Parser
 			{
 				let func = this.parseFunction(annots);
 				if (func == null) return null;
-				ns.functions.push(func);
+				container.functions.push(func);
 			}
 			else
 			{
@@ -311,7 +309,6 @@ export class Parser
 				return false;
 			}
 		}
-		this.tokens.discard();
 
 		return true;
 /*
@@ -360,7 +357,7 @@ export class Parser
             this.tokens.discard();
             let name = this.parseName();
 
-            decors.push( tree.createAnnotation(name) );
+            decors.push( new tree.Annotation(name) );
         }
 
         return decors;
@@ -615,7 +612,7 @@ export class Parser
 			if (!this.expectedOneOf(TokenType.TOK_COLON)) return null;
 			this.tokens.discard();
 			typeName = this.parseName();
-			output.push( tree.createFormalParameter(name, new tree.TypeReference(typeName)) );
+			output.push( new tree.FormalParameter(name, new tree.TypeReference(typeName)) );
 		}
 
 		this.tokens.discard(); // )
@@ -645,12 +642,12 @@ export class Parser
 		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
 		this.tokens.discard();
 
-		let result = tree.createProperty(annots, access, name, type, initializer);
+		let result = new tree.Property(annots, access, name, type, initializer);
 		return result;
 	}
 
 
-	private parseVariableOrConstant( annots : tree.Annotation[] ) : tree.StorageDeclaration
+	private parseVariableOrConstant( annots : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration
 	{
 		// get 'var' or 'const' keyword
 		let kind = this.tokens.peekType();
@@ -681,8 +678,11 @@ export class Parser
 		}
 
 		// discard the semicolon
-		//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
-		//this.tokens.discard();
+		if (comma)
+		{
+			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+			this.tokens.discard();
+		}
 
 		let result : tree.StorageDeclaration;
 		result = new tree.StorageDeclaration(annots, name, type, kind == TokenType.TOK_CONST, initializer);
@@ -1101,7 +1101,7 @@ export class Parser
 		{
 			case TokenType.TOK_LEFT_PAR:
 				this.tokens.discard();
-				result = tree.createAtomicExpression(this.parseExpression());
+				result = new tree.AtomicExpression(this.parseExpression());
 				this.tokens.discard();
 				return result;
 			case TokenType.TOK_NAME:
@@ -1178,7 +1178,7 @@ export class Parser
 	private parseFloatLiteral() : tree.FloatLiteral
 	{
 		let value = this.tokens.read().value;
-		return tree.createFloatLiteral(value);
+		return new tree.FloatLiteral(value);
 	}
 
 	private parseBooleanLiteral() : tree.BooleanLiteral
@@ -1186,7 +1186,7 @@ export class Parser
 		if (!this.expectedOneOf(TokenType.TOK_TRUE, TokenType.TOK_FALSE)) return null;
 
 		let value = (this.tokens.read().type == TokenType.TOK_TRUE);
-		return tree.createBooleanLiteral(value);
+		return new tree.BooleanLiteral(value);
 	}
 
 }
