@@ -9,7 +9,7 @@ export class CompilationUnit
 	constructor(fileName : string, stmts? : IStatement[])
 	{
 		this.fileName = fileName;
-		this.statements = (stmts == null) ? [] : stmts;
+		this.statements = (stmts) ? stmts : [];
 	}
 }
 
@@ -28,13 +28,16 @@ export class Comment implements IStatement
 export class Name
 {
     names : string[] = [];
-	location? : SourceLocation;
+	location : SourceLocation;
 
 	constructor(value : string, location? : SourceLocation)
 	{
 		if (value == null) value = "<null>";
 		this.names.push(value);
-		this.location = location;
+		if (location)
+			this.location = location;
+		else
+			this.location = new SourceLocation();
 	}
 
 	appendName(value : string )
@@ -51,7 +54,7 @@ export class Name
 	{
 		if (this.names.length == 0) return '';
 		let result = this.names[0];
-		for (let item of this.names) result += item;
+		for (let i = 1, t = this.names.length; i < t; ++i) result += '.' + this.names[i];
 		return result;
 	}
 }
@@ -91,7 +94,7 @@ export class TypeReference
 		this.name = name;
 		this.isPrimitive = false;
 
-		if (name != null && name.names.length == 1)
+		if (name.names.length == 1)
 		{
 			switch (name.names[0])
 			{
@@ -112,15 +115,15 @@ export class TypeReference
 
 export class StorageDeclaration implements IStatement
 {
-	type : TypeReference;
+	type? : TypeReference;
 	name : Name;
 	initializer? : IExpression;
 	isConst : boolean;
 	annots : Annotation[];
 
-	constructor( annots : Annotation[], name : Name, type : TypeReference, isConst : boolean, expr? : IExpression )
+	constructor( annots : Annotation[] | undefined, name : Name, type : TypeReference | undefined, isConst : boolean, expr? : IExpression )
 	{
-		this.annots = (annots == null) ? [] : annots;
+		this.annots = (!annots) ? [] : annots;
 		this.name = name;
 		this.type = type;
 		this.initializer = expr;
@@ -134,19 +137,20 @@ export class Function implements IStatement
 	access : AccessMode;
 	name : Name;
 	parameters : FormalParameter[];
-	type : TypeReference;
+	type : TypeReference | undefined;
 	body : IStatement;
 	parent? : CompilationUnit | TypeDeclaration;
 
-	constructor( annots : Annotation[], name : Name, type : TypeReference,
-		params : FormalParameter[], body : IStatement )
+	constructor( annots : Annotation[] | undefined, name : Name, type : TypeReference | undefined,
+		params : FormalParameter[] | undefined, body : IStatement )
 	{
-		this.annotations = (annots == null) ? [] : annots;
+		this.annotations = (!annots) ? [] : annots;
 		this.access = AccessMode.PROTECTED;
 		this.name = name;
-		this.parameters = params;
+		this.parameters = (!params) ? [] : params;
 		this.type = type;
 		this.body = body;
+		this.parent = undefined;
 	}
 }
 
@@ -238,6 +242,7 @@ export class UnaryExpression implements IExpression
 		this.operation = operation;
 		this.expression = expression;
 		this.direction = direction;
+		this.extra = undefined;
 	}
 }
 
@@ -272,7 +277,7 @@ export class ExpressionList
 	constructor( item? : IExpression )
 	{
 		this.expressions = [];
-		if (item != null) this.expressions.push(item);
+		if (item) this.expressions.push(item);
 	}
 }
 
@@ -351,9 +356,9 @@ export class TypeDeclaration implements IStatement
 	parents : TypeReference[];
 	interfaces : TypeReference[];
 
-	constructor( annots : Annotation[], name : Name )
+	constructor( annots : Annotation[] | undefined, name : Name )
 	{
-		this.annotations = (annots == null) ? [] : annots;
+		this.annotations = (annots) ? annots : [];
 		this.access = AccessMode.PRIVATE;
 		this.name = name;
 		this.properties = [];
@@ -368,11 +373,11 @@ export class Property
 	name : Name;
 	access : AccessMode;
 	annotations : Annotation[];
-	type : TypeReference;
+	type : TypeReference | undefined;
 	initializer? : IExpression;
 
 	constructor( annots : Annotation[], access : AccessMode, name : Name,
-		type : TypeReference, initializer? : IExpression )
+		type? : TypeReference, initializer? : IExpression )
 	{
 		this.name = name;
 		this.access = access;
@@ -410,7 +415,7 @@ export class IfThenElseStmt
 	thenSide : IStatement;
 	elseSide? : IStatement;
 
-	constructor( condition : IExpression, thenSide : IStatement, elseSide? : IStatement)
+	constructor( condition : IExpression, thenSide : IStatement, elseSide? : IStatement )
 	{
 		this.condition = condition;
 		this.thenSide = thenSide;

@@ -159,25 +159,42 @@ export function printCompilationUnit(target : tree.CompilationUnit)
 
     openC(target.constructor['name']);
     attributeNC("fileName", target.fileName);
-	printTypeImportList(target.imports);
-	printFunctions(target.functions);
+	printStatements(target.statements);
 	//printStorages(target.storages);
     print("</body></html>");
+}
+
+export function printStatements( target : tree.IStatement[] )
+{
+	openNC("statements", target.constructor['name']);
+	for (let item of target)
+	{
+		if (item instanceof tree.Function)
+			printFunction(item);
+		else
+		if (item instanceof tree.StorageDeclaration)
+			printStorageDeclaration(item);
+		else
+		if (item instanceof tree.TypeImport)
+			printTypeImport(item);
+	}
+	close();
+}
+
+export function printStorageDeclaration( target : tree.StorageDeclaration )
+{
+	openC(target.constructor['name']);
+	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
+	attributeNCV("name", target.type.name.constructor['name'], target.type.name.qualifiedName);
+	close();
 }
 
 export function printNamespace( target : tree.Namespace )
 {
 	openC(target.constructor['name']);
-
-	printNamespaces(target.namespaces);
-
 	if (target.name != null)
 		attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
-
-	printAnnotations(target.annotations);
-	printFunctions(target.functions);
-	//printStructures(target.structures);
-
+	printStatements(target.statements);
 	close();
 }
 
@@ -188,22 +205,6 @@ function printNamespaces( target : tree.Namespace[] )
 	openNC("namespaces", target.constructor['name']);
 	for (let item of target)
 		printNamespace(item);
-	close();
-}
-
-function printFunctions( target : tree.Function[] )
-{
-	openNC("functions", target.constructor['name']);
-	for (let item of target)
-		printFunction(item);
-	close();
-}
-
-function printStructures( target : tree.Structure[] )
-{
-	openNC("structures", target.constructor['name']);
-	for (let item of target)
-		printStructure(item);
 	close();
 }
 
@@ -220,7 +221,7 @@ function printAnnotations( annots : tree.Annotation[] )
 	close();
 }
 
-function printStructure( target : tree.Structure )
+function printTypeDeclaration( target : tree.TypeDeclaration )
 {
 	openC(target.constructor['name']);
 	printAnnotations(target.annotations);
@@ -234,297 +235,69 @@ function printFunction( target : tree.Function )
 {
 	openC(target.constructor['name']);
 	printAnnotations(target.annotations);
+	printAccessMode(target.access);
 	attributeNCV('name', target.name.constructor['name'], target.name.qualifiedName);
+	printFormalParameters(target.parameters);
+	if (target.type) printTypeReference(target.type);
 	close();
 }
 
-/*
-	private void printStructures(StructureList target)
-	{
-		open("structures", target.getClass());
-		for (Structure item: target)
-		{
-			open(item.getClass());
-			attribute("name", item.name.getClass(), item.name.qualifiedName());
-			printTypeReference("parent", item.parent);
-			printTypeBody(item.body);
-			close();
-		}
-		close();
-	}
+function printAccessMode( target : tree.AccessMode )
+{
+	let value = '';
+	if (target == tree.AccessMode.PUBLIC)
+		value = 'public';
+	else
+	if (target == tree.AccessMode.PROTECTED)
+		value = 'protected';
+	else
+	if (target == tree.AccessMode.PRIVATE)
+		value = 'private';
 
-	public void printFunctions( FunctionList target )
-	{
-		open("functions", target.getClass());
-		for (Function func : target)
-			printFunction(func);
-		close();
-	}
+	attributeNCV('access', 'AccessMode', value);
+}
 
+function printTypeReference( target : tree.TypeReference )
+{
+	openNC("type", target.constructor['name']);
+	attributeNCV('name', target.name.constructor['name'], target.name.qualifiedName);
+	attributeNCV('isPrimitive', target.isPrimitive.constructor['name'], (target.isPrimitive) ? 'true' : 'false');
+	close();
+}
 
-	public void printConstantOrVariable(boolean heading, StorageDeclaration target)
-	{
-		if (heading) open(target.getClass());
-		printAnnotationList(target.annotations());
-		printModifiers(target.modifiers());
-		printName(target.name());
-		printTypeReference(target.type());
-		printExpression("initializer",target.initializer());
-		if (heading) close();
-	}
+function printFormalParameters( target : tree.FormalParameter[])
+{
+	if (target.length == 0) return;
 
-	public void printArgument(Argument target)
-	{
-		if (target == null) return;
+	openNC("parameters", target.constructor['name']);
+	for (let item of target)
+		printFormatParameter(item);
+	close();
+}
 
-		open(target.getClass());
-		printName(target.name());
-		printExpression("value", target.value());
-		close();
-	}
+function printFormatParameter( target : tree.FormalParameter )
+{
+	openC(target.constructor['name']);
+	printName("name", target.name);
+	printTypeReference(target.type);
+	close();
+}
 
-	public void printFormalParameterList(FormalParameterList target)
-	{
-		if (target == null) return;
-
-		open("parameters", target.getClass());
-		for (FormalParameter item : target)
-		{
-			open(item.getClass());
-			printName(item.name());
-			printTypeReference(item.type());
-			close();
-		}
-		close();
-	}
-
-	public void printFunction(Function target)
-	{
-		open(target.getClass());
-		printAnnotationList(target.annotations());
-		printModifiers(target.modifiers());
-		printName(target.name());
-		printFormalParameterList(target.parameters());
-		printTypeReference(target.returnType());
-		printStatement("body",target.body());
-		close();
-	}
-
-	public void printModifiers(Modifiers target)
-	{
-		if (target == null) return;
-		attribute("modifiers", target.getClass(), target.toString());
-	}
-
-    public void printName(Name target)
-	{
-		printName(null, target);
-	}
-*/
 function printName(name : string, target : tree.Name)
 {
     if (target == null) return;
     if (name == null) name = "name";
     attributeNCV(name, target.constructor['name'], target.qualifiedName);
 }
-/*
-	public void printTypeBody(TypeBody target)
-	{
-		if (target.storages.size() == 0 && target.functions.size() == 0) return;
 
-		open("body", target.getClass());
-
-		for (StorageDeclaration item : target.storages)
-			printConstantOrVariable(true, item);
-
-		for (Function item : target.functions)
-			printFunction(item);
-
-		close();
-	}
-
-
-	public void printTypes(TypeDeclarationList target)
-	{
-		if (target.size() == 0) return;
-
-		open("types", target.getClass());
-		for (TypeDeclaration item : target)
-		{
-			open(item.getClass());
-			printAnnotationList(item.annotations());
-			printModifiers(item.modifiers());
-			printName(item.name());
-			printTypeReferenceList(item.extended());
-			printTypeBody(item.body());
-			close();
-		}
-		close();
-	}
-
-	public void printPackage(Package target)
-	{
-		if (target == null) return;
-		attribute("package", target.getClass(), target.qualifiedName());
-	}
-*/
-
-function printTypeImportList(target : tree.TypeImport[])
+function printTypeImport(target : tree.TypeImport)
 {
-    if (target.length == 0) return;
-
-    openNC("imports", target.constructor['name']);
-    for (let item of target)
-    {
-        openC(item.constructor['name']);
-        //printPackage(item.namespace());
-        printName("name", item.name);
-        printName("alias", item.alias);
-        close();
-    }
-    close();
+	openC(target.constructor['name']);
+	//printPackage(item.namespace());
+	printName("name", target.name);
+	printName("alias", target.alias);
+	close();
 }
-
-/*
-	public void printTypeReference(TypeReference target)
-	{
-		printTypeReference("type", target);
-	}
-
-	public void printTypeReference(String name, TypeReference target)
-	{
-		if (target == null) return;
-
-		if (target.parent() instanceof TypeReferenceList)
-		{
-			open(target.getClass());
-			attribute(name, target.getClass(), target.qualifiedName());
-			close();
-		}
-		else
-		{
-			attribute(name, target.getClass(), target.qualifiedName());
-		}
-	}
-
-
-	public void printTypeReferenceList(TypeReferenceList target)
-	{
-		open("inherit", target.getClass());
-		for (TypeReference item : target)
-			printTypeReference(item);
-		close();
-	}
-
-	protected void printStatement(String name, IStatement stmt)
-	{
-		if (stmt == null) return;
-
-		if (name == null)
-			open(stmt.getClass());
-		else
-			open(name, stmt.getClass());
-
-		if (stmt instanceof ReturnStmt)
-		{
-			printExpression("value", ((ReturnStmt)stmt).expression());
-		}
-		else
-		if (stmt instanceof IfThenElseStmt)
-		{
-			printExpression("condition", ((IfThenElseStmt)stmt).condition());
-			printStatement("then", ((IfThenElseStmt)stmt).thenSide());
-			printStatement("else", ((IfThenElseStmt)stmt).elseSide());
-		}
-		else
-		if (stmt instanceof Block)
-		{
-			for (IStatement item : (Block)stmt)
-				printStatement(null, item);
-		}
-		else
-		if (stmt instanceof StorageDeclaration)
-		{
-			printConstantOrVariable(false, (StorageDeclaration)stmt);
-		}
-		else
-			missing();
-
-		close();
-	}
-
-	protected void printExpression(String name, IExpression expr)
-	{
-		if (expr == null) return;
-
-		if (expr instanceof NameLiteral)
-		{
-			attribute(name, NameLiteral.class, ((NameLiteral)expr).value().qualifiedName());
-			return;
-		}
-
-		if (expr instanceof StringLiteral)
-		{
-			attribute(name, StringLiteral.class, ((StringLiteral)expr).value());
-			return;
-		}
-
-		if (expr instanceof IntegerLiteral)
-		{
-			attribute(name, IntegerLiteral.class, Long.toString( ((IntegerLiteral)expr).value() ));
-			return;
-		}
-
-		if (expr instanceof BooleanLiteral)
-		{
-			attribute(name, BooleanLiteral.class, Boolean.toString( ((BooleanLiteral)expr).value()) );
-			return;
-		}
-
-		if (expr instanceof NullLiteral)
-		{
-			attribute("expression", NullLiteral.class);
-			return;
-		}
-
-		open(name, expr.getClass());
-
-		if (expr instanceof AtomicExpression)
-		{
-			printExpression("expression", ((AtomicExpression)expr).value());
-		}
-		else
-		if (expr instanceof UnaryExpression)
-		{
-			attribute("operation", ((UnaryExpression)expr).operation().toString());
-			printExpression("expression", ((UnaryExpression)expr).expression());
-			printExpression("right", ((UnaryExpression)expr).extra());
-		}
-		else
-		if (expr instanceof BinaryExpression)
-		{
-			attribute("operation", ((BinaryExpression)expr).operation().toString());
-			printExpression("left", ((BinaryExpression)expr).left());
-			printExpression("right", ((BinaryExpression)expr).right());
-		}
-		else
-		if (expr instanceof ExpressionList)
-		{
-			for (IExpression item : ((ExpressionList)expr))
-				printExpression(null, item);
-		}
-		else
-		if (expr instanceof ArgumentList)
-		{
-			for (Argument item : ((ArgumentList)expr))
-				printArgument(item);
-		}
-		else
-			missing();
-
-		close();
-	}
-*/
 
 function writeCSS()
 {

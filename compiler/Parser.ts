@@ -16,6 +16,7 @@ export class TokenArray
 	private buffer : Token[];
 	private current : number;
 	private size : number;
+	private defaultToken : Token;
 
 	public constructor( scanner : Scanner, size : number = 5)
 	{
@@ -24,11 +25,18 @@ export class TokenArray
 		this.buffer = [];
 		this.buffer.length = this.size;
 		this.scanner = scanner;
+		this.defaultToken = new Token(undefined, 0, undefined, TokenType.TOK_EOF, undefined);
 
 		// fill the ring array with tokens
 		for (let i = 0; i < size; ++i)
-			if ((this.buffer[i] = scanner.readToken()) == null)
+		{
+			let token : Token | undefined;
+			if (token = scanner.readToken())
+			{
+				this.buffer[i] = token;
 				break;
+			}
+		}
 	}
 
 	/**
@@ -41,11 +49,13 @@ export class TokenArray
 		if (this.buffer[this.current] != null)
 		{
 			let value = this.buffer[this.current];
-			this.buffer[this.current] = this.scanner.readToken();
+			let token : Token | undefined = this.scanner.readToken();
+			if (!token) return this.defaultToken;
+			this.buffer[this.current] = token;
 			this.current = (this.current + 1) % this.size;
-			return value;
+			if (value != null) return value;
 		}
-		return null;
+		return this.defaultToken;
 	}
 
 	public peek() : Token
@@ -56,7 +66,9 @@ export class TokenArray
 	public peekAt( index : number ) : Token
 	{
 		let pos = (this.current + index) % this.size;
-		return this.buffer[pos];
+		let value = this.buffer[pos];
+		if (value != null) return value;
+		return this.defaultToken;
 	}
 
 	public peekType() : TokenType
@@ -68,7 +80,7 @@ export class TokenArray
 	{
 		let result = this.peekAt(index);
 		if (result == null)
-			return null;
+			return TokenType.TOK_EOF;
 		else
 			return result.type;
 	}
@@ -159,7 +171,7 @@ export class Parser
 	 *
 	 * @return
 	 */
-	public parse() : tree.CompilationUnit
+	public parse() : tree.CompilationUnit | null
 	{
 		let current = this.tokens.peek();
 		let pack = null;
@@ -173,7 +185,7 @@ export class Parser
 		while (current != null && current.type == TokenType.TOK_IMPORT)
 		{
 			let imp = this.parseImport();
-			if (imp == null) break;
+			if (imp == undefined) break;
             unit.imports.push(imp);
 			current = this.tokens.peek();
 		}*/
@@ -183,13 +195,13 @@ export class Parser
 		return unit;
 	}
 
-	parseName( isQualified : boolean = true ) : tree.Name
+	parseName( isQualified : boolean = true ) : tree.Name | undefined
 	{
 		if (!this.expectedOneOf(TokenType.TOK_NAME))
-			return null;
+			return undefined;
 
 		let location = this.tokens.peek().location;
-		let result = new tree.Name(this.tokens.peek().value);
+		let result = new tree.Name(this.tokens.peek().value, location);
 		this.tokens.discard();
 
 		while (isQualified)
@@ -200,18 +212,17 @@ export class Parser
 			this.tokens.discard(2);
 		}
 
-		result.location = location;
 		return result;
 	}
 
-	parseImport() : tree.TypeImport
+	parseImport() : tree.TypeImport | undefined
 	{
 		if (this.tokens.peekType() == TokenType.TOK_IMPORT)
 		{
 			this.tokens.discard();
-            let alias = null;
+            let alias : tree.Name | undefined;
 			let qualifiedName = this.parseName();
-			if (qualifiedName == null) return null;
+			if (!qualifiedName) return undefined;
 
             let isWildcard = false;
 			if (this.tokens.lookahead(false, TokenType.TOK_DOT, TokenType.TOK_MUL))
@@ -225,33 +236,33 @@ export class Parser
 				{
 					this.tokens.discard();
 					alias = this.parseName();
-					if (alias == null) return null;
+					if (alias == undefined) return undefined;
 				}
 			}
-            if (this.tokens.peekType() != TokenType.TOK_SEMICOLON) return null;
+            if (this.tokens.peekType() != TokenType.TOK_SEMICOLON) return undefined;
             this.tokens.discard(1);
 
             return new tree.TypeImport(qualifiedName, isWildcard, alias);
 		}
-		return null;
+		return undefined;
 	}
 
-	private parseNamespace( annots : tree.Annotation[] ) : tree.Namespace
+	private parseNamespace( annots? : tree.Annotation[] ) : tree.Namespace | undefined
     {
 		// TOK_NAMESPACE
 		this.tokens.discard();
 		// TOK_NAME
 		let name = this.parseName();
-		if (name == null) return null;
+		if (name == undefined) return undefined;
 		// TOK_LEFT_BRACE
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACE)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACE)) return undefined;
 		this.tokens.discard();
 
-		let ns = new tree.Namespace(annots, name);
+		let ns = new tree.Namespace((annots) ? annots : [], name);
 		this.parseTopLevelStatements(ns.statements);
 
 		// TOK_RIGHT_BRACE
-		if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return undefined;
 		this.tokens.discard();
 
 		return ns;
@@ -262,7 +273,7 @@ export class Parser
 		while (true)
 		{
 			let tt = this.tokens.peekType();
-			let annots = null;
+			let annots = undefined;
 
 			// parse annotations
 			if (tt == TokenType.TOK_AT)
@@ -276,7 +287,7 @@ export class Parser
 			if (tt == TokenType.TOK_IMPORT)
 			{
 				let temp = this.parseImport();
-				if (temp == null) return;
+				if (temp == undefined) return;
 				stmts.push(temp);
 			}
 			else
@@ -284,7 +295,7 @@ export class Parser
 			if (tt == TokenType.TOK_NAMESPACE)
 			{
 				let temp = this.parseNamespace(annots);
-				if (temp == null) return;
+				if (temp == undefined) return;
 				stmts.push(temp);
 			}
 			else
@@ -292,7 +303,7 @@ export class Parser
 			if (tt == TokenType.TOK_VAR)
 			{
 				let storage = this.parseVariableOrConstant(annots, true);
-				if (storage == null) return;
+				if (storage == undefined) return;
 				stmts.push(storage);
 			}
 			else
@@ -300,7 +311,7 @@ export class Parser
 			if (tt == TokenType.TOK_CLASS)
 			{
 				let struct = this.parseTypeDeclaration(annots);
-				if (struct == null) return;
+				if (struct == undefined) return;
 				stmts.push(struct);
 			}
 			else
@@ -308,7 +319,7 @@ export class Parser
 			if (tt == TokenType.TOK_FUNCTION)
 			{
 				let func = this.parseFunction(annots);
-				if (func == null) return;
+				if (func == undefined) return;
 				stmts.push(func);
 			}
 			else
@@ -319,14 +330,16 @@ export class Parser
 		}
     }
 
-    private parseAnnotations() : tree.Annotation[]
+    private parseAnnotations() : tree.Annotation[] | undefined
     {
         let decors = [];
 
         while (this.tokens.peekType() == TokenType.TOK_AT)
         {
             this.tokens.discard();
-            let name = this.parseName();
+			let name = this.parseName();
+			// TODO: throw error!
+			if (!name) return undefined;
 
             decors.push( new tree.Annotation(name) );
         }
@@ -334,7 +347,7 @@ export class Parser
         return decors;
 	}
 
-	private parseBlock() : tree.BlockStmt
+	private parseBlock() : tree.BlockStmt | undefined
 	{
 		let stmts : tree.IExpression[] = [];
 
@@ -346,34 +359,36 @@ export class Parser
 			while (tt != TokenType.TOK_RIGHT_BRACE && tt != TokenType.TOK_EOF)
 			{
 				let current = this.parseStatement();
-				if (current == null) return null;
+				if (current == undefined) return undefined;
 
 				// discard ';'
-				if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+				if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
 				this.tokens.discard();
 
 				stmts.push(current);
 				tt = this.tokens.peekType();
 			}
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return undefined;
 			this.tokens.discard();
 		}
 		else
 		{
 			let current = this.parseStatement();
-			if (current == null) return null;
+			if (current == undefined) return undefined;
 
 			// discard ';'
-			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
 			this.tokens.discard();
 
-			stmts.push( this.parseStatement() );
+			let temp = this.parseStatement();
+			if (!temp) return undefined;
+			stmts.push(temp);
 		}
 
 		return new tree.BlockStmt(stmts);
 	}
 
-	private parseStatement() : tree.IStatement
+	private parseStatement() : tree.IStatement | undefined
 	{
 		switch (this.tokens.peekType())
 		{
@@ -383,7 +398,7 @@ export class Parser
 				return this.parseIfThenElseStmt();
 			case TokenType.TOK_VAR:
 			case TokenType.TOK_CONST:
-				return <tree.IStatement> this.parseVariableOrConstant(null);
+				return <tree.IStatement> this.parseVariableOrConstant(undefined);
 			case TokenType.TOK_FOR:
 				return <tree.IStatement> this.parseForEach();
 			default:
@@ -391,8 +406,8 @@ export class Parser
 		}
 
 		let expr = this.parseExpression();
-		if (expr == null) return null;
-		//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+		if (expr == undefined) return undefined;
+		//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
 		return new tree.ExpressionStmt(expr);
 	}
 
@@ -402,28 +417,29 @@ export class Parser
 	 *
 	 * @return
 	 */
-	private parseIfThenElseStmt() : tree.IfThenElseStmt
+	private parseIfThenElseStmt() : tree.IfThenElseStmt | undefined
 	{
-		if (!this.expectedOneOf(TokenType.TOK_IF, TokenType.TOK_ELIF)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_IF, TokenType.TOK_ELIF)) return undefined;
 		this.tokens.discard();
 
 		let condition = this.parseExpression();
+		if (!condition) return undefined;
 
-		if (!this.expectedOneOf(TokenType.TOK_THEN)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_THEN)) return undefined;
 		this.tokens.discard();
 
-		let thenSide : tree.IStatement = null;
-		let elseSide : tree.IStatement = null;
+		let thenSide : tree.IStatement | undefined = undefined;
+		let elseSide : tree.IStatement | undefined = undefined;
 
 		// required 'then' block
 		thenSide = this.parseBlock();
-		if (thenSide == null) return null;
+		if (thenSide == undefined) return undefined;
 
 		// optional 'elif' block
 		if (this.tokens.peekType() == TokenType.TOK_ELIF)
 		{
 			elseSide = this.parseIfThenElseStmt();
-			if (elseSide == null) return null;
+			if (elseSide == undefined) return undefined;
 		}
 		else
 		// optional 'else' block
@@ -431,26 +447,30 @@ export class Parser
 		{
 			this.tokens.discard();
 			elseSide = this.parseBlock();
-			if (elseSide == null) return null;
+			if (elseSide == undefined) return undefined;
 		}
 
 		return new tree.IfThenElseStmt(condition, thenSide, elseSide);
 	}
 
-	private parseForEach() : tree.ForEachStmt
+	private parseForEach() : tree.ForEachStmt | undefined
 	{
 		// 'for' keyword
-		if (!this.expectedOneOf(TokenType.TOK_FOR)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_FOR)) return undefined;
 		this.tokens.discard();
 		// variable
-		let storage = new tree.StorageDeclaration(null, this.parseName(), null, false, null);
+		let name = this.parseName();
+		if (!name) return undefined;
+		let storage = new tree.StorageDeclaration(undefined, name, undefined, false, undefined);
 		// 'in' keyword
-		if (!this.expectedOneOf(TokenType.TOK_IN)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_IN)) return undefined;
 		this.tokens.discard();
 		// expression
 		let expr = this.parseExpression();
+		if (!expr) return undefined;
 		// statements
 		let block = this.parseBlock();
+		if (!block) return undefined;
 
 		return new tree.ForEachStmt(storage, expr, block);
 	}
@@ -460,24 +480,27 @@ export class Parser
 	 *
 	 * @return
 	 */
-	private parseReturnStmt() : tree.IStatement
+	private parseReturnStmt() : tree.IStatement | undefined
 	{
 		// 'return' keyword
-		if (!this.expectedOneOf(TokenType.TOK_RETURN)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_RETURN)) return undefined;
 		let location = this.tokens.peek().location;
 		this.tokens.discard();
 		// expression
 		let expr = this.parseExpression();
+		if (!expr) return undefined;
 
 		return new tree.ReturnStmt(expr);
 	}
 
-	private parseTypeDeclaration(annots : tree.Annotation[]) : tree.TypeDeclaration
+	private parseTypeDeclaration(annots? : tree.Annotation[]) : tree.TypeDeclaration | undefined
 	{
 		this.tokens.discard();
 
-		if (!this.expectedOneOf(TokenType.TOK_NAME)) return null;
-		let output = new tree.TypeDeclaration(annots, this.parseName());
+		if (!this.expectedOneOf(TokenType.TOK_NAME)) return undefined;
+		let name = this.parseName();
+		if (!name) return undefined;
+		let output = new tree.TypeDeclaration(annots, name);
 
 		/*if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
@@ -493,12 +516,18 @@ export class Parser
 			while (this.tokens.peekType() != TokenType.TOK_RIGHT_BRACE)
 			{
 				let annots = this.parseAnnotations();
+				if (!annots) return undefined;
 				let access = this.parseAccessMode();
 				let name = this.parseName();
+				if (!name) return undefined;
 
 				// variable or constant
 				if (this.tokens.peekType() == TokenType.TOK_COLON || this.tokens.peekType() == TokenType.TOK_ASSIGN)
-					output.properties.push( this.parseProperty(annots, access, name) );
+				{
+					let prop = this.parseProperty(annots, access, name);
+					if (!prop) return undefined;
+					output.properties.push(prop);
+				}
 				else
 				{
 					this.context.throwExpected(this.tokens.peek(), [TokenType.TOK_VAR, TokenType.TOK_CONST]);
@@ -510,7 +539,7 @@ export class Parser
 			return output;
 		}
 
-		return null;
+		return undefined;
 	}
 
 	parseAccessMode() : tree.AccessMode
@@ -536,39 +565,43 @@ export class Parser
 		return tree.AccessMode.PROTECTED;
 	}
 
-	private parseFunction( annots : tree.Annotation[] ) : tree.Function
+	private parseFunction( annots? : tree.Annotation[] ) : tree.Function | undefined
 	{
-		if (!this.expectedOneOf(TokenType.TOK_FUNCTION)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_FUNCTION)) return undefined;
 		this.tokens.discard();
 
-		let type : tree.TypeReference = null;
+		let type : tree.TypeReference | undefined = undefined;
 		// name
 		let name = this.parseName();
+		if (name == undefined) return undefined;
 		// parameters
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
 		let params = this.parseFormalParameters();
 		// return type
 		if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
 			this.tokens.discard(1);
-			type = new tree.TypeReference( this.parseName() );
+			let name = this.parseName();
+			if (name == undefined) return undefined;
+			type = new tree.TypeReference(name);
 			//type.location = type.name.location;
 		}
 		// body
 		let block = this.parseBlock();
+		if (!block) return undefined;
 
 		let func = new tree.Function(annots, name, type, params, block);
 
 		return func;
 	}
 
-	private parseFormalParameters() : tree.FormalParameter[]
+	private parseFormalParameters() : tree.FormalParameter[] | undefined
 	{
-		if (this.tokens.peekType() != TokenType.TOK_LEFT_PAR) return null;
+		if (this.tokens.peekType() != TokenType.TOK_LEFT_PAR) return undefined;
 		this.tokens.discard();
 
 		let output : tree.FormalParameter[] = [];
-		let typeName : tree.Name, name : tree.Name;
+		let typeName : tree.Name | undefined, name : tree.Name | undefined;
 
 		while (this.tokens.peekType() != TokenType.TOK_RIGHT_PAR)
 		{
@@ -579,9 +612,11 @@ export class Parser
 			}
 
 			name = this.parseName();
-			if (!this.expectedOneOf(TokenType.TOK_COLON)) return null;
+			if (!name) return undefined;
+			if (!this.expectedOneOf(TokenType.TOK_COLON)) return undefined;
 			this.tokens.discard();
 			typeName = this.parseName();
+			if (!typeName) return undefined;
 			output.push( new tree.FormalParameter(name, new tree.TypeReference(typeName)) );
 		}
 
@@ -589,17 +624,19 @@ export class Parser
 		return output;
 	}
 
-	private parseProperty( annots : tree.Annotation[], access : tree.AccessMode, name : tree.Name ) : tree.Property
+	private parseProperty( annots : tree.Annotation[], access : tree.AccessMode, name : tree.Name ) : tree.Property | undefined
 	{
 		let location = name.location;
-		let type : tree.TypeReference;
-		let initializer : tree.IExpression = null;
+		let type : tree.TypeReference | undefined;
+		let initializer : tree.IExpression | undefined = undefined;
 
 		// check whether we have type annotation
 		if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
 			this.tokens.discard(1);
-			type = new tree.TypeReference( this.parseName() );
+			let name = this.parseName();
+			if (!name) return undefined;
+			type = new tree.TypeReference(name);
 		}
 		// check whether we have an initializer expression
 		if (this.tokens.peekType() == TokenType.TOK_ASSIGN)
@@ -609,7 +646,7 @@ export class Parser
 		}
 
 		// discard the semicolon
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
 		this.tokens.discard();
 
 		let result = new tree.Property(annots, access, name, type, initializer);
@@ -617,22 +654,25 @@ export class Parser
 	}
 
 
-	private parseVariableOrConstant( annots : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration
+	private parseVariableOrConstant( annots? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
 	{
 		// get 'var' or 'const' keyword
 		let kind = this.tokens.peekType();
 		this.tokens.discard();
 
 		let name = this.parseName(false);
+		if (!name) return undefined;
 		let location = name.location;
-		let type : tree.TypeReference;
-		let initializer : tree.IExpression = null;
+		let type : tree.TypeReference | undefined;
+		let initializer : tree.IExpression | undefined = undefined;
 
 		// check whether we have type annotation
 		if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
 			this.tokens.discard(1);
-			type = new tree.TypeReference( this.parseName() );
+			let name = this.parseName();
+			if (!name) return undefined;
+			type = new tree.TypeReference(name);
 		}
 
 		if (this.tokens.peekType() == TokenType.TOK_ASSIGN)
@@ -644,13 +684,13 @@ export class Parser
 		if (kind == TokenType.TOK_CONST)
 		{
 			this.expectedOneOf(TokenType.TOK_ASSIGN);
-			return null;
+			return undefined;
 		}
 
 		// discard the semicolon
 		if (comma)
 		{
-			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
 			this.tokens.discard();
 		}
 
@@ -659,25 +699,25 @@ export class Parser
 		return result;
 	}
 
-	private parseExpression() : tree.IExpression
+	private parseExpression() : tree.IExpression | undefined
 	{
 		return this.parseAssignment();
 	}
 
-	private createBinaryExpression(left : tree.IExpression, type : TokenType, right : tree.IExpression) : tree.IExpression
+	private createBinaryExpression(left : tree.IExpression, type : TokenType, right : tree.IExpression) : tree.IExpression | undefined
 	{
-		if (type == null || left == null || right == null)
-			return null;
+		if (type == undefined || left == undefined || right == undefined)
+			return undefined;
 		else
 			return new tree.BinaryExpression(left, type, right);
 	}
 
-	private parseAssignment() : tree.IExpression
+	private parseAssignment() : tree.IExpression | undefined
 	{
 		let left = this.parseDisjunction();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_ASSIGN:       // =
@@ -697,52 +737,58 @@ export class Parser
 				return left;
 		}
 
-		return this.createBinaryExpression(left, type, this.parseAssignment());
+		let right = this.parseAssignment();
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
 	 * Disjunction: Conjunction ( "or" Disjunction )*
 	 */
-	private parseDisjunction() : tree.IExpression
+	private parseDisjunction() : tree.IExpression | undefined
 	{
 		let left = this.parseConjunction();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		if (this.tokens.peekType() == TokenType.TOK_OR)
 			type = this.tokens.read().type;
 		else
 			return left;
 
-		return this.createBinaryExpression(left, type, this.parseDisjunction());
+		let right = this.parseDisjunction()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
 	 * Conjunction: EqualityComparison ( "and" Conjunction )*
 	 */
-	private parseConjunction() : tree.IExpression
+	private parseConjunction() : tree.IExpression | undefined
 	{
 		let left = this.parseEquality();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		if (this.tokens.peekType() == TokenType.TOK_AND)
 			type = this.tokens.read().type;
 		else
 			return left;
 
-		return this.createBinaryExpression(left, type, this.parseConjunction());
+		let right = this.parseConjunction()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
 	 * EqualityComparison: Comparison ( EqualityOperator EqualityComparison )*
 	 */
-	private parseEquality() : tree.IExpression
+	private parseEquality() : tree.IExpression | undefined
 	{
 		let left = this.parseComparison();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_EQ: // ==
@@ -753,18 +799,20 @@ export class Parser
 				return left;
 		}
 
-		return this.createBinaryExpression(left, type, this.parseEquality());
+		let right = this.parseEquality()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
 	 * Comparison: NamedInfix ( ComparisonOperator Comparison )*
 	 */
-	private parseComparison() : tree.IExpression
+	private parseComparison() : tree.IExpression | undefined
 	{
 		let left = this.parseNamedInfix();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_GT: // >
@@ -777,7 +825,9 @@ export class Parser
 				return left;
 		}
 
-		return this.createBinaryExpression(left, type, this.parseComparison());
+		let right = this.parseComparison()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
@@ -787,14 +837,14 @@ export class Parser
 	 *   ;
 	 *
 	 */
-	private parseNamedInfix() : tree.IExpression
+	private parseNamedInfix() : tree.IExpression | undefined
 	{
 		let left = this.parseAdditiveExpression();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let right : tree.IExpression = null;
+		let right : tree.IExpression | undefined = undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		if (this.tokens.peekType() == TokenType.TOK_NOT && this.tokens.peekTypeAt(1) == TokenType.TOK_IN) // not in
 		{
 			this.tokens.discard(2);
@@ -819,10 +869,15 @@ export class Parser
 			right = this.parseAdditiveExpression();
 		else
 		if (type == TokenType.TOK_IS || type == TokenType.TOK_NIS)
-			right = new tree.NameLiteral(this.parseName());
+		{
+			let name = this.parseName();
+			if (!name) return undefined;
+			right = new tree.NameLiteral(name);
+		}
 		else
-			return null;
+			return undefined;
 
+		if (!right) return undefined;
 		let result = new tree.BinaryExpression(left, type, right);
 		//result.location = left.location;
 		return result;
@@ -832,12 +887,12 @@ export class Parser
 	 * MultiplicativeExpression: PrefixUnaryExpression ( MultiplicativeOperator MultiplicativeExpression )*
 	 *
 	 */
-	private parseAdditiveExpression() : tree.IExpression
+	private parseAdditiveExpression() : tree.IExpression | undefined
 	{
 		let left = this.parseMultiplicativeExpression();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_MINUS: // -
@@ -848,19 +903,21 @@ export class Parser
 				return left;
 		}
 
-		return this.createBinaryExpression(left, type, this.parseAdditiveExpression());
+		let right = this.parseAdditiveExpression()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
 	 * MultiplicativeExpression: PrefixUnaryExpression ( MultiplicativeOperator MultiplicativeExpression )*
 	 *
 	 */
-	private parseMultiplicativeExpression() : tree.IExpression
+	private parseMultiplicativeExpression() : tree.IExpression | undefined
 	{
 		let left = this.parsePrefixUnaryExpression();
-		if (left == null) return null;
+		if (left == undefined) return undefined;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_MUL: // *
@@ -872,7 +929,9 @@ export class Parser
 				return left;
 		}
 
-		return this.createBinaryExpression(left, type, this.parseMultiplicativeExpression());
+		let right = this.parseMultiplicativeExpression()
+		if (!right) return undefined;
+		return this.createBinaryExpression(left, type, right);
 	}
 
 	/**
@@ -880,11 +939,11 @@ export class Parser
 	 * PrefixUnaryExpression: PrefixUnaryOperator? PostfixUnaryExpression
 	 *
 	 */
-	private parsePrefixUnaryExpression(leftValue : tree.IExpression = null) : tree.IExpression
+	private parsePrefixUnaryExpression(leftValue? : tree.IExpression) : tree.IExpression | undefined
 	{
 		let recursive = false;
 
-		let type : TokenType = null;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_INC:
@@ -892,14 +951,14 @@ export class Parser
 				type = this.tokens.read().type;
 				break;
 			default:
-				type = null;
+				type = undefined;
 		}
 		// FIXME: broken in recursive case (should test for more prefixes)?
 		let expr = leftValue;
-		if (leftValue == null)
+		if (leftValue == undefined)
 			expr = this.parsePostfixUnaryExpression();
 
-		if (type != null)
+		if (type != undefined)
 		{
 			if (recursive)
 				return new tree.UnaryExpression(this.parsePrefixUnaryExpression(expr), type, tree.UnaryDirection.PREFIX);
@@ -915,18 +974,18 @@ export class Parser
 	 * PostfixUnaryExpression: AtomicExpression PostfixUnaryOperator?
 	 *
 	 */
-	private parsePostfixUnaryExpression(leftValue : tree.IExpression = null) : tree.IExpression
+	private parsePostfixUnaryExpression(leftValue : tree.IExpression = undefined) : tree.IExpression | undefined
 	{
 		let expr : tree.IExpression = leftValue;
-		let extra : tree.IExpression = null;
+		let extra : tree.IExpression = undefined;
 
-		if (leftValue == null)
+		if (leftValue == undefined)
 			expr = this.parseAtomicExpression();
-		if (expr == null) return null;
+		if (expr == undefined) return undefined;
 
 		let recursive = false;
 
-		let type : TokenType = null;
+		let type : TokenType = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_INC:
@@ -935,26 +994,26 @@ export class Parser
 				break;
 			case TokenType.TOK_LEFT_BRACKET:
 				type = this.tokens.peekType();
-				extra = this.parseArrayAccess(null);
+				extra = this.parseArrayAccess(undefined);
 				break;
 			case TokenType.TOK_LEFT_PAR:
 				type = this.tokens.peekType();
-				extra = this.parseArgumentList(null);
+				extra = this.parseArgumentList(undefined);
 				break;
 			default:
-				type = null;
+				type = undefined;
 		}
 
-		if (type != null)
+		if (type != undefined)
 		{
-			let result : tree.UnaryExpression = null;
+			let result : tree.UnaryExpression = undefined;
 
 			if (recursive)
 				result = new tree.UnaryExpression(this.parsePostfixUnaryExpression(expr), type, tree.UnaryDirection.POSTFIX);
 			else
 				result = new tree.UnaryExpression(expr, type, tree.UnaryDirection.POSTFIX);
 
-			if (extra != null) result.extra = extra;
+			if (extra != undefined) result.extra = extra;
 			return result;
 		}
 
@@ -966,7 +1025,7 @@ export class Parser
 	 *   : "(" ")"
 	 *   : "(" Argument ( "," Argument )* ")"
 	 */
-	private parseArgumentList(value : tree.ArgumentList) : tree.ArgumentList
+	private parseArgumentList(value : tree.ArgumentList) : tree.ArgumentList | undefined
 	{
 		if (this.tokens.lookahead(false, TokenType.TOK_LEFT_PAR, TokenType.TOK_RIGHT_PAR))
 		{
@@ -974,23 +1033,23 @@ export class Parser
 			return new tree.ArgumentList();
 		}
 
-		if (value == null)
+		if (value == undefined)
 		{
-			if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
 			this.tokens.discard();
 
 			let result = new tree.ArgumentList( this.parseArgument() );
 			if (this.tokens.peekType() == TokenType.TOK_COMA)
 			this.parseArgumentList(result);
 
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
 			this.tokens.discard();
 
 			return result;
 		}
 		else
 		{
-			if (!this.expectedOneOf(TokenType.TOK_COMA)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_COMA)) return undefined;
 			this.tokens.discard();
 
 			while (true)
@@ -1008,9 +1067,9 @@ export class Parser
 		}
 	}
 
-	private parseArgument() : tree.Argument
+	private parseArgument() : tree.Argument | undefined
 	{
-		let name : tree.Name = null;
+		let name : tree.Name = undefined;
 
 		if (this.tokens.lookahead(false, TokenType.TOK_NAME, TokenType.TOK_ASSIGN))
 		{
@@ -1024,25 +1083,25 @@ export class Parser
 	/**
 	 * ArrayAccess: "[" Expression ( "," Expression )* "]"
 	 */
-	private parseArrayAccess(value : tree.ExpressionList) : tree.IExpression
+	private parseArrayAccess(value : tree.ExpressionList) : tree.IExpression | undefined
 	{
-		if (value == null)
+		if (value == undefined)
 		{
-			if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACKET)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACKET)) return undefined;
 			this.tokens.discard();
 
 			let result = new tree.ExpressionList( this.parseExpression() );
 			if (this.tokens.peekType() == TokenType.TOK_COMA)
 			this.parseArrayAccess(result);
 
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACKET)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACKET)) return undefined;
 			this.tokens.discard();
 
 			return result;
 		}
 		else
 		{
-			if (!this.expectedOneOf(TokenType.TOK_COMA)) return null;
+			if (!this.expectedOneOf(TokenType.TOK_COMA)) return undefined;
 			this.tokens.discard();
 
 			value.expressions.push( this.parseExpression() );
@@ -1063,9 +1122,9 @@ export class Parser
 	 *
 	 * @return
 	 */
-	private parseAtomicExpression() : tree.IExpression
+	private parseAtomicExpression() : tree.IExpression | undefined
 	{
-		let result : tree.IExpression = null;
+		let result : tree.IExpression = undefined;
 
 		switch(this.tokens.peekType())
 		{
@@ -1091,7 +1150,7 @@ export class Parser
 	 *
 	 * @return
 	 */
-	private parseLiteralConstant() : tree.IExpression
+	private parseLiteralConstant() : tree.IExpression | undefined
 	{
 		switch(this.tokens.peekType())
 		{
@@ -1117,7 +1176,7 @@ export class Parser
 
 	}
 
-	private parseIntegerLiteral() : tree.IntegerLiteral
+	private parseIntegerLiteral() : tree.IntegerLiteral | null
 	{
 		let value = this.tokens.peek().value;
 		switch(this.tokens.read().type)
@@ -1138,14 +1197,14 @@ export class Parser
 		}
 	}
 
-	private parseStringLiteral() : tree.StringLiteral
+	private parseStringLiteral() : tree.StringLiteral | null
 	{
 		let value = this.tokens.read().value;
 		this.context.stringTable.push(value);
 		return new tree.StringLiteral(value);
 	}
 
-	private parseFloatLiteral() : tree.FloatLiteral
+	private parseFloatLiteral() : tree.FloatLiteral | null
 	{
 		let value = this.tokens.read().value;
 		return new tree.FloatLiteral(value);

@@ -5,9 +5,9 @@ export interface CompilationListener
 
 	onStart() : void;
 
-	onError( location : SourceLocation, message : string ) : boolean;
+	onError( location : SourceLocation | null, message : string ) : boolean;
 
-	onWarning( location : SourceLocation, message : string ) : boolean;
+	onWarning( location : SourceLocation | null, message : string ) : boolean;
 
 	onFinish() : void;
 
@@ -19,15 +19,17 @@ export class CompilationContext
 	stringTable : string[];
 	generated : string;
 
-	constructor()
+	constructor( listener : CompilationListener )
 	{
-		this.listener = null;
+		this.listener = listener;
 		this.stringTable = [];
 		this.generated = "";
 	}
 
 	public throwExpected( found : Token, types : TokenType[] )
 	{
+		if (this.listener == null) return;
+
 		let first = true;
 		let message = "Syntax error, expected ";
 		for (let type of types)

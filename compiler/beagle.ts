@@ -3,7 +3,7 @@
 /// <reference path="Scanner.ts" />
 /// <reference path="Parser.ts" />
 /// <reference path="context.ts" />
-// / <reference path="AstPrinter.ts" />
+/// <reference path="AstPrinter.ts" />
 /// <reference path="generator.ts" />
 
 
@@ -37,8 +37,8 @@ if (process.argv.length == 3)
 
 let content = fs.readFileSync(fileName);
 
-let ctx = new beagle.compiler.CompilationContext();
-ctx.listener = new MyListener();
+let ctx = new beagle.compiler.CompilationContext(new MyListener());
+
 
 //let body = document.getElementsByTagName("body")[0];
 let ss = new beagle.compiler.ScanString(ctx, "bla", content.toString() /*"function abobrinha { }"*/);
@@ -66,8 +66,8 @@ else
 	let pa = new beagle.compiler.Parser(ctx, sc);
 	let unit = pa.parse();
 
-	console.log(util.inspect(unit, {showHidden: false, depth: null}))
-	//beagle.compiler.printCompilationUnit(unit);
+	//console.log(util.inspect(unit, {showHidden: false, depth: null}))
+	beagle.compiler.printCompilationUnit(unit);
 
 	//beagle.compiler.generator.generate(ctx, unit);
 	//console.log(ctx.generated);

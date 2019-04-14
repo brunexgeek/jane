@@ -6,8 +6,14 @@ namespace beagle.compiler {
 
 export class SourceLocation
 {
-	line : number = 1;
-	column : number = 1;
+	constructor( public line : number = 1, public column : number = 1 )
+	{
+	}
+
+	clone() : SourceLocation
+	{
+		return new SourceLocation(this.line, this.column);
+	}
 }
 
 export enum LookaheadStatus
@@ -50,7 +56,8 @@ export class ScanString
 	 */
 	index : number;
 
-	bufferSize : number;
+	// TODO: remove this property, use 'buffer.length' instead
+	bufferSize : number = 0;
 
 	context : CompilationContext;
 
@@ -274,32 +281,6 @@ enum LineBreak
     BOTH = 3
 }
 
-export class Token
-{
-    public type : TokenType;
-	public value? : string;
-	public location : SourceLocation;
-	public lineBreak : number;
-    public comments? : beagle.compiler.tree.Comment[];
-
-    constructor(location : SourceLocation, lineBreak : number, comments? : beagle.compiler.tree.Comment[], type? : TokenType, value : string = "")
-	{
-		// clone location object
-		this.location = new SourceLocation();
-		this.location.line = location.line;
-		this.location.column = location.column;
-
-		this.lineBreak = lineBreak;
-		this.comments = comments;
-		if (type == null)
-			this.type = TokenType.parse(value);
-		else
-			this.type = type;
-		if (!this.type.isKeyword) this.value = value;
-    }
-
-}
-
 export class TokenType
 {
     public readonly name : string;
@@ -425,6 +406,7 @@ export class TokenType
 	static readonly TOK_WRITELOCK = new TokenType("writelock", true, 'TOK_WRITELOCK');
 	static readonly TOK_XOR = new TokenType("^", false, 'TOK_XOR');
 	static readonly TOK_XOR_ASSIGN = new TokenType("^=", false, 'TOK_XOR_ASSIGN');
+	static readonly TOK_UNKNOWN = new TokenType('', false, 'TOK_UNKNWON');
 
     private constructor(name : string = "", isKeyword : boolean = false, token : string = "")
     {
@@ -442,7 +424,35 @@ export class TokenType
 	}
 }
 
+export class Token
+{
+    public type : TokenType;
+	public value : string;
+	public location? : SourceLocation;
+	public lineBreak : number;
+	public comments : beagle.compiler.tree.Comment[];
+	public static readonly defaultToken : Token = new Token(undefined, 0, [], TokenType.TOK_EOF, undefined);
 
+	constructor(location? : SourceLocation, lineBreak? : number, comments? : beagle.compiler.tree.Comment[],
+		type? : TokenType, value? : string)
+	{
+		// clone location object
+		if (location == null)
+			this.location = undefined;
+		else
+			this.location = location.clone();
+
+		this.value = '';
+		this.lineBreak = (lineBreak) ? lineBreak : 0;
+		this.comments = (comments) ? comments : [];
+		if (!value) value = '';
+		if (!type)
+			this.type = TokenType.parse(value);
+		else
+			this.type = type;
+		if (!this.type.isKeyword) this.value = value;
+    }
+}
 
 export class Scanner
 {
@@ -475,7 +485,7 @@ export class Scanner
 		let state = this.getLineBreak();
 		this.lineBreak = false;
 
-		if (name != null)
+		if (name)
 			length = name.length;
 		else
 			length = 0;
@@ -485,7 +495,7 @@ export class Scanner
 		location.column = this.source.location.column - length;
 
 		let output = new Token(location, state,
-			(this.comments.length > 0) ? this.comments : undefined, type, name);
+			(this.comments.length > 0) ? this.comments : [], type, name);
 
 		if (this.comments.length > 0) this.comments = [];
 		return output;
@@ -494,7 +504,7 @@ export class Scanner
 	/**
 	 * Advance the cursor and process the current character.
 	 */
-	readToken() : Token
+	readToken() : Token | undefined
 	{
 		while (true)
 		{
@@ -579,9 +589,9 @@ export class Scanner
 					}
 
 					if (this.source.peekAt(1) == '=')
-						return this.createToken(TokenType.TOK_DIV_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_DIV_ASSIGN, undefined, 2);
 
-					return this.createToken(TokenType.TOK_DIV, null, 1);
+					return this.createToken(TokenType.TOK_DIV, undefined, 1);
 				case '"':
 				case '\'':
 					return this.processString();
@@ -589,83 +599,83 @@ export class Scanner
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_EQ, null, 2);
+						return this.createToken(TokenType.TOK_EQ, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_ASSIGN, null, 1);
+					return this.createToken(TokenType.TOK_ASSIGN, undefined, 1);
 				case '+':
 					if (this.source.peekAt(1) == '+')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_INC, null, 2);
+						return this.createToken(TokenType.TOK_INC, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_PLUS_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_PLUS_ASSIGN, undefined, 2);
 					}
 					if (this.isDigit(this.source.peekAt(1)))
 					{
 						return this.processNumber();
 					}
-					return this.createToken(TokenType.TOK_PLUS, null, 1);
+					return this.createToken(TokenType.TOK_PLUS, undefined, 1);
 				case '-':
 					if (this.source.peekAt(1) == '-')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_DEC, null, 2);
+						return this.createToken(TokenType.TOK_DEC, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_MINUS_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_MINUS_ASSIGN, undefined, 2);
 					}
 					if (this.isDigit(this.source.peekAt(1)))
 					{
 						return this.processNumber();
 					}
-					return this.createToken(TokenType.TOK_MINUS, null, 1);
+					return this.createToken(TokenType.TOK_MINUS, undefined, 1);
 				case '*':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_MUL_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_MUL_ASSIGN, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_MUL, null, 1);
+					return this.createToken(TokenType.TOK_MUL, undefined, 1);
 				case '%':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_MOD_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_MOD_ASSIGN, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_MOD, null, 1);
+					return this.createToken(TokenType.TOK_MOD, undefined, 1);
 				case '&':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_BAND_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_BAND_ASSIGN, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '&')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_AND, null, 2);
+						return this.createToken(TokenType.TOK_AND, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_BAND, null, 1);
+					return this.createToken(TokenType.TOK_BAND, undefined, 1);
 				case '|':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_BOR_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_BOR_ASSIGN, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '|')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_OR, null, 2);
+						return this.createToken(TokenType.TOK_OR, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_BOR, null, 1);
+					return this.createToken(TokenType.TOK_BOR, undefined, 1);
 				case '.':
-					return this.createToken(TokenType.TOK_DOT, null, 1);
+					return this.createToken(TokenType.TOK_DOT, undefined, 1);
 				case '\\':
-					return this.createToken(TokenType.TOK_BACK_SLASH, null, 1);
+					return this.createToken(TokenType.TOK_BACK_SLASH, undefined, 1);
 				case '0':
 				case '1':
 				case '2':
@@ -678,24 +688,24 @@ export class Scanner
 				case '9':
 					return this.processNumber();
 				case '(':
-					return this.createToken(TokenType.TOK_LEFT_PAR, null, 1);
+					return this.createToken(TokenType.TOK_LEFT_PAR, undefined, 1);
 				case ')':
-					return this.createToken(TokenType.TOK_RIGHT_PAR, null, 1);
+					return this.createToken(TokenType.TOK_RIGHT_PAR, undefined, 1);
 				case '[':
-					return this.createToken(TokenType.TOK_LEFT_BRACKET, null, 1);
+					return this.createToken(TokenType.TOK_LEFT_BRACKET, undefined, 1);
 				case ']':
-					return this.createToken(TokenType.TOK_RIGHT_BRACKET, null, 1);
+					return this.createToken(TokenType.TOK_RIGHT_BRACKET, undefined, 1);
 				case '{':
-					return this.createToken(TokenType.TOK_LEFT_BRACE, null, 1);
+					return this.createToken(TokenType.TOK_LEFT_BRACE, undefined, 1);
 				case '}':
-					return this.createToken(TokenType.TOK_RIGHT_BRACE, null, 1);
+					return this.createToken(TokenType.TOK_RIGHT_BRACE, undefined, 1);
 				case '@':
-					return this.createToken(TokenType.TOK_AT, null, 1);
+					return this.createToken(TokenType.TOK_AT, undefined, 1);
 				case '>':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_GT, null, 2);
+						return this.createToken(TokenType.TOK_GT, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '>')
 					{
@@ -703,17 +713,17 @@ export class Scanner
 						if (this.source.peekAt(1) == '=')
 						{
 							this.source.next();
-							return this.createToken(TokenType.TOK_SHR_ASSIGN, null, 2);
+							return this.createToken(TokenType.TOK_SHR_ASSIGN, undefined, 2);
 						}
 						else
-							return this.createToken(TokenType.TOK_SHR, null, 2);
+							return this.createToken(TokenType.TOK_SHR, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_GT, null, 1);
+					return this.createToken(TokenType.TOK_GT, undefined, 1);
 				case '<':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_LT, null, 2);
+						return this.createToken(TokenType.TOK_LT, undefined, 2);
 					}
 					if (this.source.peekAt(1) == '<')
 					{
@@ -721,54 +731,54 @@ export class Scanner
 						if (this.source.peekAt(1) == '=')
 						{
 							this.source.next();
-							return this.createToken(TokenType.TOK_SHL_ASSIGN, null, 2);
+							return this.createToken(TokenType.TOK_SHL_ASSIGN, undefined, 2);
 						}
 						else
-							return this.createToken(TokenType.TOK_SHL, null, 2);
+							return this.createToken(TokenType.TOK_SHL, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_LT, null, 1);
+					return this.createToken(TokenType.TOK_LT, undefined, 1);
 
 				case ',':
-					return this.createToken(TokenType.TOK_COMA, null, 1);
+					return this.createToken(TokenType.TOK_COMA, undefined, 1);
 
 				case ';':
-					return this.createToken(TokenType.TOK_SEMICOLON, null, 1);
+					return this.createToken(TokenType.TOK_SEMICOLON, undefined, 1);
 
 				case ':':
-					return this.createToken(TokenType.TOK_COLON, null, 1);
+					return this.createToken(TokenType.TOK_COLON, undefined, 1);
 
 				case '?':
-					return this.createToken(TokenType.TOK_QUEST, null, 1);
+					return this.createToken(TokenType.TOK_QUEST, undefined, 1);
 
 				case '!':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_NE, null, 2);
+						return this.createToken(TokenType.TOK_NE, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_BANG, null, 1);
+					return this.createToken(TokenType.TOK_BANG, undefined, 1);
 
 				case '~':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_NEG_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_NEG_ASSIGN, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_TILDE, null, 1);
+					return this.createToken(TokenType.TOK_TILDE, undefined, 1);
 
 				case '^':
 					if (this.source.peekAt(1) == '=')
 					{
 						this.source.next();
-						return this.createToken(TokenType.TOK_XOR_ASSIGN, null, 2);
+						return this.createToken(TokenType.TOK_XOR_ASSIGN, undefined, 2);
 					}
-					return this.createToken(TokenType.TOK_XOR, null, 1);
+					return this.createToken(TokenType.TOK_XOR, undefined, 1);
 
 				case ScanString.BOL:
 					break;
 
 				case ScanString.EOI:
-					return this.createToken(TokenType.TOK_EOF, null, 1);
+					return this.createToken(TokenType.TOK_EOF, undefined, 1);
 
 				default:
 					if (this.isWhitespace(this.source.peek()) || this.source.peek() == ScanString.BOI)
@@ -779,7 +789,7 @@ export class Scanner
 		}
 	}
 
-	processString() : Token
+	processString() : Token | undefined
 	{
 		let type = this.source.peek();
 		if (this.source.lookahead(type, type, type) == LookaheadStatus.MATCH)
@@ -801,7 +811,7 @@ export class Scanner
 			return this.createToken(TokenType.TOK_STRING_LITERAL, capture.toString());
 	}
 
-	processMultilineString() : Token
+	processMultilineString() : Token | undefined
 	{
 		let type = this.source.peek();
 		this.source.nextAt(3);
@@ -827,7 +837,7 @@ export class Scanner
 		}
 	}
 
-	processBlockComment() : beagle.compiler.tree.Comment
+	processBlockComment() : beagle.compiler.tree.Comment | undefined
 	{
 		let type = TokenType.TOK_COMMENT;
 		this.source.nextAt(2);
@@ -849,7 +859,7 @@ export class Scanner
 		if (this.source.lookahead('*', '/') != LookaheadStatus.MATCH)
 		{
 			//this.context.listener.onError(this.source.location, "Unterminated block comment");
-			return null;
+			return undefined;
 		}
 		else
 		{
@@ -914,7 +924,7 @@ export class Scanner
 	 *
 	 * @return
 	 */
-	processNumber() : Token
+	processNumber() : Token | undefined
 	{
 		let type = TokenType.TOK_DEC_LITERAL;
 
@@ -974,13 +984,13 @@ export class Scanner
 		return this.createToken(type, capture);
 	}
 
-	returnError( message : string ) : Token
+	returnError( message : string ) : Token | undefined
 	{
 		this.context.listener.onError(this.source.location, message);
-		return null;
+		return undefined;
 	}
 
-	processHexadecimal() : Token
+	processHexadecimal() : Token | undefined
 	{
 		let capture = "0x";
 		this.source.nextAt(1);
@@ -1007,7 +1017,7 @@ export class Scanner
 		}
 	}
 
-	processBinary() : Token
+	processBinary() : Token | undefined
 	{
 		let capture = "0b";
 		this.source.next();
@@ -1040,7 +1050,7 @@ export class Scanner
 	 *
 	 * @return
 	 */
-	processIdentifier() : Token
+	processIdentifier() : Token | undefined
 	{
 		let capture = "";
 
@@ -1059,7 +1069,7 @@ export class Scanner
 				break;
 		}
 
-		return this.createToken(null, capture);
+		return this.createToken(TokenType.TOK_UNKNOWN, capture);
     }
 
     isWhitespace(symbol : string) : boolean
