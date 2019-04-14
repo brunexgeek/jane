@@ -2,6 +2,7 @@
 /// <reference path="Scanner.ts" />
 /// <reference path="context.ts" />
 
+
 namespace beagle.compiler {
 
 
@@ -168,16 +169,16 @@ export class Parser
 
 		let unit = new tree.CompilationUnit("builtin");
 
-		current = this.tokens.peek();
+		/*current = this.tokens.peek();
 		while (current != null && current.type == TokenType.TOK_IMPORT)
 		{
 			let imp = this.parseImport();
 			if (imp == null) break;
             unit.imports.push(imp);
 			current = this.tokens.peek();
-		}
+		}*/
 
-		if (!this.parseMembers(unit)) return null;
+		this.parseTopLevelStatements(unit.statements);
 
 		return unit;
 	}
@@ -247,21 +248,20 @@ export class Parser
 		this.tokens.discard();
 
 		let ns = new tree.Namespace(annots, name);
-		if (!this.parseMembers(ns)) return null;
+		this.parseTopLevelStatements(ns.statements);
 
 		// TOK_RIGHT_BRACE
+		if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return null;
 		this.tokens.discard();
 
 		return ns;
 	}
 
-    private parseMembers( container : tree.MemberContainer ) : boolean
+    private parseTopLevelStatements( stmts : tree.IStatement[] )
     {
 		while (true)
 		{
 			let tt = this.tokens.peekType();
-			if ((container instanceof tree.Namespace && tt == TokenType.TOK_RIGHT_BRACE) || tt == TokenType.TOK_EOF) break;
-
 			let annots = null;
 
 			// parse annotations
@@ -272,80 +272,51 @@ export class Parser
 				tt = this.tokens.peekType();
 			}
 
+			// parse imports
+			if (tt == TokenType.TOK_IMPORT)
+			{
+				let temp = this.parseImport();
+				if (temp == null) return;
+				stmts.push(temp);
+			}
+			else
 			// parse namespaces
 			if (tt == TokenType.TOK_NAMESPACE)
 			{
 				let temp = this.parseNamespace(annots);
-				if (temp == null) return null;
-				container.namespaces.push(temp);
+				if (temp == null) return;
+				stmts.push(temp);
 			}
 			else
 			// parse variables
 			if (tt == TokenType.TOK_VAR)
 			{
 				let storage = this.parseVariableOrConstant(annots, true);
-				if (storage == null) return null;
-				container.storages.push(storage);
+				if (storage == null) return;
+				stmts.push(storage);
 			}
 			else
 			// parse structures
-			if (tt == TokenType.TOK_STRUCT)
+			if (tt == TokenType.TOK_CLASS)
 			{
-				let struct = this.parseStructure(annots);
-				if (struct == null) return null;
-				container.classes.push(struct);
+				let struct = this.parseTypeDeclaration(annots);
+				if (struct == null) return;
+				stmts.push(struct);
 			}
 			else
 			// parse functions
 			if (tt == TokenType.TOK_FUNCTION)
 			{
 				let func = this.parseFunction(annots);
-				if (func == null) return null;
-				container.functions.push(func);
+				if (func == null) return;
+				stmts.push(func);
 			}
 			else
 			{
-				this.context.listener.onError(this.tokens.peek().location, "Unrecognized statement " + tt.token);
-				return false;
+				//this.context.listener.onError(this.tokens.peek().location, "Unrecognized statement " + tt.token);
+				break;
 			}
 		}
-
-		return true;
-/*
-        // parse functions
-        if (this.tokens.peek().type == TokenType.TOK_FUNCTION)
-        {
-            unit.functions.push(this.parseFunction(decors, null));
-        }
-        else
-        // parse variables and constants
-        if (this.tokens.peek().type == TokenType.TOK_VAR || tokens.peek().type == TokenType.TOK_CONST)
-        {
-            unit.storages().add((StorageDeclaration)parseVariableOrConstant(annots));
-        }
-        else
-        // parse structures
-        if (this.tokens.peek().type == TokenType.TOK_STRUCT)
-        {
-            unit.structures.add( this.parseStructure(decors) );
-        }
-        else
-        // parse block comments (originally a multiline string literal)
-        if (this.tokens.peek().type == TokenType.TOK_MSTRING_LITERAL)
-        {
-            this.context.stringTable.add(tokens.peek().value);
-            this.tokens.discard();
-        }
-        //else
-        //{
-        //	TypeDeclaration type = parseType(unit, annots);
-        //	unit.types().add(type);
-        //}
-        else
-        {
-            this.context.listener.onError(null, "Unrecognized statement");
-            return null;
-        }*/
     }
 
     private parseAnnotations() : tree.Annotation[]
@@ -501,19 +472,18 @@ export class Parser
 		return new tree.ReturnStmt(expr);
 	}
 
-	private parseStructure(annots : tree.Annotation[]) : tree.Structure
+	private parseTypeDeclaration(annots : tree.Annotation[]) : tree.TypeDeclaration
 	{
 		this.tokens.discard();
 
-		let output = new tree.Structure(annots);
-		if (this.expectedOneOf(TokenType.TOK_NAME))
-			output.name = this.parseName();
+		if (!this.expectedOneOf(TokenType.TOK_NAME)) return null;
+		let output = new tree.TypeDeclaration(annots, this.parseName());
 
-		if (this.tokens.peekType() == TokenType.TOK_COLON)
+		/*if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
 			this.tokens.discard();
-			output.parent = new tree.TypeReference(this.parseName(false));
-		}
+			output.parents.push( new tree.TypeReference(this.parseName(false)) );
+		}*/
 
 		if (this.tokens.peekType() == TokenType.TOK_LEFT_BRACE)
 		{

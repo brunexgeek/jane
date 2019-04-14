@@ -1,0 +1,20 @@
+class MyClass1
+{
+
+}
+
+class MyClass2
+{
+    x : int;
+    y : string;
+}
+
+class MyClass3
+{
+    a : int;
+
+    constructor( a : int )
+    {
+        this.a = a;
+    }
+}

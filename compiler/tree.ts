@@ -1,36 +1,19 @@
 
 namespace beagle.compiler.tree {
 
-export class MemberContainer
-{
-	classes : Structure[];
-	functions : Function[];
-	storages : StorageDeclaration[];
-	namespaces : Namespace[];
-
-	constructor()
-	{
-		this.functions = [];
-		this.storages = [];
-		this.classes = [];
-		this.namespaces = [];
-	}
-}
-
-export class CompilationUnit extends MemberContainer
+export class CompilationUnit
 {
     fileName : string;
-	imports : TypeImport[];
+	statements : IStatement[];
 
-	constructor(fileName : string)
+	constructor(fileName : string, stmts? : IStatement[])
 	{
-		super();
 		this.fileName = fileName;
-		this.imports = [];
+		this.statements = (stmts == null) ? [] : stmts;
 	}
 }
 
-export class Comment
+export class Comment implements IStatement
 {
 	text : string;
 	isDoc : boolean;
@@ -45,44 +28,48 @@ export class Comment
 export class Name
 {
     names : string[] = [];
-	qualifiedName : string;
-	location : SourceLocation;
+	location? : SourceLocation;
 
-	constructor(value : string)
+	constructor(value : string, location? : SourceLocation)
 	{
 		if (value == null) value = "<null>";
 		this.names.push(value);
-		this.qualifiedName = value;
+		this.location = location;
 	}
 
 	appendName(value : string )
 	{
 		this.names.push(value);
-		this.qualifiedName = this.qualifiedName + "." + value;
 	}
 
 	isQualified() : boolean
 	{
 		return this.names.length > 1;
 	}
+
+	get qualifiedName() : string
+	{
+		if (this.names.length == 0) return '';
+		let result = this.names[0];
+		for (let item of this.names) result += item;
+		return result;
+	}
 }
 
-
-
-class Package
+/*class Package
 {
     name : Name;
     types : TypeDeclaration[];
-}
+}*/
 
-export class TypeImport
+export class TypeImport implements IStatement
 {
-    package : Package;
+    //package : Package;
 	name : Name;
 	isWildcard : boolean;
-	alias : Name;
+	alias? : Name;
 
-	constructor( name : Name, isWildcard : boolean = false, alias : Name = null )
+	constructor( name : Name, isWildcard : boolean = false, alias? : Name )
 	{
 		this.alias = alias;
 		this.name = name;
@@ -90,28 +77,18 @@ export class TypeImport
 	}
 }
 
-class TypeDeclaration
-{
-    package : Package;
-	isComplete : boolean;
-	parent : CompilationUnit;
-	name : Name;
-	inherit : TypeReference[];
-	body : TypeBody;
-}
+
 
 export class TypeReference
 {
-    package : Package;
-	type : TypeDeclaration;
+    //package? : Package;
+	type? : TypeDeclaration;
 	isPrimitive : boolean = false;
 	name : Name;
 
 	constructor( name : Name )
 	{
 		this.name = name;
-		this.type = null;
-		this.package = null;
 		this.isPrimitive = false;
 
 		if (name != null && name.names.length == 1)
@@ -133,22 +110,15 @@ export class TypeReference
 	}
 }
 
-class TypeBody
-{
-    storages : StorageDeclaration[];
-	functions : Function[];
-	parent : TypeDeclaration;
-}
-
 export class StorageDeclaration implements IStatement
 {
 	type : TypeReference;
 	name : Name;
-	initializer : IExpression;
+	initializer? : IExpression;
 	isConst : boolean;
 	annots : Annotation[];
 
-	constructor( annots : Annotation[], name : Name, type : TypeReference, isConst : boolean, expr : IExpression = null )
+	constructor( annots : Annotation[], name : Name, type : TypeReference, isConst : boolean, expr? : IExpression )
 	{
 		this.annots = (annots == null) ? [] : annots;
 		this.name = name;
@@ -158,7 +128,7 @@ export class StorageDeclaration implements IStatement
 	}
 }
 
-export class Function
+export class Function implements IStatement
 {
 	annotations : Annotation[];
 	access : AccessMode;
@@ -166,7 +136,7 @@ export class Function
 	parameters : FormalParameter[];
 	type : TypeReference;
 	body : IStatement;
-	parent : CompilationUnit | TypeDeclaration;
+	parent? : CompilationUnit | TypeDeclaration;
 
 	constructor( annots : Annotation[], name : Name, type : TypeReference,
 		params : FormalParameter[], body : IStatement )
@@ -210,16 +180,15 @@ export class Annotation
 	}
 }
 
-export class Namespace extends MemberContainer
+export class Namespace implements IStatement
 {
 	name : Name;
-	annotations : Annotation[];
+	statements : IStatement[];
 
 	constructor( annots : tree.Annotation[], name : Name)
 	{
-		super();
 		this.name = name;
-		this.annotations = (annots == null) ? [] : annots;
+		this.statements = [];
 	}
 }
 
@@ -262,14 +231,13 @@ export class UnaryExpression implements IExpression
 	operation : TokenType;
 	direction : UnaryDirection;
 	expression : IExpression;
-	extra : IExpression;
+	extra? : IExpression;
 
 	constructor(expression : IExpression, operation : TokenType, direction : UnaryDirection)
 	{
 		this.operation = operation;
 		this.expression = expression;
 		this.direction = direction;
-		this.extra = null;
 	}
 }
 
@@ -277,7 +245,7 @@ export class ArgumentList
 {
 	args : Argument[];
 
-	constructor( item : Argument = null )
+	constructor( item? : Argument )
 	{
 		this.args = [];
 		if (item != null) this.args.push(item);
@@ -301,7 +269,7 @@ export class ExpressionList
 {
 	expressions : IExpression[];
 
-	constructor( item : IExpression = null )
+	constructor( item? : IExpression )
 	{
 		this.expressions = [];
 		if (item != null) this.expressions.push(item);
@@ -372,21 +340,26 @@ export enum AccessMode
 	PRIVATE
 }
 
-export class Structure
+export class TypeDeclaration implements IStatement
 {
 	annotations : Annotation[];
 	access : AccessMode;
 	name : Name;
-	parent : TypeReference;
 	properties : Property[];
+	functions : Function[];
+	// inheritance
+	parents : TypeReference[];
+	interfaces : TypeReference[];
 
-	constructor( annots : Annotation[] )
+	constructor( annots : Annotation[], name : Name )
 	{
 		this.annotations = (annots == null) ? [] : annots;
 		this.access = AccessMode.PRIVATE;
-		this.name = null;
-		this.parent = null;
+		this.name = name;
 		this.properties = [];
+		this.functions = [];
+		this.parents = [];
+		this.interfaces = [];
 	}
 }
 
@@ -396,10 +369,10 @@ export class Property
 	access : AccessMode;
 	annotations : Annotation[];
 	type : TypeReference;
-	initializer : IExpression;
+	initializer? : IExpression;
 
 	constructor( annots : Annotation[], access : AccessMode, name : Name,
-		type : TypeReference, initializer : IExpression = null )
+		type : TypeReference, initializer? : IExpression )
 	{
 		this.name = name;
 		this.access = access;
@@ -435,9 +408,9 @@ export class IfThenElseStmt
 {
 	condition : IExpression;
 	thenSide : IStatement;
-	elseSide : IStatement;
+	elseSide? : IStatement;
 
-	constructor( condition : IExpression, thenSide : IStatement, elseSide : IStatement = null)
+	constructor( condition : IExpression, thenSide : IStatement, elseSide? : IStatement)
 	{
 		this.condition = condition;
 		this.thenSide = thenSide;

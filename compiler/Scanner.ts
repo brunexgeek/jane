@@ -277,12 +277,12 @@ enum LineBreak
 export class Token
 {
     public type : TokenType;
-	public value : string;
+	public value? : string;
 	public location : SourceLocation;
 	public lineBreak : number;
-    public comments : beagle.compiler.tree.Comment[];
+    public comments? : beagle.compiler.tree.Comment[];
 
-    constructor(location : SourceLocation, lineBreak : number, comments : beagle.compiler.tree.Comment[], type : TokenType, value : string = "")
+    constructor(location : SourceLocation, lineBreak : number, comments? : beagle.compiler.tree.Comment[], type? : TokenType, value : string = "")
 	{
 		// clone location object
 		this.location = new SourceLocation();
@@ -291,7 +291,6 @@ export class Token
 
 		this.lineBreak = lineBreak;
 		this.comments = comments;
-		this.value = null;
 		if (type == null)
 			this.type = TokenType.parse(value);
 		else
@@ -426,7 +425,6 @@ export class TokenType
 	static readonly TOK_WRITELOCK = new TokenType("writelock", true, 'TOK_WRITELOCK');
 	static readonly TOK_XOR = new TokenType("^", false, 'TOK_XOR');
 	static readonly TOK_XOR_ASSIGN = new TokenType("^=", false, 'TOK_XOR_ASSIGN');
-	static readonly TOK_STRUCT = new TokenType("struct", true, 'TOK_STRUCT');
 
     private constructor(name : string = "", isKeyword : boolean = false, token : string = "")
     {
@@ -472,19 +470,22 @@ export class Scanner
 		return state;
 	}
 
-	createToken( type : TokenType, name : string = null, length : number = 0 ) : Token
+	createToken( type : TokenType, name? : string, length? : number ) : Token
 	{
 		let state = this.getLineBreak();
 		this.lineBreak = false;
 
-		if (name != null) length = name.length;
+		if (name != null)
+			length = name.length;
+		else
+			length = 0;
 
 		let location = new SourceLocation();
 		location.line = this.source.location.line;
 		location.column = this.source.location.column - length;
 
 		let output = new Token(location, state,
-			(this.comments.length > 0) ? this.comments : null, type, name);
+			(this.comments.length > 0) ? this.comments : undefined, type, name);
 
 		if (this.comments.length > 0) this.comments = [];
 		return output;

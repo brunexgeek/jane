@@ -3,7 +3,7 @@
 /// <reference path="Scanner.ts" />
 /// <reference path="Parser.ts" />
 /// <reference path="context.ts" />
-/// <reference path="AstPrinter.ts" />
+// / <reference path="AstPrinter.ts" />
 /// <reference path="generator.ts" />
 
 
@@ -29,7 +29,13 @@ declare var require: any;
 require('source-map-support').install();
 let fs = require("fs");
 let util = require("util");
-let content = fs.readFileSync("input.txt");
+let process = require("process");
+
+let fileName = 'input.txt';
+if (process.argv.length == 3)
+	fileName = process.argv[2];
+
+let content = fs.readFileSync(fileName);
 
 let ctx = new beagle.compiler.CompilationContext();
 ctx.listener = new MyListener();

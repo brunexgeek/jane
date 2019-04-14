@@ -3,13 +3,13 @@ namespace beagle.compiler {
 export interface CompilationListener
 {
 
-	onStart();
+	onStart() : void;
 
 	onError( location : SourceLocation, message : string ) : boolean;
 
 	onWarning( location : SourceLocation, message : string ) : boolean;
 
-	onFinish();
+	onFinish() : void;
 
 }
 

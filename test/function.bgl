@@ -1,0 +1,12 @@
+function func1()
+{
+}
+
+function func2( x : int )
+{
+}
+
+function func3( x : int, y : string ) : float
+{
+    return 1.1;
+}
