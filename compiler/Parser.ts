@@ -958,10 +958,15 @@ export class Parser
 		if (leftValue == undefined)
 			expr = this.parsePostfixUnaryExpression();
 
+		if (!expr) return undefined;
 		if (type != undefined)
 		{
 			if (recursive)
-				return new tree.UnaryExpression(this.parsePrefixUnaryExpression(expr), type, tree.UnaryDirection.PREFIX);
+			{
+				let temp = this.parsePrefixUnaryExpression(expr);
+				if (!temp) return undefined;
+				return new tree.UnaryExpression(temp, type, tree.UnaryDirection.PREFIX);
+			}
 			else
 				return new tree.UnaryExpression(expr, type, tree.UnaryDirection.PREFIX);
 		}
@@ -974,10 +979,10 @@ export class Parser
 	 * PostfixUnaryExpression: AtomicExpression PostfixUnaryOperator?
 	 *
 	 */
-	private parsePostfixUnaryExpression(leftValue : tree.IExpression = undefined) : tree.IExpression | undefined
+	private parsePostfixUnaryExpression(leftValue? : tree.IExpression) : tree.IExpression | undefined
 	{
-		let expr : tree.IExpression = leftValue;
-		let extra : tree.IExpression = undefined;
+		let expr : tree.IExpression | undefined = leftValue;
+		let extra : tree.IExpression | undefined = undefined;
 
 		if (leftValue == undefined)
 			expr = this.parseAtomicExpression();
@@ -985,7 +990,7 @@ export class Parser
 
 		let recursive = false;
 
-		let type : TokenType = undefined;
+		let type : TokenType | undefined = undefined;
 		switch(this.tokens.peekType())
 		{
 			case TokenType.TOK_INC:
@@ -1006,7 +1011,7 @@ export class Parser
 
 		if (type != undefined)
 		{
-			let result : tree.UnaryExpression = undefined;
+			let result : tree.UnaryExpression | undefined = undefined;
 
 			if (recursive)
 				result = new tree.UnaryExpression(this.parsePostfixUnaryExpression(expr), type, tree.UnaryDirection.POSTFIX);
