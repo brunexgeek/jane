@@ -260,10 +260,10 @@ export class ArgumentList
 
 export class Argument
 {
-	name : Name;
+	name? : Name;
 	value : IExpression;
 
-	constructor( name : Name, value : IExpression )
+	constructor( name : Name | undefined, value : IExpression )
 	{
 		this.name = name;
 		this.value = value;
@@ -350,8 +350,7 @@ export class TypeDeclaration implements IStatement
 	annotations : Annotation[];
 	access : AccessMode;
 	name : Name;
-	properties : Property[];
-	functions : Function[];
+	statements : IStatement[];
 	// inheritance
 	parents : TypeReference[];
 	interfaces : TypeReference[];
@@ -361,8 +360,7 @@ export class TypeDeclaration implements IStatement
 		this.annotations = (annots) ? annots : [];
 		this.access = AccessMode.PRIVATE;
 		this.name = name;
-		this.properties = [];
-		this.functions = [];
+		this.statements = [];
 		this.parents = [];
 		this.interfaces = [];
 	}
@@ -440,10 +438,12 @@ export class ForEachStmt implements IStatement
 export class BlockStmt implements IStatement
 {
 	statements : IStatement[];
+	enclosed : boolean;
 
-	constructor( stmts : IStatement[] = [] )
+	constructor( enclosed : boolean = true, stmts? : IStatement[] )
 	{
-		this.statements = stmts;
+		this.statements = (stmts) ? stmts : [] ;
+		this.enclosed = (stmts.length > 1) ? true : enclosed;
 	}
 }
 

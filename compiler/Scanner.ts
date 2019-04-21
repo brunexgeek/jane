@@ -446,7 +446,7 @@ export class Token
 		this.lineBreak = (lineBreak) ? lineBreak : 0;
 		this.comments = (comments) ? comments : [];
 		if (!value) value = '';
-		if (!type)
+		if (!type || type == TokenType.TOK_UNKNOWN)
 			this.type = TokenType.parse(value);
 		else
 			this.type = type;

@@ -32,10 +32,9 @@ export class TokenArray
 		{
 			let token : Token | undefined;
 			if (token = scanner.readToken())
-			{
 				this.buffer[i] = token;
+			else
 				break;
-			}
 		}
 	}
 
@@ -46,15 +45,15 @@ export class TokenArray
 	 */
 	public read() : Token
 	{
-		if (this.buffer[this.current] != null)
-		{
-			let value = this.buffer[this.current];
-			let token : Token | undefined = this.scanner.readToken();
-			if (!token) return this.defaultToken;
-			this.buffer[this.current] = token;
-			this.current = (this.current + 1) % this.size;
-			if (value != null) return value;
-		}
+		let value = this.buffer[this.current];
+
+		let token : Token | undefined = this.scanner.readToken();
+		if (!token) token = this.defaultToken;
+
+		this.buffer[this.current] = token;
+		this.current = (this.current + 1) % this.size;
+		if (value) return value;
+
 		return this.defaultToken;
 	}
 
@@ -239,7 +238,8 @@ export class Parser
 					if (alias == undefined) return undefined;
 				}
 			}
-            if (this.tokens.peekType() != TokenType.TOK_SEMICOLON) return undefined;
+
+            if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
             this.tokens.discard(1);
 
             return new tree.TypeImport(qualifiedName, isWildcard, alias);
@@ -350,9 +350,11 @@ export class Parser
 	private parseBlock() : tree.BlockStmt | undefined
 	{
 		let stmts : tree.IExpression[] = [];
+		let enclosed = false;
 
 		if (this.tokens.peekType() == TokenType.TOK_LEFT_BRACE)
 		{
+			enclosed = true;
 			this.tokens.discard();
 			let tt = this.tokens.peekType();
 
@@ -385,7 +387,7 @@ export class Parser
 			stmts.push(temp);
 		}
 
-		return new tree.BlockStmt(stmts);
+		return new tree.BlockStmt(enclosed, stmts);
 	}
 
 	private parseStatement() : tree.IStatement | undefined
@@ -526,7 +528,7 @@ export class Parser
 				{
 					let prop = this.parseProperty(annots, access, name);
 					if (!prop) return undefined;
-					output.properties.push(prop);
+					output.statements.push(prop);
 				}
 				else
 				{
@@ -914,7 +916,8 @@ export class Parser
 	 */
 	private parseMultiplicativeExpression() : tree.IExpression | undefined
 	{
-		let left = this.parsePrefixUnaryExpression();
+		//let left = this.parsePrefixUnaryExpression();
+		let left = this.parseAtomicExpression();
 		if (left == undefined) return undefined;
 
 		let type : TokenType | undefined = undefined;
@@ -1074,13 +1077,13 @@ export class Parser
 
 	private parseArgument() : tree.Argument | undefined
 	{
-		let name : tree.Name = undefined;
+		/*let name : tree.Name;
 
 		if (this.tokens.lookahead(false, TokenType.TOK_NAME, TokenType.TOK_ASSIGN))
 		{
 			name = this.parseName();
 			this.tokens.discard(2);
-		}
+		}*/
 
 		return new tree.Argument(name, this.parseExpression());
 	}
@@ -1088,7 +1091,7 @@ export class Parser
 	/**
 	 * ArrayAccess: "[" Expression ( "," Expression )* "]"
 	 */
-	private parseArrayAccess(value : tree.ExpressionList) : tree.IExpression | undefined
+	private parseArrayAccess(value? : tree.ExpressionList) : tree.IExpression | undefined
 	{
 		if (value == undefined)
 		{

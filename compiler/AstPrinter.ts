@@ -2,17 +2,17 @@
 
 namespace beagle.compiler {
 
-let currentNameValue : string = null;
+let currentNameValue : string | undefined;
 
 function setCurrentName(value : string)
 {
     currentNameValue = value;
 }
 
-function getCurrentName() : string
+function getCurrentName() : string | undefined
 {
     let result = currentNameValue;
-    currentNameValue = null;
+    currentNameValue = undefined;
     return result;
 }
 
@@ -105,7 +105,7 @@ function print( value : string )
 function openNC( name : string, clazz : string ) : boolean
 {
     let temp = getCurrentName();
-    if (temp != null) name = temp;
+    if (temp != undefined) name = temp;
 
     print("<div class='container'>");
     if (name != null && clazz != null)
@@ -159,33 +159,60 @@ export function printCompilationUnit(target : tree.CompilationUnit)
 
     openC(target.constructor['name']);
     attributeNC("fileName", target.fileName);
-	printStatements(target.statements);
+	printStatements(undefined, target.statements);
 	//printStorages(target.storages);
     print("</body></html>");
 }
 
-export function printStatements( target : tree.IStatement[] )
+export function printStatements( name : string | undefined, target : tree.IStatement[] )
 {
-	openNC("statements", target.constructor['name']);
+	if (target.length == 0) return;
+
+	if (!name) name = "statements";
+	openNC(name, target.constructor['name']);
 	for (let item of target)
-	{
-		if (item instanceof tree.Function)
-			printFunction(item);
-		else
-		if (item instanceof tree.StorageDeclaration)
-			printStorageDeclaration(item);
-		else
-		if (item instanceof tree.TypeImport)
-			printTypeImport(item);
-	}
+		printStatement(undefined, item);
 	close();
+}
+
+function printStatement(name : string | undefined, target : tree.IStatement)
+{
+	if (target instanceof tree.BlockStmt)
+	{
+		printBlock(name, target);
+		return;
+	}
+
+	if (name) openNC(name, target.constructor['name']);
+
+	if (target instanceof tree.Function)
+		printFunction(target);
+	else
+	if (target instanceof tree.StorageDeclaration)
+		printStorageDeclaration(target);
+	else
+	if (target instanceof tree.TypeImport)
+		printTypeImport(target);
+	else
+	if (target instanceof tree.Namespace)
+		printNamespace(target);
+	else
+	if (target instanceof tree.TypeDeclaration)
+		printTypeDeclaration(target);
+	else
+	{
+		openNC("unknown", "Unknown");
+		close();
+	}
+
+	if (name) close();
 }
 
 export function printStorageDeclaration( target : tree.StorageDeclaration )
 {
 	openC(target.constructor['name']);
 	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
-	attributeNCV("name", target.type.name.constructor['name'], target.type.name.qualifiedName);
+	if (target.type) attributeNCV("type", target.type.name.constructor['name'], target.type.name.qualifiedName);
 	close();
 }
 
@@ -194,7 +221,7 @@ export function printNamespace( target : tree.Namespace )
 	openC(target.constructor['name']);
 	if (target.name != null)
 		attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
-	printStatements(target.statements);
+	printStatements(undefined, target.statements);
 	close();
 }
 
@@ -239,6 +266,18 @@ function printFunction( target : tree.Function )
 	attributeNCV('name', target.name.constructor['name'], target.name.qualifiedName);
 	printFormalParameters(target.parameters);
 	if (target.type) printTypeReference(target.type);
+	printStatement("body", target.body);
+	close();
+}
+
+function printBlock( name : string | undefined, target : tree.BlockStmt )
+{
+	if (target.statements.length == 0) return;
+
+	if (!name) name = "block";
+	openNC(name, target.constructor['name']);
+	for (let item of target.statements)
+		printStatement(undefined, item);
 	close();
 }
 
