@@ -44,9 +44,9 @@ function attributeNCV( name : string, clazz : string, value : string )
 
     print("<span class='title'>");
     print(clazz);
-    print("</span>(<span class='value'>");
+    print("</span> ( <span class='value'>");
     print(value);
-    print("</span>)</div></div>");
+    print("</span> ) </div></div>");
 }
 
 /*
@@ -56,9 +56,9 @@ function attributeNV( name : string, value : string )
 {
     print("<div class='container'><div class='attribute'><span class='name'>");
     print(name);
-    print("</span> &rarr; (<span class='value'>");
+    print("</span> &rarr; ( <span class='value'>");
     print(value);
-    print("</span>)</div></div>");
+    print("</span> ) </div></div>");
 }
 
 function missing()
@@ -96,7 +96,7 @@ function openC(clazz : string) : boolean
 
 function print( value : string )
 {
-    console.log(value);
+    process.stdout.write(value);
 }
 
 /*
@@ -158,7 +158,7 @@ export function printCompilationUnit(target : tree.CompilationUnit)
     print("</head><body>");
 
     openC(target.constructor['name']);
-    attributeNC("fileName", target.fileName);
+    attributeNV("fileName", target.fileName);
 	printStatements(undefined, target.statements);
 	//printStorages(target.storages);
     print("</body></html>");
@@ -201,8 +201,7 @@ function printStatement(name : string | undefined, target : tree.IStatement)
 		printTypeDeclaration(target);
 	else
 	{
-		openNC("unknown", "Unknown");
-		close();
+		if (!name) attributeNC("unknown", target.constructor['name']);
 	}
 
 	if (name) close();
