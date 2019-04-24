@@ -35,7 +35,7 @@ function attributeNCV( name : string, clazz : string, value : string )
 {
     print("<div class='container'><div class='attribute'>");
 
-    if (name != null)
+    if (name)
     {
         print("<span class='name'>");
         print(name);
@@ -85,7 +85,7 @@ function close()
 function openC(clazz : string) : boolean
 {
     print("<div class='container'>");
-    if (clazz != null)
+    if (clazz)
     {
         print("<div class='title'>");
         print(clazz);
@@ -104,27 +104,21 @@ function print( value : string )
  */
 function openNC( name : string, clazz : string ) : boolean
 {
-    //let temp = getCurrentName();
-    //if (temp != undefined) name = temp;
-
     print("<div class='container'>");
-    //if (name != null && clazz != null)
-    //{
-        print("<div class='dedent'>");
+	print("<div class='dedent'>");
 
-        if (name)
-        {
-            print("<span class='description'>");
-            print(name);
-            print("</span> &rarr; ");
-        }
+	if (name)
+	{
+		print("<span class='description'>");
+		print(name);
+		print("</span> &rarr; ");
+	}
 
-        print("<span class='title'>");
-        print(clazz);
-        print("</span>");
+	print("<span class='title'>");
+	print(clazz);
+	print("</span>");
 
-        print("</div>");
-    //}
+	print("</div>");
     return true;
 }
 /*
@@ -176,6 +170,8 @@ export function printStatements( name : string | undefined, target : tree.IState
 
 function printStatement(name : string | undefined, target : tree.IStatement)
 {
+	if (!target) return;
+
 	if (target instanceof tree.BlockStmt)
 	{
 		printBlock(name, target);
@@ -188,7 +184,7 @@ function printStatement(name : string | undefined, target : tree.IStatement)
 		printFunction(target);
 	else
 	if (target instanceof tree.StorageDeclaration)
-		printStorageDeclaration(target);
+		printStorageDeclaration(undefined, target);
 	else
 	if (target instanceof tree.TypeImport)
 		printTypeImport(target);
@@ -211,6 +207,9 @@ function printStatement(name : string | undefined, target : tree.IStatement)
 	if (target instanceof tree.ForEachStmt)
 		printForEachStmt(target);
 	else
+	if (target instanceof tree.Property)
+		printProperty(target);
+	else
 	{
 		if (!name) attributeNC("unknown", target.constructor['name']);
 	}
@@ -227,31 +226,50 @@ function printReturn( target : tree.ReturnStmt )
 
 function printExpression( name : string | undefined, target : tree.IExpression )
 {
-	openNC(name, target.constructor['name']);
+	if (!target) return;
 
-	if (target instanceof tree.BinaryExpression)
+	let type = target.constructor['name'];
+
+	if (target instanceof tree.NameLiteral)
+		attributeNCV("value", type, target.value.qualifiedName);
+	else
+	if (target instanceof tree.IntegerLiteral)
+		attributeNCV("value", type, target.value);
+	else
+	if (target instanceof tree.FloatLiteral)
+		attributeNCV("value", type, target.value);
+	else
+	if (target instanceof tree.StringLiteral)
+		attributeNCV("value", type, "'" + target.value + "'");
+	else
+	if (target instanceof tree.BooleanLiteral)
+		attributeNCV("value", type, (target.value) ? "true" : "false");
+	else
 	{
-		attributeNV("operation", target.operation.token);
-		printExpression("left", target.left);
-		printExpression("right", target.right);
+		openNC(name, type);
+		if (target instanceof tree.BinaryExpression)
+		{
+			attributeNV("operation", target.operation.token);
+			printExpression("left", target.left);
+			printExpression("right", target.right);
+		}
+		close();
 	}
-
-	close();
 }
 
-export function printStorageDeclaration( target : tree.StorageDeclaration )
+export function printStorageDeclaration( name : string | undefined, target : tree.StorageDeclaration )
 {
-	openC(target.constructor['name']);
+	openNC(name, target.constructor['name']);
 	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
 	if (target.type) attributeNCV("type", target.type.name.constructor['name'], target.type.name.qualifiedName);
+	if (target.initializer) printExpression("initializer", target.initializer);
 	close();
 }
 
 export function printNamespace( target : tree.Namespace )
 {
 	openC(target.constructor['name']);
-	if (target.name != null)
-		attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
+	if (target.name) attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
 	printStatements(undefined, target.statements);
 	close();
 }
@@ -283,9 +301,20 @@ function printTypeDeclaration( target : tree.TypeDeclaration )
 {
 	openC(target.constructor['name']);
 	printAnnotations(target.annotations);
+	printAccessMode(target.access);
 	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
-	attributeNCV("access", target.access.constructor['name'], target.access.toString());
+	printStatements("statements", target.statements);
+	close();
+}
 
+function printProperty( target : tree.Property )
+{
+	openC(target.constructor['name']);
+	printAnnotations(target.annotations);
+	printAccessMode(target.access);
+	attributeNCV("name", target.name.constructor['name'], target.name.qualifiedName);
+	printTypeReference(target.type);
+	if (target.initializer) printExpression("initializer", target.initializer);
 	close();
 }
 
@@ -355,8 +384,8 @@ function printFormatParameter( target : tree.FormalParameter )
 
 function printName(name : string, target : tree.Name)
 {
-    if (target == null) return;
-    if (name == null) name = "name";
+    if (!target) return;
+    if (!name) name = "name";
     attributeNCV(name, target.constructor['name'], target.qualifiedName);
 }
 
@@ -381,7 +410,7 @@ function printIfThenElse( target : tree.IfThenElseStmt )
 function printForEachStmt( target : tree.ForEachStmt )
 {
 	openC(target.constructor['name']);
-	printExpression("iterator", target.iterator);
+	printStorageDeclaration("iterator", target.iterator);
 	printExpression("expression", target.expression);
 	printStatement("block", target.statement);
 	close();

@@ -300,7 +300,7 @@ export class Parser
 			}
 			else
 			// parse variables
-			if (tt == TokenType.TOK_VAR)
+			if (tt == TokenType.TOK_LET)
 			{
 				let storage = this.parseVariableOrConstant(annots, true);
 				if (storage == undefined) return;
@@ -465,7 +465,12 @@ export class Parser
 		// 'for' keyword
 		if (!this.expectedOneOf(TokenType.TOK_FOR)) return undefined;
 		this.tokens.discard();
+		// left parentesis
+		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
+		this.tokens.discard();
 		// variable
+		if (!this.expectedOneOf(TokenType.TOK_LET)) return undefined;
+		this.tokens.discard();
 		let name = this.parseName();
 		if (!name) return undefined;
 		let storage = new tree.StorageDeclaration(undefined, name, undefined, false, undefined);
@@ -475,6 +480,9 @@ export class Parser
 		// expression
 		let expr = this.parseExpression();
 		if (!expr) return undefined;
+		// right parentesis
+		if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
+		this.tokens.discard();
 		// statements
 		let block = this.parseBlock();
 		if (!block) return undefined;
