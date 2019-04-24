@@ -104,15 +104,15 @@ function print( value : string )
  */
 function openNC( name : string, clazz : string ) : boolean
 {
-    let temp = getCurrentName();
-    if (temp != undefined) name = temp;
+    //let temp = getCurrentName();
+    //if (temp != undefined) name = temp;
 
     print("<div class='container'>");
-    if (name != null && clazz != null)
-    {
+    //if (name != null && clazz != null)
+    //{
         print("<div class='dedent'>");
 
-        if (name != null)
+        if (name)
         {
             print("<span class='description'>");
             print(name);
@@ -124,7 +124,7 @@ function openNC( name : string, clazz : string ) : boolean
         print("</span>");
 
         print("</div>");
-    }
+    //}
     return true;
 }
 /*
@@ -160,7 +160,6 @@ export function printCompilationUnit(target : tree.CompilationUnit)
     openC(target.constructor['name']);
     attributeNV("fileName", target.fileName);
 	printStatements(undefined, target.statements);
-	//printStorages(target.storages);
     print("</body></html>");
 }
 
@@ -200,11 +199,44 @@ function printStatement(name : string | undefined, target : tree.IStatement)
 	if (target instanceof tree.TypeDeclaration)
 		printTypeDeclaration(target);
 	else
+	if (target instanceof tree.ExpressionStmt)
+		printExpression(undefined, target.expr);
+	else
+	if (target instanceof tree.ReturnStmt)
+		printReturn(target);
+	else
+	if (target instanceof tree.IfThenElseStmt)
+		printIfThenElse(target);
+	else
+	if (target instanceof tree.ForEachStmt)
+		printForEachStmt(target);
+	else
 	{
 		if (!name) attributeNC("unknown", target.constructor['name']);
 	}
 
 	if (name) close();
+}
+
+function printReturn( target : tree.ReturnStmt )
+{
+	openC(target.constructor['name']);
+	printExpression(undefined, target.expr);
+	close();
+}
+
+function printExpression( name : string | undefined, target : tree.IExpression )
+{
+	openNC(name, target.constructor['name']);
+
+	if (target instanceof tree.BinaryExpression)
+	{
+		attributeNV("operation", target.operation.token);
+		printExpression("left", target.left);
+		printExpression("right", target.right);
+	}
+
+	close();
 }
 
 export function printStorageDeclaration( target : tree.StorageDeclaration )
@@ -334,6 +366,24 @@ function printTypeImport(target : tree.TypeImport)
 	//printPackage(item.namespace());
 	printName("name", target.name);
 	printName("alias", target.alias);
+	close();
+}
+
+function printIfThenElse( target : tree.IfThenElseStmt )
+{
+	openC(target.constructor['name']);
+	printExpression("condition", target.condition);
+	printStatement("then", target.thenSide);
+	printStatement("else", target.elseSide);
+	close();
+}
+
+function printForEachStmt( target : tree.ForEachStmt )
+{
+	openC(target.constructor['name']);
+	printExpression("iterator", target.iterator);
+	printExpression("expression", target.expression);
+	printStatement("block", target.statement);
 	close();
 }
 

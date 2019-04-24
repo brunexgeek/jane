@@ -364,8 +364,8 @@ export class Parser
 				if (current == undefined) return undefined;
 
 				// discard ';'
-				if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-				this.tokens.discard();
+				//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+				//this.tokens.discard();
 
 				stmts.push(current);
 				tt = this.tokens.peekType();
@@ -379,12 +379,14 @@ export class Parser
 			if (current == undefined) return undefined;
 
 			// discard ';'
-			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-			this.tokens.discard();
+			//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+			//this.tokens.discard();
 
-			let temp = this.parseStatement();
-			if (!temp) return undefined;
-			stmts.push(temp);
+			stmts.push(current);
+
+			//let temp = this.parseStatement();
+			//if (!temp) return undefined;
+			//stmts.push(temp);
 		}
 
 		return new tree.BlockStmt(enclosed, stmts);
@@ -400,9 +402,9 @@ export class Parser
 				return this.parseIfThenElseStmt();
 			case TokenType.TOK_VAR:
 			case TokenType.TOK_CONST:
-				return <tree.IStatement> this.parseVariableOrConstant(undefined);
+				return <tree.IStatement> this.parseVariableOrConstantStmt(undefined);
 			case TokenType.TOK_FOR:
-				return <tree.IStatement> this.parseForEach();
+				return <tree.IStatement> this.parseForEachStmt();
 			default:
 				break;
 		}
@@ -424,10 +426,13 @@ export class Parser
 		if (!this.expectedOneOf(TokenType.TOK_IF, TokenType.TOK_ELIF)) return undefined;
 		this.tokens.discard();
 
+		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
+		this.tokens.discard();
+
 		let condition = this.parseExpression();
 		if (!condition) return undefined;
 
-		if (!this.expectedOneOf(TokenType.TOK_THEN)) return undefined;
+		if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
 		this.tokens.discard();
 
 		let thenSide : tree.IStatement | undefined = undefined;
@@ -455,7 +460,7 @@ export class Parser
 		return new tree.IfThenElseStmt(condition, thenSide, elseSide);
 	}
 
-	private parseForEach() : tree.ForEachStmt | undefined
+	private parseForEachStmt() : tree.ForEachStmt | undefined
 	{
 		// 'for' keyword
 		if (!this.expectedOneOf(TokenType.TOK_FOR)) return undefined;
@@ -473,6 +478,9 @@ export class Parser
 		// statements
 		let block = this.parseBlock();
 		if (!block) return undefined;
+		// semicolon
+		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+		this.tokens.discard();
 
 		return new tree.ForEachStmt(storage, expr, block);
 	}
@@ -491,6 +499,9 @@ export class Parser
 		// expression
 		let expr = this.parseExpression();
 		if (!expr) return undefined;
+		// semicolon
+		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+		this.tokens.discard();
 
 		return new tree.ReturnStmt(expr);
 	}
@@ -699,6 +710,16 @@ export class Parser
 		let result : tree.StorageDeclaration;
 		result = new tree.StorageDeclaration(annots, name, type, kind == TokenType.TOK_CONST, initializer);
 		return result;
+	}
+
+	private parseVariableOrConstantStmt( annots? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
+	{
+		let value = this.parseVariableOrConstant(annots, comma);
+		// semicolon
+		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+		this.tokens.discard();
+
+		return value;
 	}
 
 	private parseExpression() : tree.IExpression | undefined

@@ -202,11 +202,11 @@ export interface IExpression
 
 export class BinaryExpression implements IExpression
 {
-	public left : IExpression;
-	public right : IExpression;
+	public left : IStatement;
+	public right : IStatement;
 	public operation : TokenType;
 
-	public constructor(left : IExpression, type : TokenType, right : IExpression )
+	public constructor(left : IStatement, type : TokenType, right : IStatement )
 	{
 		this.left = left;
 		this.right = right;
@@ -384,8 +384,6 @@ export class Property
 		this.initializer = initializer;
 	}
 }
-
-
 
 export class ReturnStmt
 {
