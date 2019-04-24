@@ -67,8 +67,11 @@ else
 	let unit = pa.parse();
 
 	//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-	beagle.compiler.printCompilationUnit(unit);
+	//beagle.compiler.printCompilationUnit(unit);
 
-	//beagle.compiler.generator.generate(ctx, unit);
-	//console.log(ctx.generated);
+	console.log("<html><body><pre>");
+	let generator = new beagle.compiler.generator.CppGenerator(ctx);
+	generator.generate(unit);
+	console.log(ctx.generated);
+	console.log("</pre></body></html>");
 }

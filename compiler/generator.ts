@@ -2,45 +2,129 @@
 
 namespace beagle.compiler.generator {
 
-function comment( context : CompilationContext, value : string )
+export class CppGenerator
 {
-    context.generated += "/* " + value + " */";
-}
 
-function println( context : CompilationContext, value : string )
-{
-    context.generated += value + "\n";
-}
+	context : CompilationContext;
 
-function print( context : CompilationContext, value : string )
-{
-    context.generated += value;
-}
-
-export function generate( context : CompilationContext, unit : tree.CompilationUnit )
-{
-    comment(context, " Beagle Compiler\n   AUTO-GENERATED CODE - Do not edit!");
-
-    println(context, "\n#include <beagle/base.h>");
-
-    generateStringTable(context);
-}
-
-function generateStringTable( context : CompilationContext )
-{
-	comment(context, "STRING TABLE");
-	print(context, "static const dynamic_string_ STRING_TABLE[] =\n{\n");
-
-	for (let item of context.stringTable)
+	constructor( context : CompilationContext )
 	{
-		print(context, "   { .type__ = &type_string_, .length = ");
-		print(context, item.length.toString());
-		print(context, ", .content = \"");
-		print(context, item);
-		print(context, "\"},\n");
+		this.context = context;
 	}
 
-	println(context, "};");
+	comment( value : string )
+	{
+		this.context.generated += "/* " + value + " */";
+	}
+
+	println( value : string )
+	{
+		this.context.generated += value + "\n";
+	}
+
+	print( value : string )
+	{
+		this.context.generated += value;
+	}
+
+	public generate( unit : tree.CompilationUnit )
+	{
+		this.comment(" Beagle Compiler\n   AUTO-GENERATED CODE - Do not edit!");
+		this.println("\n#include <beagle/base.h>");
+		this.generateStringTable();
+		for (let stmt of unit.statements)
+			this.generateStatement(stmt);
+	}
+
+	generateStringTable()
+	{
+		this.comment("STRING TABLE");
+		this.print("static const dynamic_string_ STRING_TABLE[] =\n{\n");
+		for (let item of this.context.stringTable)
+		{
+			this.print("   { .type__ = &type_string_, .length = ");
+			this.print(item.length.toString());
+			this.print(", .content = \"");
+			this.print(item);
+			this.print("\"},\n");
+		}
+		this.println("};");
+	}
+
+	generateStatement( target : tree.IStatement )
+	{
+		if (target instanceof tree.Function)
+			this.generateFunction(target);
+		else
+		if (target instanceof tree.ReturnStmt)
+			this.generateReturnStmt(target);
+		else
+		if (target instanceof tree.BlockStmt)
+		{
+			for (let item of target.statements)
+			this.generateStatement(item);
+		}
+	}
+
+	generateFunction( target : tree.Function )
+	{
+		this.print("static ")
+		this.print(target.type.name.qualifiedName);
+		this.print(" ")
+		this.print(target.name.qualifiedName);
+		this.generateParameters(target.parameters);
+		this.println("\n{");
+		this.generateStatement(target.body);
+		this.println("}");
+	}
+
+	generateReturnStmt( target : tree.ReturnStmt )
+	{
+		this.print("return ")
+		this.generateExpression(target.expr);
+		this.print(";")
+	}
+
+	generateExpression( target : tree.IExpression )
+	{
+		if (target instanceof tree.BinaryExpression)
+		{
+			this.generateExpression(target.left);
+			this.print(target.operation.name);
+			this.generateExpression(target.right);
+		}
+		else
+		if (target instanceof tree.UnaryExpression)
+		{
+			if (target.direction == tree.UnaryDirection.POSTFIX)
+			{
+				this.generateExpression(target.expression);
+				this.print(target.operation.name);
+			}
+			else
+			{
+				this.print(target.operation.name);
+				this.generateExpression(target.expression);
+			}
+		}
+		else
+		if (target instanceof tree.IntegerLiteral)
+			this.print(target.value);
+	}
+
+	generateParameters( target : tree.FormalParameter[] )
+	{
+		this.print("(");
+		for (let i = 0; i < target.length; ++i)
+		{
+			this.print(target[i].type.name.qualifiedName);
+			this.print(" ");
+			this.print(target[i].name.qualifiedName);
+			if (i + 1 < target.length) this.print(", ");
+		}
+		this.print(")");
+	}
+
 }
 
 }
