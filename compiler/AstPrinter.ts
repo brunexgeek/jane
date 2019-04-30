@@ -220,7 +220,7 @@ function printStatement(name : string | undefined, target : tree.IStatement)
 function printReturn( target : tree.ReturnStmt )
 {
 	openC(target.constructor['name']);
-	printExpression(undefined, target.expr);
+	printExpression("expression", target.expr);
 	close();
 }
 
@@ -229,22 +229,21 @@ function printExpression( name : string | undefined, target : tree.IExpression )
 	if (!target) return;
 
 	let type = target.constructor['name'];
-	if (!name) name = "value";
 
 	if (target instanceof tree.NameLiteral)
-		attributeNCV(name, type, target.value.qualifiedName);
+		attributeNCV( (name) ? name : "value", type, target.value.qualifiedName);
 	else
 	if (target instanceof tree.IntegerLiteral)
-		attributeNCV(name, type, target.value);
+		attributeNCV( (name) ? name : "value", type, target.value);
 	else
 	if (target instanceof tree.FloatLiteral)
-		attributeNCV(name, type, target.value);
+		attributeNCV( (name) ? name : "value", type, target.value);
 	else
 	if (target instanceof tree.StringLiteral)
-		attributeNCV(name, type, "'" + target.value + "'");
+		attributeNCV( (name) ? name : "value", type, "'" + target.value + "'");
 	else
 	if (target instanceof tree.BooleanLiteral)
-		attributeNCV(name, type, (target.value) ? "true" : "false");
+		attributeNCV( (name) ? name : "value", type, (target.value) ? "true" : "false");
 	else
 	{
 		openNC(name, type);
