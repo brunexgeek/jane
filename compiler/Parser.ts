@@ -945,8 +945,8 @@ export class Parser
 	 */
 	private parseMultiplicativeExpression() : tree.IExpression | undefined
 	{
-		//let left = this.parsePrefixUnaryExpression();
-		let left = this.parseAtomicExpression();
+		let left = this.parsePrefixUnaryExpression();
+		//let left = this.parseAtomicExpression();
 		if (left == undefined) return undefined;
 
 		let type : TokenType | undefined = undefined;
@@ -982,15 +982,13 @@ export class Parser
 			case TokenType.TOK_DEC:
 				type = this.tokens.read().type;
 				break;
-			default:
-				type = undefined;
 		}
 		// FIXME: broken in recursive case (should test for more prefixes)?
 		let expr = leftValue;
 		if (leftValue == undefined)
 			expr = this.parsePostfixUnaryExpression();
-
 		if (!expr) return undefined;
+
 		if (type != undefined)
 		{
 			if (recursive)
@@ -1114,7 +1112,7 @@ export class Parser
 			this.tokens.discard(2);
 		}*/
 
-		return new tree.Argument(name, this.parseExpression());
+		return new tree.Argument(undefined, this.parseExpression());
 	}
 
 	/**

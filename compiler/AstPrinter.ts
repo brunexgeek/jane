@@ -229,21 +229,22 @@ function printExpression( name : string | undefined, target : tree.IExpression )
 	if (!target) return;
 
 	let type = target.constructor['name'];
+	if (!name) name = "value";
 
 	if (target instanceof tree.NameLiteral)
-		attributeNCV("value", type, target.value.qualifiedName);
+		attributeNCV(name, type, target.value.qualifiedName);
 	else
 	if (target instanceof tree.IntegerLiteral)
-		attributeNCV("value", type, target.value);
+		attributeNCV(name, type, target.value);
 	else
 	if (target instanceof tree.FloatLiteral)
-		attributeNCV("value", type, target.value);
+		attributeNCV(name, type, target.value);
 	else
 	if (target instanceof tree.StringLiteral)
-		attributeNCV("value", type, "'" + target.value + "'");
+		attributeNCV(name, type, "'" + target.value + "'");
 	else
 	if (target instanceof tree.BooleanLiteral)
-		attributeNCV("value", type, (target.value) ? "true" : "false");
+		attributeNCV(name, type, (target.value) ? "true" : "false");
 	else
 	{
 		openNC(name, type);
@@ -252,6 +253,25 @@ function printExpression( name : string | undefined, target : tree.IExpression )
 			attributeNV("operation", target.operation.token);
 			printExpression("left", target.left);
 			printExpression("right", target.right);
+		}
+		else
+		if (target instanceof tree.UnaryExpression)
+		{
+			attributeNV("operation", target.operation.token);
+			printExpression("expression", target.expression);
+			if (target.extra) printExpression("extra", target.extra);
+			attributeNV("direction", target.direction.toString());
+		}
+		else
+		if (target instanceof tree.ArgumentList)
+		{
+			for (let item of target.args)
+			{
+				openC(item.constructor['name']);
+				if (item.name) attributeNV("name", item.name.qualifiedName);
+				printExpression("value", item.value);
+				close();
+			}
 		}
 		close();
 	}
