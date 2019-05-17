@@ -41,7 +41,7 @@ let ctx = new beagle.compiler.CompilationContext(new MyListener());
 
 
 //let body = document.getElementsByTagName("body")[0];
-let ss = new beagle.compiler.ScanString(ctx, "bla", content.toString() /*"function abobrinha { }"*/);
+let ss = new beagle.compiler.ScanString(ctx, "bla", content.toString() );
 let sc = new beagle.compiler.Scanner(ctx, ss);
 
 let tokenize = false;
@@ -52,10 +52,10 @@ if (tokenize)
 	while ((tok = tarr.read()) != null)
 	{
 		if (tok.type == beagle.compiler.TokenType.TOK_EOF) break;
-		let text = '[' + ((tok.type === null) ? "???" : tok.type.token) + '] ';
-		if (tok.value != null) text += "'" + tok.value + "'";
-		if (tok.location != null) text += ' at ' + tok.location.line + ':' + tok.location.column;
-		console.log(text);
+		let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.token) + '</strong> ';
+		if (tok.value) text += "<span style='color: #070'><i>" + tok.value + "</i></span>";
+		if (tok.location) text += ' at ' + tok.location.line + ':' + tok.location.column;
+		console.log('<p>' + text + '</p>');
 		///let tmp = document.createElement("span");
 		//tmp.innerHTML = tok.value;
 		//body.appendChild(tmp);
