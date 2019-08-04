@@ -1,6 +1,6 @@
 class MyClass1
 {
-
+    // empty class
 }
 
 class MyClass2
@@ -12,9 +12,6 @@ class MyClass2
 class MyClass3
 {
     a : int;
-
-    constructor( a : int )
-    {
-        this.a = a;
-    }
+    // this field use a previously defined class
+    c : MyClass2;
 }

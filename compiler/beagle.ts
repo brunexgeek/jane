@@ -31,9 +31,9 @@ let fs = require("fs");
 let util = require("util");
 let process = require("process");
 
-if (process.argv.length != 5)
+if (process.argv.length != 4)
 {
-	console.log('Usage: beagle.js (generate | tokenize | ast) <input file> <output file>');
+	console.log('Usage: beagle.js (generate | tokenize | ast) <input file>');
 	process.exit(0);
 }
 
@@ -73,10 +73,10 @@ else
 
 	if (mode == 'generate')
 	{
-		console.log("<html><body><pre>");
+		//console.log("<html><body><pre>");
 		let generator = new beagle.compiler.generator.CppGenerator(ctx);
 		console.log(generator.generate(unit));
-		console.log("</pre></body></html>");
+		//console.log("</pre></body></html>");
 	}
 	else
 	if (mode == 'ast')
