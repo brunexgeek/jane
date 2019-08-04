@@ -27,13 +27,14 @@ export class CppGenerator
 		this.context.generated += value;
 	}
 
-	public generate( unit : tree.CompilationUnit )
+	public generate( unit : tree.CompilationUnit ) : string
 	{
 		this.comment(" Beagle Compiler\n   AUTO-GENERATED CODE - Do not edit!");
 		this.println("\n#include <beagle/base.h>");
 		this.generateStringTable();
 		for (let stmt of unit.statements)
 			this.generateStatement(stmt);
+		return this.context.generated;
 	}
 
 	generateStringTable()

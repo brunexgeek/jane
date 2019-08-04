@@ -31,21 +31,26 @@ let fs = require("fs");
 let util = require("util");
 let process = require("process");
 
-let fileName = 'input.txt';
-if (process.argv.length == 3)
-	fileName = process.argv[2];
+if (process.argv.length != 5)
+{
+	console.log('Usage: beagle.js (generate | tokenize | ast) <input file> <output file>');
+	process.exit(0);
+}
 
-let content = fs.readFileSync(fileName);
+let mode = process.argv[2];
+let inputFileName = process.argv[3];
+let outputFileName = process.argv[4];
+
+let content = fs.readFileSync(inputFileName);
 
 let ctx = new beagle.compiler.CompilationContext(new MyListener());
 
 
 //let body = document.getElementsByTagName("body")[0];
-let ss = new beagle.compiler.ScanString(ctx, "bla", content.toString() );
+let ss = new beagle.compiler.ScanString(ctx, inputFileName, content.toString() );
 let sc = new beagle.compiler.Scanner(ctx, ss);
 
-let tokenize = false;
-if (tokenize)
+if (mode == 'tokenize')
 {
 	let tarr = new beagle.compiler.TokenArray(sc);
 	let tok : beagle.compiler.Token = null;
@@ -66,12 +71,17 @@ else
 	let pa = new beagle.compiler.Parser(ctx, sc);
 	let unit = pa.parse();
 
-	//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-	//beagle.compiler.printCompilationUnit(unit);
-
-	console.log("<html><body><pre>");
-	let generator = new beagle.compiler.generator.CppGenerator(ctx);
-	generator.generate(unit);
-	console.log(ctx.generated);
-	console.log("</pre></body></html>");
+	if (mode == 'generate')
+	{
+		console.log("<html><body><pre>");
+		let generator = new beagle.compiler.generator.CppGenerator(ctx);
+		console.log(generator.generate(unit));
+		console.log("</pre></body></html>");
+	}
+	else
+	if (mode == 'ast')
+	{
+		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
+		beagle.compiler.printCompilationUnit(unit);
+	}
 }
