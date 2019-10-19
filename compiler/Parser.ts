@@ -144,12 +144,35 @@ export class Parser
 	private fileName : string;
 	private tokens : TokenArray;
 	private context : CompilationContext;
+	private namespace : string[];
 
 	public constructor( context : CompilationContext, scanner : Scanner )
 	{
 		this.fileName = "";
 		this.tokens = new TokenArray(scanner, 16);
 		this.context = context;
+		this.namespace = [];
+	}
+
+	private exportNamespace()
+	{
+		let result = '';
+		for (let item of this.namespace)
+			result += item + '.';
+		return result;
+	}
+
+	private pushName( name : tree.Name )
+	{
+		for (let item of name.parents)
+			this.namespace.push(item);
+		this.namespace.push(name.name);
+	}
+
+	private popName( name : tree.Name )
+	{
+		let count = name.parents.length + 1;
+		this.namespace.splice(this.namespace.length - count, count);
 	}
 
 	private expectedOneOf( ...types : TokenType[] ) : boolean
@@ -203,12 +226,23 @@ export class Parser
 		let result = new tree.Name(this.tokens.peek().value, location);
 		this.tokens.discard();
 
-		while (isQualified)
+		if (isQualified)
 		{
-			if (!this.tokens.lookahead(false, TokenType.TOK_DOT, TokenType.TOK_NAME))
-				break;
-				result.appendName(this.tokens.peekAt(1).value);
-			this.tokens.discard(2);
+			if (this.namespace.length > 0)
+			{
+				for (let item of this.namespace)
+					result.appendParent(item);
+			}
+
+			result.appendParent(result.name);
+			while (true)
+			{
+				if (!this.tokens.lookahead(false, TokenType.TOK_DOT, TokenType.TOK_NAME))
+					break;
+				result.appendParent(this.tokens.peekAt(1).value);
+				this.tokens.discard(2);
+			}
+			result.name = result.parents.pop();
 		}
 
 		return result;
@@ -254,6 +288,7 @@ export class Parser
 		// TOK_NAME
 		let name = this.parseName();
 		if (name == undefined) return undefined;
+		this.pushName(name);
 		// TOK_LEFT_BRACE
 		if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACE)) return undefined;
 		this.tokens.discard();
@@ -264,6 +299,8 @@ export class Parser
 		// TOK_RIGHT_BRACE
 		if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return undefined;
 		this.tokens.discard();
+
+		this.popName(name);
 
 		return ns;
 	}
@@ -414,7 +451,8 @@ export class Parser
 
 		let expr = this.parseExpression();
 		if (expr == undefined) return undefined;
-		//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+		this.tokens.discard();
 		return new tree.ExpressionStmt(expr);
 	}
 
@@ -524,6 +562,7 @@ export class Parser
 		if (!this.expectedOneOf(TokenType.TOK_NAME)) return undefined;
 		let name = this.parseName();
 		if (!name) return undefined;
+
 		let output = new tree.TypeDeclaration(annots, name);
 
 		/*if (this.tokens.peekType() == TokenType.TOK_COLON)

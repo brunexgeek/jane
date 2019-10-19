@@ -1,15 +1,18 @@
 import bla;
 
-function func1()
+function func1() : void
 {
+	let value : number = 5;
+	//value += 8;
 }
 
-function func2( x : int )
+function func2( x : number ) : void
 {
+    print('Hello world');
 }
 
-function func3( x : int, y : string ) : float
+function func3( x : number, y : string ) : number
 {
-    let y = x * 2.35;
-    return y;
+    let z = x * 2.35;
+    return z;
 }

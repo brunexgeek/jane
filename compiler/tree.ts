@@ -27,35 +27,37 @@ export class Comment implements IStatement
 
 export class Name
 {
-    names : string[] = [];
+	parents : string[] = [];
+	name : string;
 	location : SourceLocation;
 
 	constructor(value : string, location? : SourceLocation)
 	{
 		if (value == null) value = "<null>";
-		this.names.push(value);
+		this.name = value;
 		if (location)
 			this.location = location;
 		else
 			this.location = new SourceLocation();
 	}
 
-	appendName(value : string )
+	appendParent(value : string )
 	{
-		this.names.push(value);
+		this.parents.push(value);
 	}
 
 	isQualified() : boolean
 	{
-		return this.names.length > 1;
+		return this.parents.length > 0;
 	}
 
 	get qualifiedName() : string
 	{
-		if (this.names.length == 0) return '';
-		let result = this.names[0];
-		for (let i = 1, t = this.names.length; i < t; ++i) result += '.' + this.names[i];
-		return result;
+		if (this.parents.length == 0) return this.name;
+		let result = '';
+		for (let i = 0, t = this.parents.length; i < t; ++i)
+			result += this.parents[i] + '.';
+		return result + this.name;
 	}
 }
 
@@ -94,9 +96,9 @@ export class TypeReference
 		this.name = name;
 		this.isPrimitive = false;
 
-		if (name.names.length == 1)
+		if (name.parents.length == 0)
 		{
-			switch (name.names[0])
+			switch (name.name)
 			{
 				case "char":
 				case "byte":
@@ -320,6 +322,7 @@ export class BooleanLiteral
 export class StringLiteral
 {
 	value : string;
+	index : number = 0;
 
 	constructor( value : string )
 	{

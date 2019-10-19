@@ -96,7 +96,8 @@ struct typeinfo_
 	struct typeinfo_ *base; // pointer to base class/struct type info (NULL = no base)
 	size_t staticSize;
 	size_t dynamicSize;
-	const char *name;
+	const char *nameU8;
+    const uint16_t *nameU16;
 };
 
 
@@ -116,12 +117,16 @@ struct dynamic_string_
 	const char *content;
 };
 
+
+static const uint16_t string_name_u16_[] = { 0x0073, 0x0074, 0x0072, 0x0069, 0x006e, 0x0067 };
+
 static struct static_string_ type_string_ =
 {
    .typeInfo__.base = NULL,
    .typeInfo__.staticSize = sizeof(struct static_string_),
    .typeInfo__.dynamicSize = sizeof(struct dynamic_string_),
-   .typeInfo__.name = "string",
+   .typeInfo__.nameU8 = "string",
+   .typeInfo__.nameU16 = string_name_u16_,
    .base__ = NULL
 };
 

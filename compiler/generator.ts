@@ -40,7 +40,7 @@ export class CppGenerator
 	generateStringTable()
 	{
 		this.comment("STRING TABLE");
-		this.print("static const dynamic_string_ STRING_TABLE[] =\n{\n");
+		this.print("static const struct dynamic_string_ STRING_TABLE[] =\n{\n");
 		for (let item of this.context.stringTable)
 		{
 			this.print("   { .type__ = &type_string_, .length = ");
@@ -65,12 +65,168 @@ export class CppGenerator
 			for (let item of target.statements)
 			this.generateStatement(item);
 		}
+		else
+		if (target instanceof tree.StorageDeclaration)
+		{
+			this.generateStorage(target);
+		}
+		else
+		if (target instanceof tree.Namespace)
+		{
+			this.generateNamespace(target);
+		}
+		else
+		if (target instanceof tree.IfThenElseStmt)
+		{
+			this.generateIfThenElse(target);
+		}
+		else
+		if (target instanceof tree.TypeDeclaration)
+			this.generateType(target);
+	}
+
+	generateNamespace( target : tree.Namespace )
+	{
+		this.comment("BEGIN NAMESPACE " + target.name.qualifiedName);
+		this.println('');
+		for (let stmt of target.statements)
+			this.generateStatement(stmt);
+		this.comment("END NAMESPACE " + target.name.qualifiedName);
+		this.println('');
+	}
+
+	generateType( target : tree.TypeDeclaration )
+	{
+		this.comment('BEGIN ' + target.name.qualifiedName + ' CLASS');
+
+		let name = this.getNativeName(target.name.qualifiedName);
+
+		// static content
+		this.print('\nstruct static_' + name + '_');
+		this.print('\n{\n\tvoid *base__;\n\tstruct typeinfo_ typeInfo__;\n};\n');
+
+		// dynamic content
+		this.print('\nstruct dynamic_' + name + '_');
+		this.print('\n{\n\tstruct static_' + name + '_ *type__;\n');
+		this.print('\tuint32_t flags__;\n'); // e.g. stack or heap, from string table
+		for (let item of target.statements)
+		{
+			if (item instanceof tree.Property)
+			{
+				let name = this.getNativeName(item.name.qualifiedName);
+				let type = this.getNativeType(item.type);
+				this.print('\t');
+				this.print(type);
+				this.print(' ');
+				this.print(name);
+				this.print(';\n');
+			}
+		}
+		this.print('};\n')
+
+		// type information
+		this.print('\nstatic struct static_' + name + '_ type_' + name + '_ =\n{\n');
+		this.print('\t.typeInfo__.staticSize = sizeof(struct static_' + name + '_),\n');
+		this.print('\t.typeInfo__.dynamicSize = sizeof(struct dynamic_' + name + '_),\n');
+		this.print('\t.typeInfo__.nameU8 = "' + target.name.qualifiedName + '",\n');
+		this.print('\t.typeInfo__.nameU16 = NULL,\n');
+		if (target.parents && target.parents.length > 0)
+		{
+			let parentName = this.getNativeName(target.parents[0].name.qualifiedName);
+			this.print('\t.typeInfo__.base = type_' + parentName + ',');
+			this.print('\t.base__ = static_' + parentName + ',\n');
+		}
+		else
+		{
+			this.print('\t.typeInfo__.base = NULL,\n\t.base__ = NULL,\n');
+		}
+		this.print('};\n')
+
+
+		this.comment('END ' + target.name.qualifiedName + ' CLASS');
+	}
+
+	generateStorage( target : tree.StorageDeclaration )
+	{
+		if (target.isConst)
+			this.print('const ');
+		this.generateTypeReference(target.type);
+		this.print(' ');
+		this.print(target.name.qualifiedName);
+		if (target.initializer)
+		{
+			this.print(' = ');
+			this.generateExpression(target.initializer);
+		}
+		else
+		{
+			if (target.type && !target.type.isPrimitive)
+			this.print(' = NULL');
+		}
+		this.println(';');
+	}
+
+	generateIfThenElse( target : tree.IfThenElseStmt )
+	{
+		this.print('if (');
+		this.generateExpression(target.condition);
+		this.print(') {\n');
+		this.generateStatement(target.thenSide);
+		if (target.elseSide)
+		{
+			this.print('} else {\n');
+			this.generateStatement(target.elseSide);
+		}
+		this.print('}\n');
+	}
+
+	getNativeName( name : string )
+	{
+		if (!name) return '/* unknown type */ void';
+
+		let result = '';
+		for (let i = 0; i < name.length; ++i)
+		{
+			if (name[i] == '.')
+				result += '_';
+			else
+				result += name[i]
+		}
+		return result;
+	}
+
+	getNativeType( target : tree.TypeReference )
+	{
+		if (target && target.name)
+		{
+			let typeName = target.name.qualifiedName;
+			if (typeName == 'boolean')
+				return 'uint8_t';
+			else
+			if (typeName == 'string')
+				return 'struct dynamic_string_ *';
+			else
+			if (typeName == 'number')
+				return 'double';
+			else
+			if (typeName == 'void')
+				return 'void';
+			else
+				return 'const struct dynamic_' + this.getNativeName(target.name.qualifiedName) + '_ *';
+		}
+		else
+			return '/* unknown type */ double';
+	}
+
+	generateTypeReference( target : tree.TypeReference )
+	{
+		this.print( this.getNativeType(target) );
 	}
 
 	generateFunction( target : tree.Function )
 	{
 		this.print("static ")
-		this.print(target.type.name.qualifiedName);
+		this.generateTypeReference(target.type);
 		this.print(" ")
 		this.print(target.name.qualifiedName);
 		this.generateParameters(target.parameters);
@@ -111,6 +267,17 @@ export class CppGenerator
 		else
 		if (target instanceof tree.IntegerLiteral)
 			this.print(target.value);
+		else
+		if (target instanceof tree.FloatLiteral)
+			this.print(target.value);
+		else
+		if (target instanceof tree.NameLiteral)
+			this.print(target.value.qualifiedName);
+		else
+		if (target instanceof tree.StringLiteral)
+			this.print('(STRING_TABLE+' + target.index.toString() + ')');
+		else
+			this.print('UNKNOWN');
 	}
 
 	generateParameters( target : tree.FormalParameter[] )
@@ -118,7 +285,7 @@ export class CppGenerator
 		this.print("(");
 		for (let i = 0; i < target.length; ++i)
 		{
-			this.print(target[i].type.name.qualifiedName);
+			this.generateTypeReference(target[i].type);
 			this.print(" ");
 			this.print(target[i].name.qualifiedName);
 			if (i + 1 < target.length) this.print(", ");

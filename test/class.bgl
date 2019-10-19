@@ -5,13 +5,17 @@ class MyClass1
 
 class MyClass2
 {
-    x : int;
+    x : number;
     y : string;
 }
 
+namespace test {
+
 class MyClass3
 {
-    a : int;
+    a : number;
     // this field use a previously defined class
     c : MyClass2;
+}
+
 }
