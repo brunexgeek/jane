@@ -137,8 +137,6 @@ export class TokenArray
 	}
 }
 
-
-
 export class Parser
 {
 	private fileName : string;
@@ -175,14 +173,21 @@ export class Parser
 		this.namespace.splice(this.namespace.length - count, count);
 	}
 
-	private expectedOneOf( ...types : TokenType[] ) : boolean
+	private expected( ...types : TokenType[] ) : boolean
 	{
 		for (let type of types)
-		{
 			if (this.tokens.peek().type == type) return true;
-		}
-
 		this.context.throwExpected(this.tokens.peek(), types);
+		return false;
+	}
+
+	private match( ...types : TokenType[] ) : boolean
+	{
+		if (this.expected(...types))
+		{
+			this.tokens.discard();
+			return true;
+		}
 		return false;
 	}
 
@@ -195,32 +200,14 @@ export class Parser
 	 */
 	public parse() : tree.CompilationUnit | null
 	{
-		let current = this.tokens.peek();
-		let pack = null;
-
-		//if (this.tokens.peekType() == TokenType.TOK_PACKAGE)
-		//	pack = this.parsePackage();
-
 		let unit = new tree.CompilationUnit("builtin");
-
-		/*current = this.tokens.peek();
-		while (current != null && current.type == TokenType.TOK_IMPORT)
-		{
-			let imp = this.parseImport();
-			if (imp == undefined) break;
-            unit.imports.push(imp);
-			current = this.tokens.peek();
-		}*/
-
 		this.parseTopLevelStatements(unit.statements);
-
 		return unit;
 	}
 
 	parseName( isQualified : boolean = true ) : tree.Name | undefined
 	{
-		if (!this.expectedOneOf(TokenType.TOK_NAME))
-			return undefined;
+		this.expected(TokenType.TOK_NAME);
 
 		let location = this.tokens.peek().location;
 		let result = new tree.Name(this.tokens.peek().value, location);
@@ -273,15 +260,13 @@ export class Parser
 				}
 			}
 
-            if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-            this.tokens.discard(1);
-
+            this.match(TokenType.TOK_SEMICOLON);
             return new tree.TypeImport(qualifiedName, isWildcard, alias);
 		}
 		return undefined;
 	}
 
-	private parseNamespace( annots? : tree.Annotation[] ) : tree.Namespace | undefined
+	private parseNamespace( decorators? : tree.Annotation[] ) : tree.Namespace | undefined
     {
 		// TOK_NAMESPACE
 		this.tokens.discard();
@@ -290,15 +275,13 @@ export class Parser
 		if (name == undefined) return undefined;
 		this.pushName(name);
 		// TOK_LEFT_BRACE
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACE)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_LEFT_BRACE);
 
-		let ns = new tree.Namespace((annots) ? annots : [], name);
+		let ns = new tree.Namespace((decorators) ? decorators : [], name);
 		if (!this.parseTopLevelStatements(ns.statements)) return undefined;
 
 		// TOK_RIGHT_BRACE
-		if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_RIGHT_BRACE);
 
 		this.popName(name);
 
@@ -310,13 +293,13 @@ export class Parser
 		while (true)
 		{
 			let tt = this.tokens.peekType();
-			let annots = undefined;
+			let decorators = undefined;
 
 			// parse annotations
 			if (tt == TokenType.TOK_AT)
 			{
 				if (this.tokens.peek().type == TokenType.TOK_AT)
-					annots = this.parseAnnotations();
+					decorators = this.parseAnnotations();
 				tt = this.tokens.peekType();
 			}
 
@@ -331,38 +314,43 @@ export class Parser
 			// parse namespaces
 			if (tt == TokenType.TOK_NAMESPACE)
 			{
-				let temp = this.parseNamespace(annots);
+				let temp = this.parseNamespace(decorators);
 				if (temp == undefined) return false;
 				stmts.push(temp);
 			}
 			else
-			// parse variables
-			if (tt == TokenType.TOK_LET)
 			{
-				let storage = this.parseVariableOrConstant(annots, true);
-				if (storage == undefined) return false;
-				stmts.push(storage);
-			}
-			else
-			// parse structures
-			if (tt == TokenType.TOK_CLASS)
-			{
-				let struct = this.parseTypeDeclaration(annots);
-				if (struct == undefined) return false;
-				stmts.push(struct);
-			}
-			else
-			// parse functions
-			if (tt == TokenType.TOK_FUNCTION)
-			{
-				let func = this.parseFunction(annots);
-				if (func == undefined) return false;
-				stmts.push(func);
-			}
-			else
-			{
-				//this.context.listener.onError(this.tokens.peek().location, "Unrecognized statement " + tt.token);
-				break;
+				let access = this.parseAccessMode();
+				tt = this.tokens.peekType();
+
+				// parse variables
+				if (tt == TokenType.TOK_LET)
+				{
+					let storage = this.parseVariableOrConstant(decorators, true);
+					if (storage == undefined) return false;
+					stmts.push(storage);
+				}
+				else
+				// parse types
+				if (tt == TokenType.TOK_CLASS)
+				{
+					let struct = this.parseTypeDeclaration(decorators);
+					if (struct == undefined) return false;
+					stmts.push(struct);
+				}
+				else
+				// parse functions
+				if (tt == TokenType.TOK_FUNCTION)
+				{
+					let func = this.parseFunction(undefined, decorators);
+					if (func == undefined) return false;
+					stmts.push(func);
+				}
+				else
+				{
+					//this.context.listener.onError(this.tokens.peek().location, "Unrecognized statement " + tt.token);
+					break;
+				}
 			}
 		}
 
@@ -402,24 +390,15 @@ export class Parser
 				let current = this.parseStatement();
 				if (current == undefined) break;//return undefined;
 
-				// discard ';'
-				//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-				//this.tokens.discard();
-
 				stmts.push(current);
 				tt = this.tokens.peekType();
 			}
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACE)) return undefined;
-			this.tokens.discard();
+			this.match(TokenType.TOK_RIGHT_BRACE);
 		}
 		else
 		{
 			let current = this.parseStatement();
 			if (current == undefined) return undefined;
-
-			// discard ';'
-			//if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-			//this.tokens.discard();
 
 			stmts.push(current);
 
@@ -451,8 +430,7 @@ export class Parser
 
 		let expr = this.parseExpression();
 		if (expr == undefined) return undefined;
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_SEMICOLON);
 		return new tree.ExpressionStmt(expr);
 	}
 
@@ -464,17 +442,13 @@ export class Parser
 	 */
 	private parseIfThenElseStmt() : tree.IfThenElseStmt | undefined
 	{
-		if (!this.expectedOneOf(TokenType.TOK_IF, TokenType.TOK_ELIF)) return undefined;
-		this.tokens.discard();
-
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_IF, TokenType.TOK_ELIF);
+		this.match(TokenType.TOK_LEFT_PAR);
 
 		let condition = this.parseExpression();
 		if (!condition) return undefined;
 
-		if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_RIGHT_PAR);
 
 		let thenSide : tree.IStatement | undefined = undefined;
 		let elseSide : tree.IStatement | undefined = undefined;
@@ -504,32 +478,24 @@ export class Parser
 	private parseForEachStmt() : tree.ForEachStmt | undefined
 	{
 		// 'for' keyword
-		if (!this.expectedOneOf(TokenType.TOK_FOR)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_FOR);
 		// left parentesis
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_LEFT_PAR);
 		// variable
-		if (!this.expectedOneOf(TokenType.TOK_LET)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_LET);;
 		let name = this.parseName();
 		if (!name) return undefined;
 		let storage = new tree.StorageDeclaration(undefined, name, undefined, false, undefined);
 		// 'in' keyword
-		if (!this.expectedOneOf(TokenType.TOK_IN)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_IN, TokenType.TOK_OF);
 		// expression
 		let expr = this.parseExpression();
 		if (!expr) return undefined;
 		// right parentesis
-		if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_RIGHT_PAR);
 		// statements
 		let block = this.parseBlock();
 		if (!block) return undefined;
-		// semicolon
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-		this.tokens.discard();
 
 		return new tree.ForEachStmt(storage, expr, block);
 	}
@@ -542,28 +508,24 @@ export class Parser
 	private parseReturnStmt() : tree.IStatement | undefined
 	{
 		// 'return' keyword
-		if (!this.expectedOneOf(TokenType.TOK_RETURN)) return undefined;
-		let location = this.tokens.peek().location;
-		this.tokens.discard();
+		this.match(TokenType.TOK_RETURN);
 		// expression
 		let expr = this.parseExpression();
 		if (!expr) return undefined;
 		// semicolon
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_SEMICOLON);
 
 		return new tree.ReturnStmt(expr);
 	}
 
-	private parseTypeDeclaration(annots? : tree.Annotation[]) : tree.TypeDeclaration | undefined
+	private parseTypeDeclaration(decorators? : tree.Annotation[]) : tree.TypeDeclaration | undefined
 	{
 		this.tokens.discard();
 
-		if (!this.expectedOneOf(TokenType.TOK_NAME)) return undefined;
 		let name = this.parseName();
 		if (!name) return undefined;
 
-		let output = new tree.TypeDeclaration(annots, name);
+		let output = new tree.TypeDeclaration(decorators, name);
 
 		/*if (this.tokens.peekType() == TokenType.TOK_COLON)
 		{
@@ -578,8 +540,8 @@ export class Parser
 			// parse every type member
 			while (this.tokens.peekType() != TokenType.TOK_RIGHT_BRACE)
 			{
-				let annots = this.parseAnnotations();
-				if (!annots) return undefined;
+				let decorators = this.parseAnnotations();
+				if (!decorators) return undefined;
 				let access = this.parseAccessMode();
 				let name = this.parseName();
 				if (!name) return undefined;
@@ -587,9 +549,13 @@ export class Parser
 				// variable or constant
 				if (this.tokens.peekType() == TokenType.TOK_COLON || this.tokens.peekType() == TokenType.TOK_ASSIGN)
 				{
-					let prop = this.parseProperty(annots, access, name);
+					let prop = this.parseProperty(decorators, access, name);
 					if (!prop) return undefined;
 					output.statements.push(prop);
+				}
+				else if (this.tokens.peekType() == TokenType.TOK_LEFT_PAR)
+				{
+					this.parseFunction(name, decorators);
 				}
 				else
 				{
@@ -607,7 +573,8 @@ export class Parser
 
 	parseAccessMode() : tree.AccessMode
 	{
-		if (this.tokens.peekType() == TokenType.TOK_PUBLIC)
+		if (this.tokens.peekType() == TokenType.TOK_PUBLIC ||
+		    this.tokens.peekType() == TokenType.TOK_EXPORT)
 		{
 			this.tokens.discard();
 			return tree.AccessMode.PUBLIC;
@@ -628,17 +595,18 @@ export class Parser
 		return tree.AccessMode.PROTECTED;
 	}
 
-	private parseFunction( annots? : tree.Annotation[] ) : tree.Function | undefined
+	private parseFunction( name? : tree.Name, decorators? : tree.Annotation[] ) : tree.Function | undefined
 	{
-		if (!this.expectedOneOf(TokenType.TOK_FUNCTION)) return undefined;
-		this.tokens.discard();
-
 		let type : tree.TypeReference | undefined = undefined;
-		// name
-		let name = this.parseName();
-		if (name == undefined) return undefined;
+
+		if (!name)
+		{
+			this.match(TokenType.TOK_FUNCTION);
+			// name
+			name = this.parseName();
+			if (name == undefined) return undefined;
+		}
 		// parameters
-		if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
 		let params = this.parseFormalParameters();
 		// return type
 		if (this.tokens.peekType() == TokenType.TOK_COLON)
@@ -653,7 +621,7 @@ export class Parser
 		let block = this.parseBlock();
 		if (!block) return undefined;
 
-		let func = new tree.Function(annots, name, type, params, block);
+		let func = new tree.Function(decorators, name, type, params, block);
 
 		return func;
 	}
@@ -676,10 +644,14 @@ export class Parser
 
 			name = this.parseName();
 			if (!name) return undefined;
-			if (!this.expectedOneOf(TokenType.TOK_COLON)) return undefined;
-			this.tokens.discard();
+			this.match(TokenType.TOK_COLON);
 			typeName = this.parseName();
 			if (!typeName) return undefined;
+			if (this.tokens.peekType() == TokenType.TOK_ASSIGN)
+			{
+				this.tokens.discard();
+				let expr = this.parseExpression();
+			}
 			output.push( new tree.FormalParameter(name, new tree.TypeReference(typeName)) );
 		}
 
@@ -687,7 +659,7 @@ export class Parser
 		return output;
 	}
 
-	private parseProperty( annots : tree.Annotation[], access : tree.AccessMode, name : tree.Name ) : tree.Property | undefined
+	private parseProperty( decorators : tree.Annotation[], access : tree.AccessMode, name : tree.Name ) : tree.Property | undefined
 	{
 		let location = name.location;
 		let type : tree.TypeReference | undefined;
@@ -709,15 +681,14 @@ export class Parser
 		}
 
 		// discard the semicolon
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-		this.tokens.discard();
+		this.match(TokenType.TOK_SEMICOLON);
 
-		let result = new tree.Property(annots, access, name, type, initializer);
+		let result = new tree.Property(decorators, access, name, type, initializer);
 		return result;
 	}
 
 
-	private parseVariableOrConstant( annots? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
+	private parseVariableOrConstant( decorators? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
 	{
 		// get 'var' or 'const' keyword
 		let kind = this.tokens.peekType();
@@ -746,29 +717,27 @@ export class Parser
 		else
 		if (kind == TokenType.TOK_CONST)
 		{
-			this.expectedOneOf(TokenType.TOK_ASSIGN);
+			// we have a 'const' wihtout initializer
+			this.expected(TokenType.TOK_ASSIGN);
 			return undefined;
 		}
 
 		// discard the semicolon
 		if (comma)
 		{
-			if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
+			if (!this.expected(TokenType.TOK_SEMICOLON)) return undefined;
 			this.tokens.discard();
 		}
 
 		let result : tree.StorageDeclaration;
-		result = new tree.StorageDeclaration(annots, name, type, kind == TokenType.TOK_CONST, initializer);
+		result = new tree.StorageDeclaration(decorators, name, type, kind == TokenType.TOK_CONST, initializer);
 		return result;
 	}
 
-	private parseVariableOrConstantStmt( annots? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
+	private parseVariableOrConstantStmt( decorators? : tree.Annotation[], comma : boolean = false ) : tree.StorageDeclaration |  undefined
 	{
-		let value = this.parseVariableOrConstant(annots, comma);
-		// semicolon
-		if (!this.expectedOneOf(TokenType.TOK_SEMICOLON)) return undefined;
-		this.tokens.discard();
-
+		let value = this.parseVariableOrConstant(decorators, comma);
+		this.match(TokenType.TOK_SEMICOLON);
 		return value;
 	}
 
@@ -804,6 +773,7 @@ export class Parser
 			case TokenType.TOK_SHL_ASSIGN:   // <<=
 			case TokenType.TOK_SHR_ASSIGN:   // >>=
 			case TokenType.TOK_MOD_ASSIGN:   // %=
+			case TokenType.TOK_INSTANCEOF:   // instanceof
 				type = this.tokens.read().type;
 				break;
 			default:
@@ -1071,11 +1041,14 @@ export class Parser
 				break;
 			case TokenType.TOK_LEFT_BRACKET:
 				type = this.tokens.peekType();
-				extra = this.parseArrayAccess(undefined);
+				extra = this.parseArrayAccess();
 				break;
 			case TokenType.TOK_LEFT_PAR:
 				type = this.tokens.peekType();
 				extra = this.parseArgumentList(undefined);
+				break;
+			case TokenType.TOK_DOT:
+				type = this.tokens.peekType();
 				break;
 			default:
 				type = undefined;
@@ -1110,38 +1083,17 @@ export class Parser
 			return new tree.ArgumentList();
 		}
 
-		if (value == undefined)
+		this.match(TokenType.TOK_LEFT_PAR);
+
+		let result = new tree.ArgumentList( this.parseArgument() );
+		while (this.tokens.peekType() != TokenType.TOK_RIGHT_PAR)
 		{
-			if (!this.expectedOneOf(TokenType.TOK_LEFT_PAR)) return undefined;
-			this.tokens.discard();
-
-			let result = new tree.ArgumentList( this.parseArgument() );
-			if (this.tokens.peekType() == TokenType.TOK_COMA)
-			this.parseArgumentList(result);
-
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_PAR)) return undefined;
-			this.tokens.discard();
-
-			return result;
+			this.match(TokenType.TOK_COMA);
+			result.args.push( this.parseArgument() );
 		}
-		else
-		{
-			if (!this.expectedOneOf(TokenType.TOK_COMA)) return undefined;
-			this.tokens.discard();
+		this.tokens.discard(); // TOK_RIGHT_PAR
 
-			while (true)
-			{
-				value.args.push( this.parseArgument() );
-				if (this.tokens.peekType() == TokenType.TOK_COMA)
-				{
-					this.tokens.discard();
-					continue;
-				}
-				break;
-			}
-
-			return value;
-		}
+		return result;
 	}
 
 	private parseArgument() : tree.Argument | undefined
@@ -1158,35 +1110,14 @@ export class Parser
 	}
 
 	/**
-	 * ArrayAccess: "[" Expression ( "," Expression )* "]"
+	 * ArrayAccess: "[" Expression "]"
 	 */
-	private parseArrayAccess(value? : tree.ExpressionList) : tree.IExpression | undefined
+	private parseArrayAccess() : tree.IExpression | undefined
 	{
-		if (value == undefined)
-		{
-			if (!this.expectedOneOf(TokenType.TOK_LEFT_BRACKET)) return undefined;
-			this.tokens.discard();
-
-			let result = new tree.ExpressionList( this.parseExpression() );
-			if (this.tokens.peekType() == TokenType.TOK_COMA)
-			this.parseArrayAccess(result);
-
-			if (!this.expectedOneOf(TokenType.TOK_RIGHT_BRACKET)) return undefined;
-			this.tokens.discard();
-
-			return result;
-		}
-		else
-		{
-			if (!this.expectedOneOf(TokenType.TOK_COMA)) return undefined;
-			this.tokens.discard();
-
-			value.expressions.push( this.parseExpression() );
-			if (this.tokens.peekType() == TokenType.TOK_COMA)
-				return this.parseArrayAccess(value);
-			else
-				return value;
-		}
+		this.match(TokenType.TOK_LEFT_BRACKET);
+		let result = this.parseExpression();
+		this.match(TokenType.TOK_RIGHT_BRACKET);
+		return result;
 	}
 
 	/**
@@ -1259,10 +1190,8 @@ export class Parser
 		switch(this.tokens.read().type)
 		{
 			case TokenType.TOK_HEX_LITERAL:
-				value = value.substring(2);
 				return new tree.IntegerLiteral(value, 16);
 			case TokenType.TOK_BIN_LITERAL:
-				value = value.substring(2);
 				return new tree.IntegerLiteral(value, 2);
 			case TokenType.TOK_OCT_LITERAL:
 				return new tree.IntegerLiteral(value, 8);
@@ -1289,8 +1218,7 @@ export class Parser
 
 	private parseBooleanLiteral() : tree.BooleanLiteral
 	{
-		if (!this.expectedOneOf(TokenType.TOK_TRUE, TokenType.TOK_FALSE)) return null;
-
+		this.expected(TokenType.TOK_TRUE, TokenType.TOK_FALSE);
 		let value = (this.tokens.read().type == TokenType.TOK_TRUE);
 		return new tree.BooleanLiteral(value);
 	}

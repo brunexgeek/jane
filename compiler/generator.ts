@@ -12,9 +12,30 @@ export class CppGenerator
 		this.context = context;
 	}
 
-	comment( value : string )
+	comment( value : string, multiline : boolean = false )
 	{
-		this.context.generated += "/* " + value + " */";
+		let multline = multiline || value.indexOf('\n') >= 0;
+
+		this.context.generated += '/*';
+		if (multline)
+			this.context.generated += '\n * ';
+		else
+			this.context.generated += ' ';
+		for (let c of value)
+		{
+			if (c == '\n')
+				this.context.generated += '\n * ';
+			else
+				this.context.generated += c;
+		}
+		if (multline) this.context.generated += '\n';
+		this.context.generated += ' */';
+	}
+
+	commentln( value : string, multiline : boolean = false )
+	{
+		this.comment(value, multiline);
+		this.print('\n');
 	}
 
 	println( value : string )
@@ -29,7 +50,7 @@ export class CppGenerator
 
 	public generate( unit : tree.CompilationUnit ) : string
 	{
-		this.comment(" Beagle Compiler\n   AUTO-GENERATED CODE - Do not edit!");
+		this.comment("Beagle Compiler\nAUTO-GENERATED CODE - Do not edit!");
 		this.println("\n#include <beagle/base.h>");
 		this.generateStringTable();
 		for (let stmt of unit.statements)
@@ -40,7 +61,7 @@ export class CppGenerator
 	generateStringTable()
 	{
 		this.comment("STRING TABLE");
-		this.print("static const struct dynamic_string_ STRING_TABLE[] =\n{\n");
+		this.print("\nstatic const struct dynamic_string_ STRING_TABLE[] =\n{\n");
 		for (let item of this.context.stringTable)
 		{
 			this.print("   { .type__ = &type_string_, .length = ");
@@ -87,17 +108,16 @@ export class CppGenerator
 
 	generateNamespace( target : tree.Namespace )
 	{
-		this.comment("BEGIN NAMESPACE " + target.name.qualifiedName);
+		this.commentln("BEGIN NAMESPACE " + target.name.qualifiedName, true);
 		this.println('');
 		for (let stmt of target.statements)
 			this.generateStatement(stmt);
-		this.comment("END NAMESPACE " + target.name.qualifiedName);
-		this.println('');
+		this.commentln("END NAMESPACE " + target.name.qualifiedName, true);
 	}
 
 	generateType( target : tree.TypeDeclaration )
 	{
-		this.comment('BEGIN ' + target.name.qualifiedName + ' CLASS');
+		this.commentln('BEGIN ' + target.name.qualifiedName + ' CLASS', true);
 
 		let name = this.getNativeName(target.name.qualifiedName);
 
@@ -122,7 +142,7 @@ export class CppGenerator
 				this.print(';\n');
 			}
 		}
-		this.print('};\n')
+		this.print('};\n');
 
 		// type information
 		this.print('\nstatic struct static_' + name + '_ type_' + name + '_ =\n{\n');
@@ -143,7 +163,7 @@ export class CppGenerator
 		this.print('};\n')
 
 
-		this.comment('END ' + target.name.qualifiedName + ' CLASS');
+		this.commentln('END ' + target.name.qualifiedName + ' CLASS', true);
 	}
 
 	generateStorage( target : tree.StorageDeclaration )

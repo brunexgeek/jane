@@ -6,13 +6,13 @@ namespace beagle.compiler {
 
 export class SourceLocation
 {
-	constructor( public line : number = 1, public column : number = 1 )
+	constructor( public fileName : string, public line : number = 1, public column : number = 1 )
 	{
 	}
 
 	clone() : SourceLocation
 	{
-		return new SourceLocation(this.line, this.column);
+		return new SourceLocation(this.fileName, this.line, this.column);
 	}
 }
 
@@ -69,9 +69,7 @@ export class ScanString
 	constructor(context : CompilationContext, fileName : string, content : string)
 	{
 		this.context = context;
-		this.location = new SourceLocation();
-		this.location.column = 1;
-		this.location.line = 1;
+		this.location = new SourceLocation(fileName);
 		//unescape(input);
 
         this.preprocess(content);
@@ -327,6 +325,7 @@ export class TokenType
 	static readonly TOK_EOF = new TokenType("end of file", false, 'TOK_EOF');
 	static readonly TOK_EOL = new TokenType("end of line", false, 'TOK_EOL');
 	static readonly TOK_EQ = new TokenType("==", false, 'TOK_EQ');
+	static readonly TOK_EXPORT = new TokenType("export", true, 'TOK_EXPORT');
 	static readonly TOK_EXTENDS = new TokenType("extends", true, 'TOK_EXTENDS');
 	static readonly TOK_FALSE = new TokenType("false", true, 'TOK_FALSE');
 	static readonly TOK_FINALLY = new TokenType("finally", true, 'TOK_FINALLY');
@@ -337,6 +336,7 @@ export class TokenType
 	static readonly TOK_GT = new TokenType(">", false, 'TOK_GT');
 	static readonly TOK_HEX_LITERAL = new TokenType("", false, 'TOK_HEX_LITERAL');
 	static readonly TOK_IF = new TokenType("if", true, 'TOK_IF');
+	static readonly TOK_INSTANCEOF = new TokenType("instanceof", true, 'TOK_INSTANCEOF');
 	static readonly TOK_IMPLEMENTS = new TokenType("implements", true, 'TOK_IMPLEMENTS');
 	static readonly TOK_IMPORT = new TokenType("import", true, 'TOK_IMPORT');
 	static readonly TOK_IN = new TokenType("in", true, 'TOK_IN');
@@ -369,6 +369,7 @@ export class TokenType
 	static readonly TOK_NOT_ASSIGN = new TokenType("!=", false, 'TOK_NOT_ASSIGN');
 	static readonly TOK_NULL = new TokenType("null", true, 'TOK_NULL');
 	static readonly TOK_OCT_LITERAL = new TokenType("", false, 'TOK_OCT_LITERAL');
+	static readonly TOK_OF = new TokenType("of", true, 'TOK_OF');
 	static readonly TOK_OR = new TokenType("or", true, 'TOK_OR');
 	static readonly TOK_INTERNAL = new TokenType("internal", true, 'TOK_INTERNAL');
 	static readonly TOK_PACKAGE = new TokenType("package", true, 'TOK_PACKAGE');
@@ -395,7 +396,7 @@ export class TokenType
 	static readonly TOK_SUSPEND = new TokenType("suspend", true, 'TOK_SUSPEND');
 	static readonly TOK_SWITCH = new TokenType("switch", true, 'TOK_SWITCH');
 	static readonly TOK_THEN = new TokenType("then", true, 'TOK_THEN');
-	static readonly TOK_THIS = new TokenType("this", true, 'TOK_THIS');
+	//static readonly TOK_THIS = new TokenType("this", true, 'TOK_THIS');
 	static readonly TOK_THROW = new TokenType("throw", true, 'TOK_THROW');
 	static readonly TOK_TILDE = new TokenType("~", false, 'TOK_TILDE');
 	static readonly TOK_TRUE = new TokenType("true", true, 'TOK_TRUE');
@@ -490,9 +491,8 @@ export class Scanner
 		else
 			length = 0;
 
-		let location = new SourceLocation();
-		location.line = this.source.location.line;
-		location.column = this.source.location.column - length;
+		let location = this.source.location.clone();
+		location.column -= length;
 
 		let output = new Token(location, state,
 			(this.comments.length > 0) ? this.comments : [], type, name);
@@ -797,10 +797,13 @@ export class Scanner
             this.source.next();
 
 		let capture = "";
-		while (this.source.peek() != type && this.source.peek() != ScanString.EOI)
+		let last = '\0'
+		while (this.source.peek() != ScanString.EOI)
 		{
+			if (last != '\\' && this.source.peek() == type) break;
 			// FIXME: validate and expands escape sequences
 			capture += this.source.peek();
+			last = this.source.peek();
 			this.source.next();
 		}
 		if (this.source.peek() != type)

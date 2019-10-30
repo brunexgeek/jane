@@ -233,12 +233,6 @@ function printExpression( name : string | undefined, target : tree.IExpression )
 	if (target instanceof tree.NameLiteral)
 		attributeNCV( (name) ? name : "value", type, target.value.qualifiedName);
 	else
-	if (target instanceof tree.IntegerLiteral)
-		attributeNCV( (name) ? name : "value", type, target.value);
-	else
-	if (target instanceof tree.FloatLiteral)
-		attributeNCV( (name) ? name : "value", type, target.value);
-	else
 	if (target instanceof tree.StringLiteral)
 		attributeNCV( (name) ? name : "value", type, "'" + target.value + "'");
 	else
@@ -247,6 +241,18 @@ function printExpression( name : string | undefined, target : tree.IExpression )
 	else
 	{
 		openNC(name, type);
+		if (target instanceof tree.IntegerLiteral)
+		{
+			attributeNV("value", target.value);
+			attributeNV("numeric", target.numeric.toString());
+		}
+		else
+		if (target instanceof tree.FloatLiteral)
+		{
+			attributeNV("value", target.value);
+			attributeNV("numeric", target.numeric.toString());
+		}
+		else
 		if (target instanceof tree.BinaryExpression)
 		{
 			attributeNV("operation", target.operation.token);

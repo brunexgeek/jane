@@ -13,6 +13,16 @@ export interface CompilationListener
 
 }
 
+export class ParserError extends Error
+{
+
+	constructor( message : string, public location : SourceLocation )
+	{
+		super(message);
+	}
+
+}
+
 export class CompilationContext
 {
 	listener : CompilationListener;
@@ -41,6 +51,7 @@ export class CompilationContext
 		}
 		message += " but found '" + ((found.type.name == "") ? found.value : found.type.name) + "'";
 		this.listener.onError(found.location, message);
+		throw new ParserError(message, found.location);
 	}
 }
 

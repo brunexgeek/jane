@@ -9,17 +9,21 @@
 
 class MyListener implements beagle.compiler.CompilationListener
 {
+
 	onStart() {
-
 	}
+
 	onError(location: beagle.compiler.SourceLocation, message: string): boolean {
-		throw new Error(message + " at " + location.line + ":" + location.column);
+		console.log(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
+		return true;
 	}
-	onWarning(location: beagle.compiler.SourceLocation, message: string): boolean {
-		throw new Error(message + " at " + location.line + ":" + location.column);
-	}
-	onFinish() {
 
+	onWarning(location: beagle.compiler.SourceLocation, message: string): boolean {
+		console.log(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
+		return true;
+	}
+
+	onFinish() {
 	}
 
 }

@@ -38,7 +38,7 @@ export class Name
 		if (location)
 			this.location = location;
 		else
-			this.location = new SourceLocation();
+			this.location = new SourceLocation('<unknwon>');
 	}
 
 	appendParent(value : string )
@@ -301,11 +301,13 @@ export class IntegerLiteral
 {
 	value : string;
 	base : number;
+	numeric : number;
 
 	constructor( value : string, base : number = 10 )
 	{
 		this.value = value;
 		this.base = base;
+		this.numeric = parseInt(value, base);
 	}
 }
 
@@ -334,10 +336,12 @@ export class StringLiteral
 export class FloatLiteral
 {
 	value : string;
+	numeric : number;
 
 	constructor( value : string )
 	{
 		this.value = value;
+		this.numeric = parseFloat(value);
 	}
 }
 
