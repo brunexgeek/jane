@@ -45,11 +45,11 @@ export class CompilationContext
 		for (let type of types)
 		{
 			if (!first) message += " or ";
-			message += "'" + type.name + "'";
+			message += "'" + /*type.name*/"bla" + "'";
 			first = false;
 
 		}
-		message += " but found '" + ((found.type.name == "") ? found.value : found.type.name) + "'";
+		message += " but found '" + /* ((found.type.name == "") ? found.value : found.type.name)*/"bla" + "'";
 		this.listener.onError(found.location, message);
 		throw new ParserError(message, found.location);
 	}

@@ -1,10 +1,10 @@
 
 /// <reference path="tree.ts" />
-/// <reference path="Scanner.ts" />
-/// <reference path="Parser.ts" />
+/// <reference path="tokenizer.ts" />
+/* // <reference path="Parser.ts" /> */
 /// <reference path="context.ts" />
-/// <reference path="AstPrinter.ts" />
-/// <reference path="generator.ts" />
+/* // <reference path="AstPrinter.ts" /> */
+/* // <reference path="generator.ts" /> */
 
 
 class MyListener implements beagle.compiler.CompilationListener
@@ -51,28 +51,33 @@ let ctx = new beagle.compiler.CompilationContext(new MyListener());
 
 
 //let body = document.getElementsByTagName("body")[0];
-let ss = new beagle.compiler.ScanString(ctx, inputFileName, content.toString() );
-let sc = new beagle.compiler.Scanner(ctx, ss);
+let ss = new beagle.compiler.Scanner(ctx, inputFileName, content.toString() );
+let tk = new beagle.compiler.Tokenizer(ctx, ss );
 
 if (mode == 'tokenize')
 {
-	let tarr = new beagle.compiler.TokenArray(sc);
+	console.log('<html><body>');
 	let tok : beagle.compiler.Token = null;
-	while ((tok = tarr.read()) != null)
+	while ((tok = tk.next()).type != beagle.compiler.TokenType.EOF)
 	{
-		if (tok.type == beagle.compiler.TokenType.TOK_EOF) break;
-		let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.token) + '</strong> ';
-		if (tok.value) text += "<span style='color: #070'><i>" + tok.value + "</i></span>";
+		let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.name) + '</strong> ';
+		if (tok.lexeme)
+		{
+			let color = '#070';
+			if (tok.type == beagle.compiler.TokenType.STRING) color = '#f70';
+			text += `<span style='color: ${color}'><i>${tok.lexeme}</i></span>`;
+		}
 		if (tok.location) text += ' at ' + tok.location.line + ':' + tok.location.column;
 		console.log('<p>' + text + '</p>');
 		///let tmp = document.createElement("span");
 		//tmp.innerHTML = tok.value;
 		//body.appendChild(tmp);
 	}
+	console.log('</body></html>');
 }
 else
 {
-	let pa = new beagle.compiler.Parser(ctx, sc);
+	/*let pa = new beagle.compiler.Parser(ctx, sc);
 	let unit = pa.parse();
 
 	if (mode == 'generate')
@@ -87,5 +92,5 @@ else
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		beagle.compiler.printCompilationUnit(unit);
-	}
+	}*/
 }
