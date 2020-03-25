@@ -102,7 +102,6 @@ export class TokenType
     static readonly SLASH = new TokenType('SLASH');
     static readonly STAR = new TokenType('STAR');
     static readonly COLON = new TokenType('COLON');
-    static readonly ASSIGN = new TokenType('ASSIGN');
     static readonly QUESTION = new TokenType('QUESTION');
     static readonly PERCENT = new TokenType('PERCENT');
     static readonly AND = new TokenType('AND');
@@ -117,14 +116,18 @@ export class TokenType
     static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL');
     static readonly LESS = new TokenType('LESS');
     static readonly LESS_EQUAL = new TokenType('LESS_EQUAL');
-    static readonly PLUS_ASSIGN = new TokenType('PLUS_ASSIGN');
-    static readonly MINUS_ASSIGN = new TokenType('MINUS_ASSIGN');
-    static readonly STAR_ASSIGN = new TokenType('STAR_ASSIGN');
-    static readonly SLASH_ASSIGN = new TokenType('SLASH_ASSIGN');
+    static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL');
+    static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL');
+    static readonly STAR_EQUAL = new TokenType('STAR_EQUAL');
+    static readonly SLASH_EQUAL = new TokenType('SLASH_EQUAL');
+    static readonly PLUS_PLUS = new TokenType('PLUS_PLUS');
+    static readonly MINUS_MINUS = new TokenType('MINUS_MINUS');
 
     // Literals
-    static readonly IDENTIFIER = new TokenType('IDENTIFIER');
+    static readonly NAME = new TokenType('NAME');
+    static readonly QNAME = new TokenType('QNAME');
     static readonly STRING = new TokenType('STRING');
+    static readonly TSTRING = new TokenType('TSTRING');
     static readonly NUMBER = new TokenType('NUMBER');
 
     // Keywords
@@ -132,13 +135,15 @@ export class TokenType
     static readonly FALSE = new TokenType('FALSE', 'true');
     static readonly FUNCTION = new TokenType('FUNCTION', 'function');
     static readonly FOR = new TokenType('FOR', 'for');
+    static readonly OF = new TokenType('OF', 'of');
     static readonly IF = new TokenType('IF', 'if');
     static readonly NIL = new TokenType('NIL', 'null');
-    static readonly PRINT = new TokenType('PRINT', 'print');
     static readonly RETURN = new TokenType('RETURN', 'return');
     static readonly TRUE = new TokenType('TRUE', 'true');
     static readonly LET = new TokenType('LET', 'let');
     static readonly WHILE = new TokenType('WHILE', 'while');
+    static readonly DO = new TokenType('DO', 'do');
+    static readonly CONST = new TokenType('CONST', 'const');
 
     private constructor(name : string, lexeme : string = "")
     {
@@ -151,7 +156,7 @@ export class TokenType
 	{
 		let item = TokenType.entries[name];
 		if (item != null && item.lexeme.length > 0) return item;
-		return TokenType.IDENTIFIER;
+		return TokenType.NAME;
 	}
 }
 
@@ -159,19 +164,21 @@ export class Token
 {
     type : TokenType;
     lexeme : string;
-    literal : string;
     location : SourceLocation;
 
     constructor(type : TokenType, lexeme : string, location : SourceLocation)
     {
-      this.type = type;
-      this.lexeme = lexeme;
-      this.location = location;
+        this.type = type;
+        this.lexeme = lexeme;
+        this.location = location;
     }
 
     toString() : string
     {
-      return `[${this.type.name}] ${this.lexeme}`;
+        if (this.lexeme)
+            return `[${this.type.name}] ${this.lexeme}`;
+        else
+            return `[${this.type.name}]`;
     }
 }
 
@@ -208,30 +215,50 @@ export class Tokenizer
                 case '.':
                     return this.token(TokenType.DOT);
                 case '-':
-                    if (this.scanner.match('=')) return this.token(TokenType.MINUS_ASSIGN);
+                    if (this.scanner.match('=')) return this.token(TokenType.MINUS_EQUAL);
+                    if (this.scanner.match('-')) return this.token(TokenType.MINUS_MINUS);
                     return this.token(TokenType.MINUS);
                 case '+':
-                    if (this.scanner.match('=')) return this.token(TokenType.PLUS_ASSIGN);
+                    if (this.scanner.match('=')) return this.token(TokenType.PLUS_EQUAL);
+                    if (this.scanner.match('+')) return this.token(TokenType.PLUS_PLUS);
                     return this.token(TokenType.PLUS);
                 case ';':
                     return this.token(TokenType.SEMICOLON);
                 case ':':
-                    return this.token(TokenType.SEMICOLON);
+                    return this.token(TokenType.COLON);
                 case '=':
-                    return this.token(TokenType.ASSIGN);
+                    return this.token(TokenType.EQUAL);
                 case '*':
-                    if (this.scanner.match('=')) return this.token(TokenType.STAR_ASSIGN);
+                    if (this.scanner.match('=')) return this.token(TokenType.STAR_EQUAL);
                     return this.token(TokenType.STAR);
                 case '/':
-                    if (this.scanner.match('=')) return this.token(TokenType.SLASH_ASSIGN);
+                    if (this.scanner.match('=')) return this.token(TokenType.SLASH_EQUAL);
+                    if (this.scanner.match('/') || this.scanner.match('*'))
+                    {
+                        this.comment();
+                        continue;
+                    }
                     return this.token(TokenType.SLASH);
                 case '\'':
                 case '"':
+                case '`':
                     return this.string();
                 case '?':
                     return this.token(TokenType.QUESTION);
                 case '%':
                     return this.token(TokenType.PERCENT);
+                case '<':
+                    if (this.scanner.match('=')) return this.token(TokenType.LESS_EQUAL);
+                    return this.token(TokenType.LESS);
+                case '>':
+                    if (this.scanner.match('=')) return this.token(TokenType.GREATER_EQUAL);
+                    return this.token(TokenType.GREATER);
+                case '&':
+                    if (this.scanner.match('&')) return this.token(TokenType.AND);
+                    break;
+                case '|':
+                    if (this.scanner.match('|')) return this.token(TokenType.OR);
+                    break;
                 case '0':
                 case '1':
                 case '2':
@@ -297,17 +324,34 @@ export class Tokenizer
                 case 'z':
                 case '$':
                 case '_':
-                    return this.identifier();
+                    return this.name();
                 case ' ':
                 case '\t':
                 case '\n':
                 case '\r':
                     continue;
-                default:
-                    throw Error('Invalid character \'' + c + '\' at ' + this.scanner.pos.toString());
             }
+            throw Error('Invalid character \'' + c + '\' at ' + this.scanner.pos.toString());
         }
         return this.end;
+    }
+
+    comment()
+    {
+        if (this.scanner.previous() == '/')
+        {
+            while (!this.scanner.eof() && this.scanner.previous() != '\n' ) this.scanner.advance();
+        }
+        else
+        {
+            while (!this.scanner.eof())
+            {
+                while (!this.scanner.eof() && this.scanner.previous() != '*' ) this.scanner.advance();
+                if (this.scanner.match('/')) return;
+                this.scanner.advance();
+            }
+            throw Error('Unterminated block comment');
+        }
     }
 
     token( type : TokenType, lexeme? : string ) : Token
@@ -340,7 +384,9 @@ export class Tokenizer
         }
 
         this.scanner.advance();
-        return new Token(TokenType.STRING, value, this.scanner.position);
+        let ttype = TokenType.STRING;
+        if (type == '`') ttype = TokenType.TSTRING;
+        return new Token(ttype, value, this.scanner.position);
     }
 
     private isIdentifier( c : string ) : boolean
@@ -351,7 +397,7 @@ export class Tokenizer
              c == '_');
     }
 
-    private identifier() : Token
+    private name() : Token
     {
         let lexeme = this.scanner.previous();
         let location = this.scanner.position;
@@ -362,8 +408,8 @@ export class Tokenizer
         }
 
         let type = TokenType.resolve(lexeme);
-        if (type == TokenType.IDENTIFIER)
-            return new Token(TokenType.IDENTIFIER, lexeme, location);
+        if (type == TokenType.NAME)
+            return new Token(TokenType.NAME, lexeme, location);
         else
             return new Token(type, null, location);
     }

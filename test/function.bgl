@@ -1,30 +1,41 @@
-import bla;
-
 function func1() : void {
 	let value : number = 5;
-	//value += 8;
+	print(5, 5+6)()(`asd`);
 }
 
 function func2( x : number ) : void {
-    print('Hello world');
+    print = `Hello world`;
 }
 
 function func3( x : number, y : string ) : number {
-    let z = x * 2.35;
+    let z = x * 235;
+    do {
+      z = (z / 2) * 4 + x;
+    } while(z < 0);
     return z;
 }
 
 function buildName(firstName: string, lastName = "Smith") {
+  fileName += 8;
+  while (fileName) { fileName += 8;}
   return firstName + " " + lastName;
 }
 
-function buildName(firstName: string, lastName?: string) {
-  if (lastName) return firstName + " " + lastName;
-  else return firstName;
+function buildName(firstName: string, lastName: string) {
+  if (lastName && queue)
+  {
+    const counter = 0;
+
+    return firstName + " " + lastName;
+  }
+  else
+    return firstName;
+  while (true) i++;
+
 }
 
 function pickCard(x:number): number
 {
-  return 88;
+  return 88 ;
 }
 

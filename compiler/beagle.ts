@@ -1,8 +1,9 @@
 
 /// <reference path="tree.ts" />
 /// <reference path="tokenizer.ts" />
-/* // <reference path="Parser.ts" /> */
+/// <reference path="parser.ts" />
 /// <reference path="context.ts" />
+/// <reference path="visitor.ts" />
 /* // <reference path="AstPrinter.ts" /> */
 /* // <reference path="generator.ts" /> */
 
@@ -77,20 +78,21 @@ if (mode == 'tokenize')
 }
 else
 {
-	/*let pa = new beagle.compiler.Parser(ctx, sc);
-	let unit = pa.parse();
+	let pa = new beagle.compiler.Parser(tk);
+	let unit = pa.parseTopLevel();
 
-	if (mode == 'generate')
+	/* if (mode == 'generate')
 	{
 		//console.log("<html><body><pre>");
 		let generator = new beagle.compiler.generator.CppGenerator(ctx);
 		console.log(generator.generate(unit));
 		//console.log("</pre></body></html>");
 	}
-	else
+	else*/
 	if (mode == 'ast')
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-		beagle.compiler.printCompilationUnit(unit);
-	}*/
+		let visitor = new beagle.compiler.SvgPrinter();
+		visitor.visitUnit(unit);
+	}
 }

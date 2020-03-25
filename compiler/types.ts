@@ -1,0 +1,524 @@
+namespace beagle.compiler {
+export interface IStmt
+{
+    accept( visitor : Visitor ) : void;
+    className(): string;
+}
+
+export interface IExpr
+{
+    accept( visitor : Visitor ) : void;
+    className(): string;
+}
+
+export class Name implements IExpr
+{
+	lexeme : string;
+	constructor( lexeme : string )
+	{
+		this.lexeme = lexeme;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitName(this);
+	}
+	className() : string
+	{
+		return 'Name';
+	}
+}
+
+export class StringLiteral implements IExpr
+{
+	value : string;
+	template : boolean;
+	constructor( value : string, template : boolean )
+	{
+		this.value = value;
+		this.template = template;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitStringLiteral(this);
+	}
+	className() : string
+	{
+		return 'StringLiteral';
+	}
+}
+
+export class NumberLiteral implements IExpr
+{
+	value : string;
+	converted : number;
+	constructor( value : string, converted : number )
+	{
+		this.value = value;
+		this.converted = converted;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitNumberLiteral(this);
+	}
+	className() : string
+	{
+		return 'NumberLiteral';
+	}
+}
+
+export class BoolLiteral implements IExpr
+{
+	converted : boolean;
+	constructor( converted : boolean )
+	{
+		this.converted = converted;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitBoolLiteral(this);
+	}
+	className() : string
+	{
+		return 'BoolLiteral';
+	}
+}
+
+export class NameLiteral implements IExpr
+{
+	value : string;
+	constructor( value : string )
+	{
+		this.value = value;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitNameLiteral(this);
+	}
+	className() : string
+	{
+		return 'NameLiteral';
+	}
+}
+
+export class Group implements IExpr
+{
+	expr : IExpr;
+	constructor( expr : IExpr )
+	{
+		this.expr = expr;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitGroup(this);
+	}
+	className() : string
+	{
+		return 'Group';
+	}
+}
+
+export class NullLiteral implements IExpr
+{
+	constructor(  )
+	{
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitNullLiteral(this);
+	}
+	className() : string
+	{
+		return 'NullLiteral';
+	}
+}
+
+export class LogicalExpr implements IExpr
+{
+	left : IExpr;
+	oper : TokenType;
+	right : IExpr;
+	constructor( left : IExpr, oper : TokenType, right : IExpr )
+	{
+		this.left = left;
+		this.oper = oper;
+		this.right = right;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitLogicalExpr(this);
+	}
+	className() : string
+	{
+		return 'LogicalExpr';
+	}
+}
+
+export class BinaryExpr implements IExpr
+{
+	left : IExpr;
+	oper : TokenType;
+	right : IExpr;
+	constructor( left : IExpr, oper : TokenType, right : IExpr )
+	{
+		this.left = left;
+		this.oper = oper;
+		this.right = right;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitBinaryExpr(this);
+	}
+	className() : string
+	{
+		return 'BinaryExpr';
+	}
+}
+
+export class AssignExpr implements IExpr
+{
+	left : IExpr;
+	oper : TokenType;
+	right : IExpr;
+	constructor( left : IExpr, oper : TokenType, right : IExpr )
+	{
+		this.left = left;
+		this.oper = oper;
+		this.right = right;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitAssignExpr(this);
+	}
+	className() : string
+	{
+		return 'AssignExpr';
+	}
+}
+
+export class UnaryExpr implements IExpr
+{
+	oper : TokenType;
+	expr : IExpr;
+	post : boolean;
+	constructor( oper : TokenType, expr : IExpr, post : boolean )
+	{
+		this.oper = oper;
+		this.expr = expr;
+		this.post = post;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitUnaryExpr(this);
+	}
+	className() : string
+	{
+		return 'UnaryExpr';
+	}
+}
+
+export class CallExpr implements IExpr
+{
+	callee : IExpr;
+	args : IExpr[];
+	constructor( callee : IExpr, args : IExpr[] )
+	{
+		this.callee = callee;
+		this.args = args;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitCallExpr(this);
+	}
+	className() : string
+	{
+		return 'CallExpr';
+	}
+}
+
+export class BlockStmt implements IStmt
+{
+	stmts : IStmt[];
+	constructor( stmts : IStmt[] )
+	{
+		this.stmts = stmts;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitBlockStmt(this);
+	}
+	className() : string
+	{
+		return 'BlockStmt';
+	}
+}
+
+export class ReturnStmt implements IStmt
+{
+	expr : IExpr;
+	constructor( expr : IExpr )
+	{
+		this.expr = expr;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitReturnStmt(this);
+	}
+	className() : string
+	{
+		return 'ReturnStmt';
+	}
+}
+
+export class TypeRef
+{
+	names : Name[];
+	constructor( names : Name[] )
+	{
+		this.names = names;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitTypeRef(this);
+	}
+	className() : string
+	{
+		return 'TypeRef';
+	}
+}
+
+export class IfStmt implements IStmt
+{
+	condition : IStmt;
+	thenSide : IStmt;
+	elseSide : IStmt;
+	constructor( condition : IStmt, thenSide : IStmt, elseSide : IStmt )
+	{
+		this.condition = condition;
+		this.thenSide = thenSide;
+		this.elseSide = elseSide;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitIfStmt(this);
+	}
+	className() : string
+	{
+		return 'IfStmt';
+	}
+}
+
+export class ForOfStmt implements IExpr
+{
+	variable : VariableStmt;
+	stmt : IStmt;
+	constructor( variable : VariableStmt, stmt : IStmt )
+	{
+		this.variable = variable;
+		this.stmt = stmt;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitForOfStmt(this);
+	}
+	className() : string
+	{
+		return 'ForOfStmt';
+	}
+}
+
+export class DoWhileStmt implements IStmt
+{
+	stmt : IStmt;
+	condition : IExpr;
+	constructor( stmt : IStmt, condition : IExpr )
+	{
+		this.stmt = stmt;
+		this.condition = condition;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitDoWhileStmt(this);
+	}
+	className() : string
+	{
+		return 'DoWhileStmt';
+	}
+}
+
+export class WhileStmt implements IStmt
+{
+	condition : IStmt;
+	stmt : IStmt;
+	constructor( condition : IStmt, stmt : IStmt )
+	{
+		this.condition = condition;
+		this.stmt = stmt;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitWhileStmt(this);
+	}
+	className() : string
+	{
+		return 'WhileStmt';
+	}
+}
+
+export class Parameter
+{
+	name : Name;
+	type : TypeRef;
+	init : IExpr;
+	constructor( name : Name, type : TypeRef, init : IExpr )
+	{
+		this.name = name;
+		this.type = type;
+		this.init = init;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitParameter(this);
+	}
+	className() : string
+	{
+		return 'Parameter';
+	}
+}
+
+export class FunctionStmt implements IStmt
+{
+	name : Name;
+	params : Parameter[];
+	type : TypeRef;
+	body : BlockStmt;
+	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt )
+	{
+		this.name = name;
+		this.params = params;
+		this.type = type;
+		this.body = body;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitFunctionStmt(this);
+	}
+	className() : string
+	{
+		return 'FunctionStmt';
+	}
+}
+
+export class ExprStmt implements IStmt
+{
+	expr : IExpr;
+	constructor( expr : IExpr )
+	{
+		this.expr = expr;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitExprStmt(this);
+	}
+	className() : string
+	{
+		return 'ExprStmt';
+	}
+}
+
+export class VariableStmt implements IStmt
+{
+	name : Name;
+	type : TypeRef;
+	init : IExpr;
+	constant : boolean;
+	ronly : boolean;
+	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean = false, ronly : boolean = false )
+	{
+		this.name = name;
+		this.type = type;
+		this.init = init;
+		this.constant = constant;
+		this.ronly = ronly;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitVariableStmt(this);
+	}
+	className() : string
+	{
+		return 'VariableStmt';
+	}
+}
+
+export class Unit
+{
+	stmts : IStmt[];
+	constructor( stmts : IStmt[] )
+	{
+		this.stmts = stmts;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitUnit(this);
+	}
+	className() : string
+	{
+		return 'Unit';
+	}
+}
+
+export interface IVisitor{
+	visitName( target : Name) : void;
+	visitStringLiteral( target : StringLiteral) : void;
+	visitNumberLiteral( target : NumberLiteral) : void;
+	visitBoolLiteral( target : BoolLiteral) : void;
+	visitNameLiteral( target : NameLiteral) : void;
+	visitGroup( target : Group) : void;
+	visitNullLiteral( target : NullLiteral) : void;
+	visitLogicalExpr( target : LogicalExpr) : void;
+	visitBinaryExpr( target : BinaryExpr) : void;
+	visitAssignExpr( target : AssignExpr) : void;
+	visitUnaryExpr( target : UnaryExpr) : void;
+	visitCallExpr( target : CallExpr) : void;
+	visitBlockStmt( target : BlockStmt) : void;
+	visitReturnStmt( target : ReturnStmt) : void;
+	visitTypeRef( target : TypeRef) : void;
+	visitIfStmt( target : IfStmt) : void;
+	visitForOfStmt( target : ForOfStmt) : void;
+	visitDoWhileStmt( target : DoWhileStmt) : void;
+	visitWhileStmt( target : WhileStmt) : void;
+	visitParameter( target : Parameter) : void;
+	visitFunctionStmt( target : FunctionStmt) : void;
+	visitExprStmt( target : ExprStmt) : void;
+	visitVariableStmt( target : VariableStmt) : void;
+	visitUnit( target : Unit) : void;
+}
+
+export class Visitor implements IVisitor {
+	visitName( target : Name) : void {}
+	visitStringLiteral( target : StringLiteral) : void {}
+	visitNumberLiteral( target : NumberLiteral) : void {}
+	visitBoolLiteral( target : BoolLiteral) : void {}
+	visitNameLiteral( target : NameLiteral) : void {}
+	visitGroup( target : Group) : void {}
+	visitNullLiteral( target : NullLiteral) : void {}
+	visitLogicalExpr( target : LogicalExpr) : void {}
+	visitBinaryExpr( target : BinaryExpr) : void {}
+	visitAssignExpr( target : AssignExpr) : void {}
+	visitUnaryExpr( target : UnaryExpr) : void {}
+	visitCallExpr( target : CallExpr) : void {}
+	visitBlockStmt( target : BlockStmt) : void {}
+	visitReturnStmt( target : ReturnStmt) : void {}
+	visitTypeRef( target : TypeRef) : void {}
+	visitIfStmt( target : IfStmt) : void {}
+	visitForOfStmt( target : ForOfStmt) : void {}
+	visitDoWhileStmt( target : DoWhileStmt) : void {}
+	visitWhileStmt( target : WhileStmt) : void {}
+	visitParameter( target : Parameter) : void {}
+	visitFunctionStmt( target : FunctionStmt) : void {}
+	visitExprStmt( target : ExprStmt) : void {}
+	visitVariableStmt( target : VariableStmt) : void {}
+	visitUnit( target : Unit) : void {}
+}
+
+}// namespace beagle.compiler
