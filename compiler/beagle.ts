@@ -1,5 +1,4 @@
 
-/// <reference path="tree.ts" />
 /// <reference path="tokenizer.ts" />
 /// <reference path="parser.ts" />
 /// <reference path="context.ts" />
@@ -15,12 +14,12 @@ class MyListener implements beagle.compiler.CompilationListener
 	}
 
 	onError(location: beagle.compiler.SourceLocation, message: string): boolean {
-		console.log(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
+		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
 		return true;
 	}
 
 	onWarning(location: beagle.compiler.SourceLocation, message: string): boolean {
-		console.log(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
+		console.error(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
 		return true;
 	}
 
@@ -39,7 +38,7 @@ let process = require("process");
 if (process.argv.length != 4)
 {
 	console.log('Usage: beagle.js (generate | tokenize | ast) <input file>');
-	process.exit(0);
+	process.exit(1);
 }
 
 let mode = process.argv[2];
@@ -78,8 +77,14 @@ if (mode == 'tokenize')
 }
 else
 {
-	let pa = new beagle.compiler.Parser(tk);
-	let unit = pa.parseTopLevel();
+	let pa = new beagle.compiler.Parser(tk, ctx);
+	let unit : beagle.compiler.Unit;
+	try {
+		unit = pa.parseTopLevel();
+	} catch (error)
+	{
+		process.exit(1);
+	}
 
 	/* if (mode == 'generate')
 	{

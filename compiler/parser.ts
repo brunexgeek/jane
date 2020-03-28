@@ -4,14 +4,27 @@
 
 namespace beagle.compiler {
 
+export class ParseError extends Error
+{
+    public location : SourceLocation;
+
+    constructor( message : string, location : SourceLocation )
+    {
+        super(`${message} at ${location.toString()}`);
+        this.location = location;
+    }
+}
+
 export class Parser
 {
     private tok : Tokenizer;
+    private ctx : CompilationContext;
     private stack : Token[] = [];
 
-    constructor( tok : Tokenizer )
+    constructor( tok : Tokenizer, ctx : CompilationContext )
     {
         this.tok = tok;
+        this.ctx = ctx;
     }
 
     peek() : Token
@@ -19,7 +32,7 @@ export class Parser
         if (this.stack.length == 0)
         {
             this.stack.push(this.tok.next());
-            console.error(this.stack[0].toString());
+            //console.error(this.stack[0].toString());
         }
         return this.stack[0];
     }
@@ -29,11 +42,6 @@ export class Parser
         let tt = this.peek();
         this.stack.pop();
         return tt;
-    }
-
-    raise( message : string )
-    {
-        throw Error(message + ' at ' + this.peek().location.toString());
     }
 
     consume( type : TokenType, message : string = '' ) : Token
@@ -46,10 +54,13 @@ export class Parser
         }
         else
         {
+            let found = this.peek().type.lexeme;
+            if (this.peek().type == TokenType.NAME) found = this.peek().lexeme;
+
             if (message.length == 0)
-                this.raise('Expected ' + type.name + ', but found ' + this.peek().type.name);
+                throw this.error(this.peek(), `Expected '${type.lexeme}', but found '${found}'`);
             else
-                this.raise(message);
+                throw this.error(this.peek(), message);
         }
     }
 
@@ -66,19 +77,58 @@ export class Parser
         return false;
     }
 
+    error( token : Token, message : string ) : ParseError
+    {
+        this.ctx.listener.onError(token.location, message);
+        return new ParseError(message, token.location);
+    }
+
+    synchronize()
+    {
+        let prev = this.advance();
+
+        while (this.peek().type != TokenType.EOF)
+        {
+            //if (prev.type == TokenType.SEMICOLON) return;
+
+            switch (this.peek().type)
+            {
+            case TokenType.FUNCTION:
+            case TokenType.LET:
+            case TokenType.FOR:
+            case TokenType.IF:
+            case TokenType.WHILE:
+            case TokenType.RETURN:
+                return;
+            }
+
+            this.advance();
+        }
+    }
+
     parseTopLevel() : Unit
     {
         let stmts : IStmt[] = [];
         let tt : Token;
+        let hasError = false;
 
         do {
             tt = this.advance();
-            switch (tt.type)
+            try
             {
-                case TokenType.FUNCTION:
-                    stmts.push( this.parseFunction() );
+                switch (tt.type)
+                {
+                    case TokenType.FUNCTION:
+                        stmts.push( this.parseFunction() );
+                }
+            } catch (error)
+            {
+                hasError = true;
+                this.synchronize();
             }
         } while (tt.type != TokenType.EOF);
+
+        if (hasError) throw Error('The code has one or more errors');
 
         return new Unit(stmts);
     }
@@ -101,7 +151,7 @@ export class Parser
 
         if (type == null && value == null)
         {
-            this.raise('Missing argument type');
+            throw this.error(name, 'Missing argument type');
         }
 
         return new Parameter( new Name(name.lexeme), type, value);
@@ -146,13 +196,22 @@ export class Parser
 
     parseAssignment() : IExpr
     {
+        let tt = this.peek();
         let expr = this.parseOr();
+
         let operator = this.peek().type;
-        while (this.match(TokenType.EQUAL, TokenType.PLUS_EQUAL, TokenType.MINUS_EQUAL,
-            TokenType.SLASH_EQUAL, TokenType.STAR_EQUAL))
+        switch (operator)
         {
-            let right = this.parseOr();
-            expr = new AssignExpr(expr, operator, right);
+            case TokenType.EQUAL:
+            case TokenType.PLUS_EQUAL:
+            case TokenType.MINUS_EQUAL:
+            case TokenType.SLASH_EQUAL:
+            case TokenType.STAR_EQUAL:
+                this.advance();
+                let right = this.parseAssignment();
+                if (expr instanceof NameLiteral)
+                    return expr = new AssignExpr(expr, operator, right);
+                throw this.error(tt, 'Invalid assignment l-value');
         }
 
         return expr;
@@ -308,7 +367,7 @@ export class Parser
             return new Group(expr);
         }
 
-        this.raise('Invalid expression with ' + this.peek().type.name);
+        throw this.error(this.peek(), 'Invalid expression with ' + this.peek().type.lexeme);
     }
 
     parseBlock() : BlockStmt
@@ -419,7 +478,8 @@ export class Parser
     parseVariable() : VariableStmt
     {
         let constant = this.advance().type == TokenType.CONST;
-        let name = new Name( this.consume(TokenType.NAME, 'Missing variable name').lexeme );
+        let tname = this.consume(TokenType.NAME, 'Missing variable name');
+        let name = new Name(tname.lexeme);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.peek().type == TokenType.COLON)
@@ -435,7 +495,7 @@ export class Parser
 
         if (type == null && value == null)
         {
-            this.raise('Missing argument type');
+            throw this.error(tname, 'Missing argument type');
         }
         this.consume(TokenType.SEMICOLON);
 

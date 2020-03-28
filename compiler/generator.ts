@@ -1,4 +1,5 @@
-/// <reference path="tree.ts" />
+/// <reference path="types.ts" />
+/// <reference path="context.ts" />
 
 namespace beagle.compiler.generator {
 

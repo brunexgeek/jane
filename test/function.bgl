@@ -36,6 +36,9 @@ function buildName(firstName: string, lastName: string) {
 
 function pickCard(x:number): number
 {
+  let y = 0;
+  let z = 9;
+  x += y += z;
   return 88 ;
 }
 

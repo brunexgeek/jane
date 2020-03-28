@@ -90,66 +90,66 @@ export class TokenType
     private static entries: { [name: string] : TokenType } = {};
 
     // Single-character tokens
-    static readonly LEFT_PAREN = new TokenType('LEFT_PAREN');
-    static readonly RIGHT_PAREN = new TokenType('RIGHT_PAREN');
-    static readonly LEFT_BRACE = new TokenType('LEFT_BRACE');
-    static readonly RIGHT_BRACE = new TokenType('RIGHT_BRACE');
-    static readonly COMMA = new TokenType('COMMA');
-    static readonly DOT = new TokenType('DOT');
-    static readonly MINUS = new TokenType('MINUS');
-    static readonly PLUS = new TokenType('PLUS');
-    static readonly SEMICOLON = new TokenType('SEMICOLON');
-    static readonly SLASH = new TokenType('SLASH');
-    static readonly STAR = new TokenType('STAR');
-    static readonly COLON = new TokenType('COLON');
-    static readonly QUESTION = new TokenType('QUESTION');
-    static readonly PERCENT = new TokenType('PERCENT');
-    static readonly AND = new TokenType('AND');
-    static readonly OR = new TokenType('OR');
+    static readonly LEFT_PAREN = new TokenType('LEFT_PAREN', '(');
+    static readonly RIGHT_PAREN = new TokenType('RIGHT_PAREN', ')');
+    static readonly LEFT_BRACE = new TokenType('LEFT_BRACE', '{');
+    static readonly RIGHT_BRACE = new TokenType('RIGHT_BRACE', '}');
+    static readonly COMMA = new TokenType('COMMA', ',');
+    static readonly DOT = new TokenType('DOT', '.');
+    static readonly MINUS = new TokenType('MINUS', '-');
+    static readonly PLUS = new TokenType('PLUS', '+');
+    static readonly SEMICOLON = new TokenType('SEMICOLON', ';');
+    static readonly SLASH = new TokenType('SLASH', '/');
+    static readonly STAR = new TokenType('STAR', '*');
+    static readonly COLON = new TokenType('COLON', ':');
+    static readonly QUESTION = new TokenType('QUESTION', '?');
+    static readonly PERCENT = new TokenType('PERCENT', '%');
+    static readonly AND = new TokenType('AND', '&&');
+    static readonly OR = new TokenType('OR', '||');
     static readonly EOF = new TokenType('EOF');
     // One or two character tokens
-    static readonly BANG = new TokenType('BANG');
-    static readonly BANG_EQUAL = new TokenType('BANG_EQUAL');
-    static readonly EQUAL = new TokenType('EQUAL');
-    static readonly EQUAL_EQUAL = new TokenType('EQUAL_EQUAL');
-    static readonly GREATER = new TokenType('GREATER');
-    static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL');
-    static readonly LESS = new TokenType('LESS');
-    static readonly LESS_EQUAL = new TokenType('LESS_EQUAL');
-    static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL');
-    static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL');
-    static readonly STAR_EQUAL = new TokenType('STAR_EQUAL');
-    static readonly SLASH_EQUAL = new TokenType('SLASH_EQUAL');
-    static readonly PLUS_PLUS = new TokenType('PLUS_PLUS');
-    static readonly MINUS_MINUS = new TokenType('MINUS_MINUS');
+    static readonly BANG = new TokenType('BANG', '!');
+    static readonly BANG_EQUAL = new TokenType('BANG_EQUAL', '!=');
+    static readonly EQUAL = new TokenType('EQUAL', '=');
+    static readonly EQUAL_EQUAL = new TokenType('EQUAL_EQUAL', '==');
+    static readonly GREATER = new TokenType('GREATER', '>');
+    static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL', '>=');
+    static readonly LESS = new TokenType('LESS', '<');
+    static readonly LESS_EQUAL = new TokenType('LESS_EQUAL', '<=');
+    static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL', '+=');
+    static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL', '-=');
+    static readonly STAR_EQUAL = new TokenType('STAR_EQUAL', '*=');
+    static readonly SLASH_EQUAL = new TokenType('SLASH_EQUAL', '/=');
+    static readonly PLUS_PLUS = new TokenType('PLUS_PLUS', '++');
+    static readonly MINUS_MINUS = new TokenType('MINUS_MINUS', '--');
 
     // Literals
-    static readonly NAME = new TokenType('NAME');
+    static readonly NAME = new TokenType('NAME', 'identifier');
     static readonly QNAME = new TokenType('QNAME');
     static readonly STRING = new TokenType('STRING');
     static readonly TSTRING = new TokenType('TSTRING');
     static readonly NUMBER = new TokenType('NUMBER');
 
     // Keywords
-    static readonly ELSE = new TokenType('ELSE', 'else');
-    static readonly FALSE = new TokenType('FALSE', 'true');
-    static readonly FUNCTION = new TokenType('FUNCTION', 'function');
-    static readonly FOR = new TokenType('FOR', 'for');
-    static readonly OF = new TokenType('OF', 'of');
-    static readonly IF = new TokenType('IF', 'if');
-    static readonly NIL = new TokenType('NIL', 'null');
-    static readonly RETURN = new TokenType('RETURN', 'return');
-    static readonly TRUE = new TokenType('TRUE', 'true');
-    static readonly LET = new TokenType('LET', 'let');
-    static readonly WHILE = new TokenType('WHILE', 'while');
-    static readonly DO = new TokenType('DO', 'do');
-    static readonly CONST = new TokenType('CONST', 'const');
+    static readonly ELSE = new TokenType('ELSE', 'else', true);
+    static readonly FALSE = new TokenType('FALSE', 'true', true);
+    static readonly FUNCTION = new TokenType('FUNCTION', 'function', true);
+    static readonly FOR = new TokenType('FOR', 'for', true);
+    static readonly OF = new TokenType('OF', 'of', true);
+    static readonly IF = new TokenType('IF', 'if', true);
+    static readonly NIL = new TokenType('NIL', 'null', true);
+    static readonly RETURN = new TokenType('RETURN', 'return', true);
+    static readonly TRUE = new TokenType('TRUE', 'true', true);
+    static readonly LET = new TokenType('LET', 'let', true);
+    static readonly WHILE = new TokenType('WHILE', 'while', true);
+    static readonly DO = new TokenType('DO', 'do', true);
+    static readonly CONST = new TokenType('CONST', 'const', true);
 
-    private constructor(name : string, lexeme : string = "")
+    private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
         this.name = name;
-		this.lexeme = lexeme;
-        if (this.lexeme.length > 0) TokenType.entries[lexeme] = this;
+		this.lexeme = (lexeme.length == 0) ? name : lexeme;
+        if (kword) TokenType.entries[lexeme] = this;
 	}
 
 	public static resolve( name : string ) : TokenType
