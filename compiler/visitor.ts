@@ -130,9 +130,12 @@ export class SvgPrinter implements IVisitor
     visitReturnStmt(target: ReturnStmt): void {
         let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
 
-        this.label = 'expr';
-        this.parent = id;
-        target.expr.accept(this);
+        if (target.expr)
+        {
+            this.label = 'expr';
+            this.parent = id;
+            target.expr.accept(this);
+        }
 
         this.label = '<next>';
         this.parent = id;

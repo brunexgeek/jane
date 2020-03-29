@@ -376,7 +376,7 @@ export class Parser
 
         this.consume(TokenType.LEFT_BRACE);
         do {
-            stmts.push( this.parseStatement() );
+            stmts.push( this.parseVariableDecl() );
         } while(this.peek().type != TokenType.RIGHT_BRACE);
         this.consume(TokenType.RIGHT_BRACE);
 
@@ -391,17 +391,25 @@ export class Parser
             return this.parseStatement();
     }
 
+    parseVariableDecl() : IStmt
+    {
+        if (this.peek().type == TokenType.LET || this.peek().type == TokenType.CONST)
+            return this.parseVariable();
+        return this.parseStatement();
+    }
+
     parseStatement() : IStmt
     {
         let cur = this.peek().type;
         // parse language statements
         switch (cur)
         {
-            case TokenType.IF:
-                return this.parseIfThenElse();
             case TokenType.LET:
             case TokenType.CONST:
-                return this.parseVariable();
+                throw this.error(this.peek(), `'${cur.lexeme}' declarations can only be declared inside a block.`);
+                break;
+            case TokenType.IF:
+                return this.parseIfThenElse();
             case TokenType.RETURN:
                 return this.parseReturn();
             case TokenType.DO:
@@ -420,7 +428,9 @@ export class Parser
     parseReturn() : IStmt
     {
         this.consume(TokenType.RETURN);
-        let expr = this.parseExpression();
+        let expr : IExpr = null;
+        if (this.peek().type != TokenType.SEMICOLON)
+            expr = this.parseExpression();
         this.consume(TokenType.SEMICOLON);
         return new ReturnStmt(expr);
     }

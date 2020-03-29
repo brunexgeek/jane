@@ -17,7 +17,7 @@ function func3( x : number, y : string ) : number {
 
 function buildName(firstName: string, lastName = "Smith") {
   fileName += 8;
-  while (fileName) { fileName += 8;}
+  while (fileName = 8) { fileName += 8;}
   return firstName + " " + lastName;
 }
 
@@ -29,7 +29,7 @@ function buildName(firstName: string, lastName: string) {
     return firstName + " " + lastName;
   }
   else
-    return firstName;
+    return;
   while (true) i++;
 
 }
