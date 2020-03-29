@@ -15,6 +15,26 @@ export class SvgPrinter implements IVisitor
     private label : string = '';
     static readonly FUNC_COLOR = '#00F0F2';
     static readonly STMT_COLOR = '#A0A0A0';
+    static readonly CLASS_COLOR = '#00F070';
+
+    visitAccessor(target: Accessor): void {
+        throw new Error("Method not implemented.");
+    }
+
+    accessorToString( target : Accessor ) : string
+    {
+        if (target == null) return '';
+
+        let result = '';
+        let first  = true;
+        for (let i of target.values)
+        {
+            if (!first) result += ' ';
+            result += i.lexeme;
+            first = false;
+        }
+        return result;
+    }
 
     visitCallExpr(target: CallExpr): void {
         let id = this.connection(this.parent, target.className(), '', this.label);
@@ -33,6 +53,54 @@ export class SvgPrinter implements IVisitor
 
         this.label = '';
         this.parent = id;
+    }
+
+    visitFieldExpr( target: FieldExpr ): void
+    {
+        let content = this.field('name', target.name.lexeme);
+        let id = this.connection(this.parent, target.className(), content, this.label);
+
+        this.label = 'callee';
+        this.parent = id;
+        target.callee.accept(this);
+
+        this.label = '';
+        this.parent = id;
+    }
+
+    visitClassStmt(target: ClassStmt): void {
+        let content = this.field('name', target.name.lexeme);
+        if (target.extended)
+            content += this.field('extends', target.extended.lexeme);
+        if (target.implemented)
+        {
+            let names = '';
+            for (let i of target.implemented) names +=  ' ' + i.lexeme;
+            content += this.field('implements', names);
+        }
+        let id = this.connection(this.parent, target.className(),  content, this.label, SvgPrinter.CLASS_COLOR);
+
+        if (target.functions)
+        {
+            let i = 0;
+            for (let func of target.functions)
+            {
+                this.parent = id;
+                this.label = `functions[${i++}]`;
+                func.accept(this);
+            }
+        }
+
+        if (target.variables)
+        {
+            let i = 0;
+            for (let vari of target.variables)
+            {
+                this.parent = id;
+                this.label = `variables[${i++}]`;
+                vari.accept(this);
+            }
+        }
     }
 
     visitName(target: Name): void {
@@ -223,9 +291,11 @@ export class SvgPrinter implements IVisitor
     }
 
     visitFunctionStmt(target: FunctionStmt): void {
-        let label = `<b>name:</b>   ${target.name.lexeme}`
-        label += `<br/><b>type:</b>   ${this.typeRef(target.type)}`
-        let id = this.connection(this.parent, target.className(), label, '', SvgPrinter.FUNC_COLOR);
+        let content = this.field('name', target.name.lexeme);
+        content += this.field('type', this.typeRef(target.type));
+        if (target.accessor)
+            content += this.field('accessor', this.accessorToString(target.accessor));
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.FUNC_COLOR);
         this.parent = id;
 
         if (target.params)
@@ -270,15 +340,18 @@ export class SvgPrinter implements IVisitor
 
     visitVariableStmt(target: VariableStmt): void {
         let content = this.field('name', target.name.lexeme);
-        content += this.field('content', target.constant.toString());
-        content += this.field('ronly', target.ronly.toString());
-        content += this.field('type', this.typeRef(target.type), true);
-
+        content += this.field('constant', target.constant.toString());
+        content += this.field('type', this.typeRef(target.type));
+        if (target.accessor)
+            content += this.field('accessor', this.accessorToString(target.accessor), true);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
 
-        this.label = 'init';
-        this.parent = id;
-        target.init.accept(this);
+        if (target.init)
+        {
+            this.label = 'init';
+            this.parent = id;
+            target.init.accept(this);
+        }
 
         this.label = '<next>';
         this.parent = id;

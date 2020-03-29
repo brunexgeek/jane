@@ -1,10 +1,12 @@
 function func1() : void {
 	let value : number = 5;
-	print(5, 5+6)()(`asd`);
+  print(5, 5+6)()(`asd`);
+  box.open(3).put(ball).d = 9;
 }
 
 function func2( x : number ) : void {
     print = `Hello world`;
+
 }
 
 function func3( x : number, y : string ) : number {
@@ -39,6 +41,17 @@ function pickCard(x:number): number
   let y = 0;
   let z = 9;
   x += y += z;
-  return 88 ;
+  return x.toString();
 }
 
+
+interface bla extends Z implements A, B, C {
+  papa : number;
+  private bla() : number
+  {
+    return 8;
+  }
+  blaee() {
+
+  }
+}

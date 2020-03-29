@@ -144,18 +144,26 @@ export class TokenType
     static readonly WHILE = new TokenType('WHILE', 'while', true);
     static readonly DO = new TokenType('DO', 'do', true);
     static readonly CONST = new TokenType('CONST', 'const', true);
+    static readonly CLASS = new TokenType('CLASS', 'class', true);
+    static readonly PUBLIC = new TokenType('PUBLIC', 'public', true);
+    static readonly PRIVATE = new TokenType('PRIVATE', 'private', true);
+    static readonly PROTECTED = new TokenType('PROTECTED', 'protected', true);
+    static readonly READONLY = new TokenType('READONLY', 'readonly', true);
+    static readonly EXTENDS = new TokenType('EXTENDS', 'extends', true);
+    static readonly IMPLEMENTS = new TokenType('IMPLEMENTS', 'implements', true);
+    static readonly INTERFACE = new TokenType('INTERFACE', 'interface', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
         this.name = name;
 		this.lexeme = (lexeme.length == 0) ? name : lexeme;
-        if (kword) TokenType.entries[lexeme] = this;
+        if (kword && lexeme) TokenType.entries[`_${lexeme}`] = this;
 	}
 
 	public static resolve( name : string ) : TokenType
 	{
-		let item = TokenType.entries[name];
-		if (item != null && item.lexeme.length > 0) return item;
+        let item = TokenType.entries[`_${name}`];
+		if (item && item.lexeme.length > 0) return item;
 		return TokenType.NAME;
 	}
 }

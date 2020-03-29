@@ -32,7 +32,8 @@ export class Parser
         if (this.stack.length == 0)
         {
             this.stack.push(this.tok.next());
-            //console.error(this.stack[0].toString());
+            //if (this.stack[0].type == TokenType.NAME)
+            //    console.error('--- ' + this.stack[0].toString());
         }
         return this.stack[0];
     }
@@ -77,6 +78,11 @@ export class Parser
         return false;
     }
 
+    eof() : boolean
+    {
+        return this.peek().type == TokenType.EOF;
+    }
+
     error( token : Token, message : string ) : ParseError
     {
         this.ctx.listener.onError(token.location, message);
@@ -113,20 +119,16 @@ export class Parser
         let hasError = false;
 
         do {
-            tt = this.advance();
             try
             {
-                switch (tt.type)
-                {
-                    case TokenType.FUNCTION:
-                        stmts.push( this.parseFunction() );
-                }
+                stmts.push( this.parseDeclationStmt() );
             } catch (error)
             {
+                console.error(error);
                 hasError = true;
                 this.synchronize();
             }
-        } while (tt.type != TokenType.EOF);
+        } while (this.peek().type != TokenType.EOF);
 
         if (hasError) throw Error('The code has one or more errors');
 
@@ -159,6 +161,7 @@ export class Parser
 
     parseFunction() : FunctionStmt
     {
+        this.consume(TokenType.FUNCTION, 'Missing function keyword');
         let name = this.consume(TokenType.NAME, 'Missing function name');
 
         let args : Parameter[] = [];
@@ -209,7 +212,7 @@ export class Parser
             case TokenType.STAR_EQUAL:
                 this.advance();
                 let right = this.parseAssignment();
-                if (expr instanceof NameLiteral)
+                if (expr instanceof NameLiteral || expr instanceof FieldExpr)
                     return expr = new AssignExpr(expr, operator, right);
                 throw this.error(tt, 'Invalid assignment l-value');
         }
@@ -328,19 +331,28 @@ export class Parser
     {
         let expr = this.parseAtomic();
 
-        while (this.match(TokenType.LEFT_PAREN))
+        while (true)
         {
-            let args : IExpr[] = [];
-
-            if (this.peek().type != TokenType.RIGHT_PAREN)
+            if (this.match(TokenType.LEFT_PAREN))
             {
-                do {
-                    args.push(this.parseExpression());
-                } while (this.match(TokenType.COMMA));
+                let args : IExpr[] = [];
+                if (this.peek().type != TokenType.RIGHT_PAREN)
+                {
+                    do {
+                        args.push(this.parseExpression());
+                    } while (this.match(TokenType.COMMA));
+                }
+                this.consume(TokenType.RIGHT_PAREN);
+                expr = new CallExpr(expr, args);
             }
-            this.consume(TokenType.RIGHT_PAREN);
-
-            expr = new CallExpr(expr, args);
+            else
+            if (this.match(TokenType.DOT))
+            {
+                let name = new Name(this.consume(TokenType.NAME, 'Expect name after \'.\'.').lexeme);
+                expr = new FieldExpr(expr, name);
+            }
+            else
+                break;
         }
 
         return expr;
@@ -375,9 +387,10 @@ export class Parser
         let stmts : IStmt[] = [];
 
         this.consume(TokenType.LEFT_BRACE);
-        do {
-            stmts.push( this.parseVariableDecl() );
-        } while(this.peek().type != TokenType.RIGHT_BRACE);
+        while(this.peek().type != TokenType.RIGHT_BRACE)
+        {
+            stmts.push( this.parseVariableOrStatement() );
+        }
         this.consume(TokenType.RIGHT_BRACE);
 
         return new BlockStmt(stmts);
@@ -391,7 +404,113 @@ export class Parser
             return this.parseStatement();
     }
 
-    parseVariableDecl() : IStmt
+    parseDeclationStmt() : IStmt
+    {
+        let cur = this.peek().type;
+        switch (cur)
+        {
+            case TokenType.LET:
+            case TokenType.CONST:
+                return this.parseVariable();
+            case TokenType.FUNCTION:
+                return this.parseFunction();
+            case TokenType.CLASS:
+            case TokenType.INTERFACE:
+                return this.parseClass();
+        }
+
+        return this.parseStatement();
+    }
+
+    parseClass() : ClassStmt
+    {
+        let type = this.advance().type;
+        let name = new Name( this.consume(TokenType.NAME, 'Missing class name').lexeme );
+        let extended : Name = null;
+        let implemented : Name[] = null;
+
+        if (this.match(TokenType.EXTENDS))
+        {
+            extended = new Name(this.consume(TokenType.NAME, 'Missing extended type').lexeme);
+        }
+
+        if (this.match(TokenType.IMPLEMENTS))
+        {
+            implemented = [];
+            do {
+                implemented.push(new Name(this.consume(TokenType.NAME, 'Missing extended type').lexeme));
+            } while (this.match(TokenType.COMMA));
+        }
+
+        this.consume(TokenType.LEFT_BRACE);
+
+        let funcs : FunctionStmt[] = [];
+        let vars : VariableStmt[] = [];
+        while (!this.eof() && this.peek().type != TokenType.RIGHT_BRACE)
+        {
+            let accessor = this.parseAccessor();
+
+            if (this.peek().type == TokenType.NAME)
+            {
+                let name = this.advance();
+                if (this.peek().type == TokenType.LEFT_PAREN)
+                {
+                    let func = this.parseMethod(name);
+                    func.accessor = accessor;
+                    funcs.push(func);
+                }
+                else
+                {
+                    let vari = this.parseVariable(name);
+                    vari.accessor = accessor;
+                    vars.push(vari);
+                }
+            }
+        }
+        this.consume(TokenType.RIGHT_BRACE);
+
+        return new ClassStmt(name, extended, implemented, vars, funcs);
+    }
+
+    parseMethod( name : Token ) : FunctionStmt
+    {
+        let args : Parameter[] = [];
+        this.consume(TokenType.LEFT_PAREN);
+        if (this.peek().type != TokenType.RIGHT_PAREN)
+        {
+            do {
+                args.push( this.parseArgument() );
+            } while (this.match(TokenType.COMMA));
+        }
+        this.consume(TokenType.RIGHT_PAREN);
+
+        let type : TypeRef = null;
+        if (this.peek().type == TokenType.COLON)
+        {
+            this.advance();
+            type = this.parseTypeRef();
+        }
+
+        let block = this.parseBlock();
+
+        return new FunctionStmt(new Name(name.lexeme), args, type, block);
+    }
+
+    parseAccessor() : Accessor
+    {
+        let values : TokenType[] = [];
+        while (true)
+        {
+            let cur = this.peek().type;
+            if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED, TokenType.READONLY))
+                break;
+            values.push(cur);
+        }
+        if (values.length == 0) return null;
+        return new Accessor(values);
+    }
+
+    parseVariableOrStatement() : IStmt
     {
         if (this.peek().type == TokenType.LET || this.peek().type == TokenType.CONST)
             return this.parseVariable();
@@ -485,10 +604,16 @@ export class Parser
         return new ForOfStmt(variable, stmt);
     }
 
-    parseVariable() : VariableStmt
+    parseVariable( tname : Token = null) : VariableStmt
     {
-        let constant = this.advance().type == TokenType.CONST;
-        let tname = this.consume(TokenType.NAME, 'Missing variable name');
+        let constant : boolean = false;
+
+        if (!tname)
+        {
+            constant = this.advance().type == TokenType.CONST;
+            tname = this.consume(TokenType.NAME, 'Missing variable name');
+        }
+
         let name = new Name(tname.lexeme);
         let type : TypeRef = null;
         let value : IExpr = null;

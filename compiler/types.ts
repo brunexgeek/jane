@@ -235,6 +235,42 @@ export class CallExpr implements IExpr
 	}
 }
 
+export class FieldExpr implements IStmt
+{
+	callee : IExpr;
+	name : Name;
+	constructor( callee : IExpr, name : Name )
+	{
+		this.callee = callee;
+		this.name = name;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitFieldExpr(this);
+	}
+	className() : string
+	{
+		return 'FieldExpr';
+	}
+}
+
+export class Accessor
+{
+	values : TokenType[];
+	constructor( values : TokenType[] )
+	{
+		this.values = values;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitAccessor(this);
+	}
+	className() : string
+	{
+		return 'Accessor';
+	}
+}
+
 export class BlockStmt implements IStmt
 {
 	stmts : IStmt[];
@@ -391,6 +427,7 @@ export class FunctionStmt implements IStmt
 	params : Parameter[];
 	type : TypeRef;
 	body : BlockStmt;
+	accessor : Accessor = null;
 	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt )
 	{
 		this.name = name;
@@ -405,6 +442,31 @@ export class FunctionStmt implements IStmt
 	className() : string
 	{
 		return 'FunctionStmt';
+	}
+}
+
+export class ClassStmt implements IStmt
+{
+	name : Name;
+	extended : Name;
+	implemented : Name[];
+	variables : VariableStmt[];
+	functions : FunctionStmt[];
+	constructor( name : Name, extended : Name, implemented : Name[], variables : VariableStmt[], functions : FunctionStmt[] )
+	{
+		this.name = name;
+		this.extended = extended;
+		this.implemented = implemented;
+		this.variables = variables;
+		this.functions = functions;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitClassStmt(this);
+	}
+	className() : string
+	{
+		return 'ClassStmt';
 	}
 }
 
@@ -431,14 +493,13 @@ export class VariableStmt implements IStmt
 	type : TypeRef;
 	init : IExpr;
 	constant : boolean;
-	ronly : boolean;
-	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean = false, ronly : boolean = false )
+	accessor : Accessor;
+	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean = false )
 	{
 		this.name = name;
 		this.type = type;
 		this.init = init;
 		this.constant = constant;
-		this.ronly = ronly;
 	}
 	accept( visitor : Visitor ) : void
 	{
@@ -480,6 +541,8 @@ export interface IVisitor{
 	visitAssignExpr( target : AssignExpr) : void;
 	visitUnaryExpr( target : UnaryExpr) : void;
 	visitCallExpr( target : CallExpr) : void;
+	visitFieldExpr( target : FieldExpr) : void;
+	visitAccessor( target : Accessor) : void;
 	visitBlockStmt( target : BlockStmt) : void;
 	visitReturnStmt( target : ReturnStmt) : void;
 	visitTypeRef( target : TypeRef) : void;
@@ -489,6 +552,7 @@ export interface IVisitor{
 	visitWhileStmt( target : WhileStmt) : void;
 	visitParameter( target : Parameter) : void;
 	visitFunctionStmt( target : FunctionStmt) : void;
+	visitClassStmt( target : ClassStmt) : void;
 	visitExprStmt( target : ExprStmt) : void;
 	visitVariableStmt( target : VariableStmt) : void;
 	visitUnit( target : Unit) : void;
@@ -507,6 +571,8 @@ export class Visitor implements IVisitor {
 	visitAssignExpr( target : AssignExpr) : void {}
 	visitUnaryExpr( target : UnaryExpr) : void {}
 	visitCallExpr( target : CallExpr) : void {}
+	visitFieldExpr( target : FieldExpr) : void {}
+	visitAccessor( target : Accessor) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
 	visitTypeRef( target : TypeRef) : void {}
@@ -516,6 +582,7 @@ export class Visitor implements IVisitor {
 	visitWhileStmt( target : WhileStmt) : void {}
 	visitParameter( target : Parameter) : void {}
 	visitFunctionStmt( target : FunctionStmt) : void {}
+	visitClassStmt( target : ClassStmt) : void {}
 	visitExprStmt( target : ExprStmt) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
 	visitUnit( target : Unit) : void {}
