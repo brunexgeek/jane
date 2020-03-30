@@ -597,6 +597,10 @@ export class Parser
                 return this.parseWhileStmt();
             case TokenType.FOR:
                 return this.parseForOfStmt();
+            case TokenType.THROW:
+                return this.parseThrow();
+            case TokenType.TRY:
+                return this.parseTryCatchStmt();
         }
         // all we have left is a expression statement
         let expr = this.parseExpression();
@@ -695,6 +699,41 @@ export class Parser
         this.consume(TokenType.SEMICOLON);
 
         return new VariableStmt(name, type, value, constant);
+    }
+
+    parseThrow() : IStmt
+    {
+        this.consume(TokenType.THROW);
+        let expr : IExpr = null;
+        if (this.peek().type != TokenType.SEMICOLON)
+            expr = this.parseExpression();
+        this.consume(TokenType.SEMICOLON);
+        return new ThrowStmt(expr);
+    }
+
+    parseTryCatchStmt() : IStmt
+    {
+        let tt = this.consume(TokenType.TRY);
+        let block = this.parseBlock();
+        let variable : Name = null;
+        let cblock : IStmt = null;
+        let fblock : IStmt = null;
+
+        if (this.match(TokenType.CATCH))
+        {
+            this.consume(TokenType.LEFT_PAREN);
+            variable = this.parseName();
+            this.consume(TokenType.RIGHT_PAREN);
+            cblock = this.parseBlock();
+        }
+
+        if (this.match(TokenType.FINALLY))
+            fblock = this.parseBlock();
+
+        if (!cblock && !fblock)
+            this.error(tt, 'Either catch or finally is required');
+
+        return new TryCatchStmt(block, variable, cblock, fblock);
     }
 }
 

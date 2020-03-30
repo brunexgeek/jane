@@ -568,6 +568,46 @@ export class VariableStmt implements IStmt
 	}
 }
 
+export class TryCatchStmt implements IStmt
+{
+	block : IStmt;
+	variable : Name;
+	cblock : IStmt;
+	fblock : IStmt;
+	constructor( block : IStmt, variable : Name, cblock : IStmt, fblock : IStmt )
+	{
+		this.block = block;
+		this.variable = variable;
+		this.cblock = cblock;
+		this.fblock = fblock;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitTryCatchStmt(this);
+	}
+	className() : string
+	{
+		return 'TryCatchStmt';
+	}
+}
+
+export class ThrowStmt implements IStmt
+{
+	expr : IExpr;
+	constructor( expr : IExpr )
+	{
+		this.expr = expr;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitThrowStmt(this);
+	}
+	className() : string
+	{
+		return 'ThrowStmt';
+	}
+}
+
 export class Unit
 {
 	stmts : IStmt[];
@@ -615,6 +655,8 @@ export interface IVisitor{
 	visitClassStmt( target : ClassStmt) : void;
 	visitExprStmt( target : ExprStmt) : void;
 	visitVariableStmt( target : VariableStmt) : void;
+	visitTryCatchStmt( target : TryCatchStmt) : void;
+	visitThrowStmt( target : ThrowStmt) : void;
 	visitUnit( target : Unit) : void;
 }
 
@@ -648,6 +690,8 @@ export class Visitor implements IVisitor {
 	visitClassStmt( target : ClassStmt) : void {}
 	visitExprStmt( target : ExprStmt) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
+	visitTryCatchStmt( target : TryCatchStmt) : void {}
+	visitThrowStmt( target : ThrowStmt) : void {}
 	visitUnit( target : Unit) : void {}
 }
 

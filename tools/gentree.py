@@ -217,6 +217,17 @@ printType('VariableStmt', [
     {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
     ], 'IStmt')
 
+printType('TryCatchStmt', [
+    {'name' : 'block', 'type' : 'IStmt'},
+    {'name' : 'variable', 'type' : 'Name'},
+    {'name' : 'cblock', 'type' : 'IStmt'},
+    {'name' : 'fblock', 'type' : 'IStmt'}
+    ], 'IStmt')
+
+printType('ThrowStmt', [
+    {'name' : 'expr', 'type' : 'IExpr'}
+    ], 'IStmt')
+
 printType('Unit', [{'name' : 'stmts', 'type' : 'IStmt[]'}])
 
 printVisitor()

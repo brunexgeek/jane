@@ -17,6 +17,53 @@ export class SvgPrinter implements IVisitor
     static readonly STMT_COLOR = '#A0A0A0';
     static readonly CLASS_COLOR = '#00F070';
 
+    visitTryCatchStmt(target: TryCatchStmt): void
+    {
+        let content : string = '';
+        if (target.variable)
+            content += this.field('variable', this.nameToString(target.variable));
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
+
+        if (target.block)
+        {
+            this.parent = id;
+            this.label = 'block';
+            target.block.accept(this);
+        }
+
+        if (target.cblock)
+        {
+            this.parent = id;
+            this.label = 'cblock';
+            target.cblock.accept(this);
+        }
+
+        if (target.fblock)
+        {
+            this.parent = id;
+            this.label = 'fblock';
+            target.cblock.accept(this);
+        }
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
+    visitThrowStmt(target: ThrowStmt): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        if (target.expr)
+        {
+            this.parent = id;
+            this.label = 'expr';
+            target.expr.accept(this);
+        }
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
     visitAccessor(target: Accessor): void {
         throw new Error("Method not implemented.");
     }
@@ -349,13 +396,13 @@ export class SvgPrinter implements IVisitor
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor));
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.FUNC_COLOR);
-        this.parent = id;
 
         if (target.params)
         {
             let i = 0;
             for (let item of target.params)
             {
+                this.parent = id;
                 this.label = `params[${i++}]`;
                 item.accept(this);
             }
@@ -368,8 +415,8 @@ export class SvgPrinter implements IVisitor
             target.body.accept(this);
         }
 
-        this.label = '<next>';
         this.parent = id;
+        this.label = '<next>';
     }
 
     visitExprStmt(target: ExprStmt): void {

@@ -157,6 +157,10 @@ export class TokenType
     static readonly INTERFACE = new TokenType('INTERFACE', 'interface', true);
     static readonly NAMESPACE = new TokenType('NAMESPACE', 'namespace', true);
     static readonly EXPORT = new TokenType('EXPORT', 'export', true);
+    static readonly THROW = new TokenType('THROW', 'throw', true);
+    static readonly TRY = new TokenType('TRY', 'try', true);
+    static readonly CATCH = new TokenType('CATCH', 'catch', true);
+    static readonly FINALLY = new TokenType('FINALLY', 'finally', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
