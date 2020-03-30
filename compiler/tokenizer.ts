@@ -153,6 +153,7 @@ export class TokenType
     static readonly EXTENDS = new TokenType('EXTENDS', 'extends', true);
     static readonly IMPLEMENTS = new TokenType('IMPLEMENTS', 'implements', true);
     static readonly INTERFACE = new TokenType('INTERFACE', 'interface', true);
+    static readonly NAMESPACE = new TokenType('NAMESPACE', 'namespace', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {

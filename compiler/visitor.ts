@@ -363,6 +363,22 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
     }
 
+    visitNamespaceStmt(target: NamespaceStmt): void
+    {
+        let content = this.field('name', this.nameToString(target.name));
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
+        if (target.stmts)
+        {
+            this.label = 'stmts';
+            for (let stmt of target.stmts)
+            {
+                this.parent = id;
+                stmt.accept(this);
+                this.label = '<next>';
+            }
+        }
+    }
+
     visitUnit(target: Unit): void {
         print(`digraph AST {
         node [shape=record style=filled fontsize=10];

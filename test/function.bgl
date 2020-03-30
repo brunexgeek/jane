@@ -1,11 +1,16 @@
+namespace bla.ble {
+
 function func1() : void {
 	let value : number = 5;
   print(5, 5+6)()(`asd`);
   box.open(3).put(ball).d = 9;
 }
 
+
 function func2( x : number ) : void {
     print = `Hello world`;
+
+}
 
 }
 

@@ -305,6 +305,25 @@ export class ReturnStmt implements IStmt
 	}
 }
 
+export class NamespaceStmt implements IStmt
+{
+	name : Name;
+	stmts : IStmt[];
+	constructor( name : Name, stmts : IStmt[] )
+	{
+		this.name = name;
+		this.stmts = stmts;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitNamespaceStmt(this);
+	}
+	className() : string
+	{
+		return 'NamespaceStmt';
+	}
+}
+
 export class TypeRef
 {
 	name : Name;
@@ -545,6 +564,7 @@ export interface IVisitor{
 	visitAccessor( target : Accessor) : void;
 	visitBlockStmt( target : BlockStmt) : void;
 	visitReturnStmt( target : ReturnStmt) : void;
+	visitNamespaceStmt( target : NamespaceStmt) : void;
 	visitTypeRef( target : TypeRef) : void;
 	visitIfStmt( target : IfStmt) : void;
 	visitForOfStmt( target : ForOfStmt) : void;
@@ -575,6 +595,7 @@ export class Visitor implements IVisitor {
 	visitAccessor( target : Accessor) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
+	visitNamespaceStmt( target : NamespaceStmt) : void {}
 	visitTypeRef( target : TypeRef) : void {}
 	visitIfStmt( target : IfStmt) : void {}
 	visitForOfStmt( target : ForOfStmt) : void {}

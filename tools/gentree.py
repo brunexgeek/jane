@@ -143,6 +143,11 @@ printType('BlockStmt', [{'name' : 'stmts', 'type' : 'IStmt[]'}], 'IStmt')
 
 printType('ReturnStmt', [{'name' : 'expr', 'type' : 'IExpr'}], 'IStmt')
 
+printType('NamespaceStmt', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'stmts', 'type' : 'IStmt[]'}
+    ], 'IStmt')
+
 printType('TypeRef', [{'name' : 'name', 'type' : 'Name'}])
 
 printType('IfStmt', [

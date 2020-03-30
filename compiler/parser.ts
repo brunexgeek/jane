@@ -121,7 +121,10 @@ export class Parser
         do {
             try
             {
-                stmts.push( this.parseDeclationStmt() );
+                if (this.peek().type == TokenType.NAMESPACE)
+                    stmts.push( this.parseNamespace() );
+                else
+                    stmts.push( this.parseDeclationStmt() );
             } catch (error)
             {
                 console.error(error);
@@ -133,6 +136,20 @@ export class Parser
         if (hasError) throw Error('The code has one or more errors');
 
         return new Unit(stmts);
+    }
+
+    parseNamespace() : IStmt
+    {
+        let stmts : IStmt[] = [];
+        this.consume(TokenType.NAMESPACE);
+        let name = this.parseName(true);
+        this.consume(TokenType.LEFT_BRACE);
+
+        do {
+                stmts.push( this.parseDeclationStmt() );
+        } while (!this.match(TokenType.RIGHT_BRACE));
+
+        return new NamespaceStmt(name, stmts);
     }
 
     parseArgument() : Parameter
