@@ -83,7 +83,7 @@ printType('Name', [{'name' : 'lexeme', 'type' : 'string'}], 'IExpr')
 
 printType('StringLiteral', [
     {'name' : 'value', 'type' : 'string'},
-    {'name' : 'template', 'type' : 'boolean'}
+    {'name' : 'type', 'type' : 'TokenType'}
     ], 'IExpr')
 
 printType('NumberLiteral', [

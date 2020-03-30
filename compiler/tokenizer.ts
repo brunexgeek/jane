@@ -126,8 +126,9 @@ export class TokenType
     // Literals
     static readonly NAME = new TokenType('NAME', 'identifier');
     static readonly QNAME = new TokenType('QNAME');
-    static readonly STRING = new TokenType('STRING');
     static readonly TSTRING = new TokenType('TSTRING');
+    static readonly SSTRING = new TokenType('SSTRING');
+    static readonly DSTRING = new TokenType('DSTRING');
     static readonly NUMBER = new TokenType('NUMBER');
 
     // Keywords
@@ -392,8 +393,13 @@ export class Tokenizer
         }
 
         this.scanner.advance();
-        let ttype = TokenType.STRING;
-        if (type == '`') ttype = TokenType.TSTRING;
+        let ttype = TokenType.SSTRING;
+        if (type == '"')
+            ttype = TokenType.DSTRING;
+        else
+        if (type == '`')
+            ttype = TokenType.TSTRING;
+
         return new Token(ttype, value, this.scanner.position);
     }
 

@@ -108,7 +108,7 @@ export class SvgPrinter implements IVisitor
     }
 
     visitStringLiteral(target: StringLiteral): void {
-        let content = this.field('template', target.template.toString());
+        let content = this.field('type', target.type.name);
         content += this.field('value', target.value);
         this.parent = this.connection(this.parent, target.className(), content, this.label);
     }

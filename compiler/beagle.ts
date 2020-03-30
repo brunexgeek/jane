@@ -64,7 +64,10 @@ if (mode == 'tokenize')
 		if (tok.lexeme)
 		{
 			let color = '#070';
-			if (tok.type == beagle.compiler.TokenType.STRING) color = '#f70';
+			if (tok.type == beagle.compiler.TokenType.SSTRING ||
+				tok.type == beagle.compiler.TokenType.DSTRING ||
+				tok.type == beagle.compiler.TokenType.TSTRING)
+			 	color = '#f70';
 			text += `<span style='color: ${color}'><i>${tok.lexeme}</i></span>`;
 		}
 		if (tok.location) text += ' at ' + tok.location.line + ':' + tok.location.column;

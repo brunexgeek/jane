@@ -369,8 +369,8 @@ export class Parser
 
         if (this.match(TokenType.NUMBER))
             return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme) );
-        if (this.match(TokenType.STRING, TokenType.TSTRING))
-            return new StringLiteral(tt.lexeme, tt.type == TokenType.TSTRING);
+        if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
+            return new StringLiteral(tt.lexeme, tt.type);
 
         if (this.match(TokenType.LEFT_PAREN))
         {

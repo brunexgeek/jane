@@ -31,11 +31,11 @@ export class Name implements IExpr
 export class StringLiteral implements IExpr
 {
 	value : string;
-	template : boolean;
-	constructor( value : string, template : boolean )
+	type : TokenType;
+	constructor( value : string, type : TokenType )
 	{
 		this.value = value;
-		this.template = template;
+		this.type = type;
 	}
 	accept( visitor : Visitor ) : void
 	{
