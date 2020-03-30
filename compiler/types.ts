@@ -235,6 +235,42 @@ export class CallExpr implements IExpr
 	}
 }
 
+export class ArrayExpr implements IExpr
+{
+	values : IExpr[];
+	constructor( values : IExpr[] )
+	{
+		this.values = values;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitArrayExpr(this);
+	}
+	className() : string
+	{
+		return 'ArrayExpr';
+	}
+}
+
+export class ArrayAccessExpr implements IExpr
+{
+	callee : IExpr;
+	index : IExpr;
+	constructor( callee : IExpr, index : IExpr )
+	{
+		this.callee = callee;
+		this.index = index;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitArrayAccessExpr(this);
+	}
+	className() : string
+	{
+		return 'ArrayAccessExpr';
+	}
+}
+
 export class FieldExpr implements IStmt
 {
 	callee : IExpr;
@@ -327,9 +363,11 @@ export class NamespaceStmt implements IStmt
 export class TypeRef
 {
 	name : Name;
-	constructor( name : Name )
+	dims : number;
+	constructor( name : Name, dims : number )
 	{
 		this.name = name;
+		this.dims = dims;
 	}
 	accept( visitor : Visitor ) : void
 	{
@@ -560,6 +598,8 @@ export interface IVisitor{
 	visitAssignExpr( target : AssignExpr) : void;
 	visitUnaryExpr( target : UnaryExpr) : void;
 	visitCallExpr( target : CallExpr) : void;
+	visitArrayExpr( target : ArrayExpr) : void;
+	visitArrayAccessExpr( target : ArrayAccessExpr) : void;
 	visitFieldExpr( target : FieldExpr) : void;
 	visitAccessor( target : Accessor) : void;
 	visitBlockStmt( target : BlockStmt) : void;
@@ -591,6 +631,8 @@ export class Visitor implements IVisitor {
 	visitAssignExpr( target : AssignExpr) : void {}
 	visitUnaryExpr( target : UnaryExpr) : void {}
 	visitCallExpr( target : CallExpr) : void {}
+	visitArrayExpr( target : ArrayExpr) : void {}
+	visitArrayAccessExpr( target : ArrayAccessExpr) : void {}
 	visitFieldExpr( target : FieldExpr) : void {}
 	visitAccessor( target : Accessor) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}

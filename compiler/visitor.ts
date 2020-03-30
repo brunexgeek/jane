@@ -55,6 +55,35 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
     }
 
+    visitArrayExpr(target: ArrayExpr): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label);
+
+        let i = 0;
+        for (let expr of target.values)
+        {
+            this.label = `value[${i++}]`;
+            this.parent = id;
+            expr.accept(this);
+        }
+    }
+
+    visitArrayAccessExpr(target: ArrayAccessExpr): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label);
+
+        this.label = 'callee';
+        this.parent = id;
+        target.callee.accept(this);
+
+        this.label = 'index';
+        this.parent = id;
+        target.index.accept(this);
+
+        this.label = '';
+        this.parent = id;
+    }
+
     nameToString( target : Name ) : string
     {
         let result = '';
@@ -65,6 +94,14 @@ export class SvgPrinter implements IVisitor
             first = false;
             result += i;
         }
+        return result;
+    }
+
+    typerefToString( target : TypeRef ) : string
+    {
+        if (!target) return '';
+        let result = this.nameToString(target.name);
+        for (let i = 0; i < target.dims; ++i) result += '[]';
         return result;
     }
 
@@ -114,6 +151,9 @@ export class SvgPrinter implements IVisitor
                 vari.accept(this);
             }
         }
+
+        this.label = '<next>';
+        this.parent = id;
     }
 
     visitName(target: Name): void {
@@ -292,7 +332,7 @@ export class SvgPrinter implements IVisitor
     visitParameter(target: Parameter): void {
         let content = `<b>name:</b>   ${this.nameToString(target.name)}`;
         if (target.type)
-            content += `<br/><b>type:</b>   ${this.nameToString(target.type.name)}`
+            content += `<br/><b>type:</b>   ${this.typerefToString(target.type)}`
         let id = this.connection(this.parent, target.className(), content, this.label);
 
         if (target.init)
@@ -305,7 +345,7 @@ export class SvgPrinter implements IVisitor
 
     visitFunctionStmt(target: FunctionStmt): void {
         let content = this.field('name', this.nameToString(target.name));
-        content += this.field('type', this.typeRef(target.type));
+        content += this.field('type', this.typerefToString(target.type));
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor));
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.FUNC_COLOR);
@@ -321,9 +361,15 @@ export class SvgPrinter implements IVisitor
             }
         }
 
-        this.label = 'body';
+        if (target.body)
+        {
+            this.label = 'body';
+            this.parent = id;
+            target.body.accept(this);
+        }
+
+        this.label = '<next>';
         this.parent = id;
-        target.body.accept(this);
     }
 
     visitExprStmt(target: ExprStmt): void {
@@ -337,17 +383,10 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
     }
 
-    typeRef( target : TypeRef ) : string
-    {
-        if (!target) return '&lt;null&gt;';
-
-        return this.nameToString(target.name);
-    }
-
     visitVariableStmt(target: VariableStmt): void {
         let content = this.field('name', this.nameToString(target.name));
         content += this.field('constant', target.constant.toString());
-        content += this.field('type', this.typeRef(target.type));
+        content += this.field('type', this.typerefToString(target.type));
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor), true);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
@@ -369,14 +408,14 @@ export class SvgPrinter implements IVisitor
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
         if (target.stmts)
         {
+            this.parent = id;
             this.label = 'stmts';
             for (let stmt of target.stmts)
-            {
-                this.parent = id;
                 stmt.accept(this);
-                this.label = '<next>';
-            }
         }
+
+        this.label = '<next>';
+        this.parent = id;
     }
 
     visitUnit(target: Unit): void {
@@ -387,13 +426,10 @@ export class SvgPrinter implements IVisitor
 
         0 [label=<{<b>Unit</b>}>];\n`);
 
-        let id = this.id;
+        this.parent = this.id;
+        this.label = 'stmts';
         for (let stmt of target.stmts)
-        {
-            this.parent = id;
-            this.label = '';
             stmt.accept(this);
-        }
 
         print('}\n');
     }

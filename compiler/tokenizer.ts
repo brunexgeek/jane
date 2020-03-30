@@ -94,6 +94,8 @@ export class TokenType
     static readonly RIGHT_PAREN = new TokenType('RIGHT_PAREN', ')');
     static readonly LEFT_BRACE = new TokenType('LEFT_BRACE', '{');
     static readonly RIGHT_BRACE = new TokenType('RIGHT_BRACE', '}');
+    static readonly LEFT_BRACKET = new TokenType('LEFT_BRACKET', '[');
+    static readonly RIGHT_BRACKET = new TokenType('RIGHT_BRACKET', ']');
     static readonly COMMA = new TokenType('COMMA', ',');
     static readonly DOT = new TokenType('DOT', '.');
     static readonly MINUS = new TokenType('MINUS', '-');
@@ -154,6 +156,7 @@ export class TokenType
     static readonly IMPLEMENTS = new TokenType('IMPLEMENTS', 'implements', true);
     static readonly INTERFACE = new TokenType('INTERFACE', 'interface', true);
     static readonly NAMESPACE = new TokenType('NAMESPACE', 'namespace', true);
+    static readonly EXPORT = new TokenType('EXPORT', 'export', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -220,6 +223,10 @@ export class Tokenizer
                     return this.token(TokenType.LEFT_BRACE);
                 case '}':
                     return this.token(TokenType.RIGHT_BRACE);
+                case '[':
+                    return this.token(TokenType.LEFT_BRACKET);
+                case ']':
+                    return this.token(TokenType.RIGHT_BRACKET);
                 case ',':
                     return this.token(TokenType.COMMA);
                 case '.':
@@ -237,6 +244,7 @@ export class Tokenizer
                 case ':':
                     return this.token(TokenType.COLON);
                 case '=':
+                    if (this.scanner.match('=')) return this.token(TokenType.EQUAL_EQUAL);
                     return this.token(TokenType.EQUAL);
                 case '*':
                     if (this.scanner.match('=')) return this.token(TokenType.STAR_EQUAL);

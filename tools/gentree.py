@@ -130,6 +130,15 @@ printType('CallExpr', [
     {'name' : 'args', 'type' : 'IExpr[]'}
     ], 'IExpr')
 
+printType('ArrayExpr', [
+    {'name' : 'values', 'type' : 'IExpr[]'}
+    ], 'IExpr')
+
+printType('ArrayAccessExpr', [
+    {'name' : 'callee', 'type' : 'IExpr'},
+    {'name' : 'index', 'type' : 'IExpr'}
+    ], 'IExpr')
+
 printType('FieldExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'name', 'type' : 'Name'},
@@ -148,7 +157,10 @@ printType('NamespaceStmt', [
     {'name' : 'stmts', 'type' : 'IStmt[]'}
     ], 'IStmt')
 
-printType('TypeRef', [{'name' : 'name', 'type' : 'Name'}])
+printType('TypeRef', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'dims', 'type' : 'number'},
+    ])
 
 printType('IfStmt', [
     {'name' : 'condition', 'type' : 'IStmt'},

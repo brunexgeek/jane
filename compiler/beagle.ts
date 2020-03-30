@@ -15,6 +15,7 @@ class MyListener implements beagle.compiler.CompilationListener
 
 	onError(location: beagle.compiler.SourceLocation, message: string): boolean {
 		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
+		process.exit(1);
 		return true;
 	}
 

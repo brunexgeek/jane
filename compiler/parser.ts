@@ -214,7 +214,16 @@ export class Parser
 
     parseTypeRef() : TypeRef
     {
-        return new TypeRef(this.parseName(true));
+        let name = this.parseName(true);
+        let dims = 0;
+
+        while (this.match(TokenType.LEFT_BRACKET))
+        {
+            dims++;
+            this.consume(TokenType.RIGHT_BRACKET);
+        }
+
+        return new TypeRef(name, dims);
     }
 
     parseExpression() : IExpr
@@ -371,6 +380,13 @@ export class Parser
                 expr = new CallExpr(expr, args);
             }
             else
+            if (this.match(TokenType.LEFT_BRACKET))
+            {
+                let index = this.parseExpression();
+                this.consume(TokenType.RIGHT_BRACKET);
+                expr = new ArrayAccessExpr(expr, index);
+            }
+            else
             if (this.match(TokenType.DOT))
             {
                 let name = new Name([this.consume(TokenType.NAME, 'Expect name after \'.\'.').lexeme]);
@@ -404,6 +420,19 @@ export class Parser
             return new Group(expr);
         }
 
+        if (this.match(TokenType.LEFT_BRACKET))
+        {
+            let values : IExpr[] = [];
+            if (this.peek().type != TokenType.RIGHT_BRACKET)
+            {
+                do {
+                    values.push(this.parseExpression());
+                } while (this.match(TokenType.COMMA));
+            }
+            this.consume(TokenType.RIGHT_BRACKET);
+            return new ArrayExpr(values);
+        }
+
         throw this.error(this.peek(), 'Invalid expression with ' + this.peek().type.lexeme);
     }
 
@@ -431,6 +460,7 @@ export class Parser
 
     parseDeclationStmt() : IStmt
     {
+        let accessor = this.parseAccessor();
         let cur = this.peek().type;
         switch (cur)
         {
@@ -516,7 +546,11 @@ export class Parser
             type = this.parseTypeRef();
         }
 
-        let block = this.parseBlock();
+        let block : BlockStmt = null;
+        if (this.peek().type == TokenType.LEFT_BRACE)
+            block = this.parseBlock();
+        else
+            this.consume(TokenType.SEMICOLON);
 
         return new FunctionStmt(new Name([name.lexeme]), args, type, block);
     }
@@ -527,7 +561,8 @@ export class Parser
         while (true)
         {
             let cur = this.peek().type;
-            if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED, TokenType.READONLY))
+            if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED,
+                TokenType.READONLY, TokenType.EXPORT))
                 break;
             values.push(cur);
         }
