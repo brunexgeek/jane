@@ -163,6 +163,10 @@ export class TokenType
     static readonly CATCH = new TokenType('CATCH', 'catch', true);
     static readonly FINALLY = new TokenType('FINALLY', 'finally', true);
     static readonly NEW = new TokenType('NEW', 'new', true);
+    static readonly SWITCH = new TokenType('SWITCH', 'switch', true);
+    static readonly CASE = new TokenType('CASE', 'case', true);
+    static readonly CONTINUE = new TokenType('CONTINUE', 'continue', true);
+    static readonly BREAK = new TokenType('BREAK', 'break', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {

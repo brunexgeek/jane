@@ -271,7 +271,7 @@ export class ArrayAccessExpr implements IExpr
 	}
 }
 
-export class FieldExpr implements IStmt
+export class FieldExpr implements IExpr
 {
 	callee : IExpr;
 	name : Name;
@@ -395,6 +395,44 @@ export class TypeRef
 	className() : string
 	{
 		return 'TypeRef';
+	}
+}
+
+export class CaseStmt implements IStmt
+{
+	expr : IExpr;
+	stmts : IStmt[];
+	constructor( expr : IExpr, stmts : IStmt[] )
+	{
+		this.expr = expr;
+		this.stmts = stmts;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitCaseStmt(this);
+	}
+	className() : string
+	{
+		return 'CaseStmt';
+	}
+}
+
+export class SwitchStmt implements IStmt
+{
+	expr : IExpr;
+	cases : IStmt[];
+	constructor( expr : IExpr, cases : IStmt[] )
+	{
+		this.expr = expr;
+		this.cases = cases;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitSwitchStmt(this);
+	}
+	className() : string
+	{
+		return 'SwitchStmt';
 	}
 }
 
@@ -584,6 +622,36 @@ export class ExprStmt implements IStmt
 	}
 }
 
+export class BreakStmt implements IStmt
+{
+	constructor(  )
+	{
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitBreakStmt(this);
+	}
+	className() : string
+	{
+		return 'BreakStmt';
+	}
+}
+
+export class ContinueStmt implements IStmt
+{
+	constructor(  )
+	{
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitContinueStmt(this);
+	}
+	className() : string
+	{
+		return 'ContinueStmt';
+	}
+}
+
 export class VariableStmt implements IStmt
 {
 	name : Name;
@@ -687,6 +755,8 @@ export interface IVisitor{
 	visitReturnStmt( target : ReturnStmt) : void;
 	visitNamespaceStmt( target : NamespaceStmt) : void;
 	visitTypeRef( target : TypeRef) : void;
+	visitCaseStmt( target : CaseStmt) : void;
+	visitSwitchStmt( target : SwitchStmt) : void;
 	visitIfStmt( target : IfStmt) : void;
 	visitForOfStmt( target : ForOfStmt) : void;
 	visitDoWhileStmt( target : DoWhileStmt) : void;
@@ -696,6 +766,8 @@ export interface IVisitor{
 	visitFunctionStmt( target : FunctionStmt) : void;
 	visitClassStmt( target : ClassStmt) : void;
 	visitExprStmt( target : ExprStmt) : void;
+	visitBreakStmt( target : BreakStmt) : void;
+	visitContinueStmt( target : ContinueStmt) : void;
 	visitVariableStmt( target : VariableStmt) : void;
 	visitTryCatchStmt( target : TryCatchStmt) : void;
 	visitThrowStmt( target : ThrowStmt) : void;
@@ -724,6 +796,8 @@ export class Visitor implements IVisitor {
 	visitReturnStmt( target : ReturnStmt) : void {}
 	visitNamespaceStmt( target : NamespaceStmt) : void {}
 	visitTypeRef( target : TypeRef) : void {}
+	visitCaseStmt( target : CaseStmt) : void {}
+	visitSwitchStmt( target : SwitchStmt) : void {}
 	visitIfStmt( target : IfStmt) : void {}
 	visitForOfStmt( target : ForOfStmt) : void {}
 	visitDoWhileStmt( target : DoWhileStmt) : void {}
@@ -733,6 +807,8 @@ export class Visitor implements IVisitor {
 	visitFunctionStmt( target : FunctionStmt) : void {}
 	visitClassStmt( target : ClassStmt) : void {}
 	visitExprStmt( target : ExprStmt) : void {}
+	visitBreakStmt( target : BreakStmt) : void {}
+	visitContinueStmt( target : ContinueStmt) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}

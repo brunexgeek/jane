@@ -152,6 +152,39 @@ export class Parser
         return new Unit(stmts);
     }
 
+    parseCaseStmt() : IStmt
+    {
+        this.consume(TokenType.CASE);
+        let expr = this.parseExpression();
+        this.consume(TokenType.COLON);
+
+        let stmts : IStmt[] = [];
+        while (this.peek().type != TokenType.RIGHT_BRACE && this.peek().type != TokenType.CASE)
+        {
+            let stmt = this.parseBlockOrStmt();
+            stmts.push(stmt);
+            if (stmt instanceof BlockStmt) break;
+        }
+
+        return new CaseStmt(expr, stmts);
+    }
+
+    parseSwitchStmt() : IStmt
+    {
+        this.consume(TokenType.SWITCH);
+        this.consume(TokenType.LEFT_PAREN);
+        let expr = this.parseExpression();
+        this.consume(TokenType.RIGHT_PAREN);
+
+        this.consume(TokenType.LEFT_BRACE);
+        let stmts : IStmt[] = [];
+        while (this.peek().type != TokenType.RIGHT_BRACE)
+            stmts.push(this.parseCaseStmt());
+        this.consume(TokenType.RIGHT_BRACE);
+
+        return new SwitchStmt(expr, stmts);
+    }
+
     parseNamespace() : IStmt
     {
         let stmts : IStmt[] = [];
@@ -646,6 +679,14 @@ export class Parser
                 return this.parseThrow();
             case TokenType.TRY:
                 return this.parseTryCatchStmt();
+            case TokenType.SWITCH:
+                return this.parseSwitchStmt();
+            case TokenType.BREAK:
+                this.advance();
+                return new BreakStmt();
+            case TokenType.CONTINUE:
+                this.advance();
+                return new ContinueStmt();
         }
         // all we have left is a expression statement
         let expr = this.parseExpression();

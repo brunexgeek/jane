@@ -12,7 +12,13 @@ function func1() : void {
 
 function func2( x : number ) : void {
     print = `Hello world`;
+  switch (bla)
+  {
+    case blo:
+    case 5:
+    case 8: print(blas);
 
+  }
 }
 
 }

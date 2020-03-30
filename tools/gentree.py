@@ -142,7 +142,7 @@ printType('ArrayAccessExpr', [
 printType('FieldExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'name', 'type' : 'Name'},
-    ], 'IStmt')
+    ], 'IExpr')
 
 printType('NewExpr', [
     {'name' : 'name', 'type' : 'Name'},
@@ -166,6 +166,16 @@ printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'dims', 'type' : 'number'},
     ])
+
+printType('CaseStmt', [
+    {'name' : 'expr', 'type' : 'IExpr'},
+    {'name' : 'stmts', 'type' : 'IStmt[]'},
+    ], 'IStmt')
+
+printType('SwitchStmt', [
+    {'name' : 'expr', 'type' : 'IExpr'},
+    {'name' : 'cases', 'type' : 'IStmt[]'},
+    ], 'IStmt')
 
 printType('IfStmt', [
     {'name' : 'condition', 'type' : 'IStmt'},
@@ -219,6 +229,9 @@ printType('ClassStmt', [
 printType('ExprStmt', [
     {'name' : 'expr', 'type' : 'IExpr'},
     ], 'IStmt');
+
+printType('BreakStmt', [], 'IStmt');
+printType('ContinueStmt', [], 'IStmt');
 
 printType('VariableStmt', [
     {'name' : 'name', 'type' : 'Name'},

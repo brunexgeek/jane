@@ -10,6 +10,59 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor
 {
+    visitBreakStmt(target: BreakStmt): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
+    visitContinueStmt(target: ContinueStmt): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
+    visitCaseStmt(target: CaseStmt): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        this.parent = id;
+        this.label = 'expr';
+        target.expr.accept(this);
+
+        if (target.stmts.length > 0)
+        {
+            this.parent = id;
+            this.label = 'stmts';
+            for (let stmt of target.stmts)
+                stmt.accept(this);
+        }
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
+    visitSwitchStmt(target: SwitchStmt): void
+    {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        this.parent = id;
+        this.label = 'expr';
+        target.expr.accept(this);
+
+        this.parent = id;
+        this.label = 'cases';
+        for (let stmt of target.cases)
+            stmt.accept(this);
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
     visitNewExpr(target: NewExpr): void
     {
         let content = this.field('name', this.nameToString(target.name));
