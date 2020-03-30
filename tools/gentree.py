@@ -144,6 +144,11 @@ printType('FieldExpr', [
     {'name' : 'name', 'type' : 'Name'},
     ], 'IStmt')
 
+printType('NewExpr', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'args', 'type' : 'IExpr[]'}
+    ], 'IExpr')
+
 printType('Accessor', [
     {'name' : 'values', 'type' : 'TokenType[]'}
     ])
@@ -170,6 +175,7 @@ printType('IfStmt', [
 
 printType('ForOfStmt', [
     {'name' : 'variable', 'type' : 'VariableStmt'},
+    {'name' : 'expr', 'type' : 'IExpr'},
     {'name' : 'stmt', 'type' : 'IStmt'}
     ], 'IExpr')
 
@@ -186,8 +192,13 @@ printType('WhileStmt', [
 printType('Parameter', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'type', 'type' : 'TypeRef'},
-    {'name' : 'init', 'type' : 'IExpr'}
+    {'name' : 'init', 'type' : 'IExpr'},
+    {'name' : 'vararg', 'type' : 'boolean'},
     ])
+
+printType('ExpandExpr', [
+    {'name' : 'name', 'type' : 'Name'}
+    ], 'IExpr')
 
 printType('FunctionStmt', [
     {'name' : 'name', 'type' : 'Name'},

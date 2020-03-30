@@ -10,6 +10,26 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor
 {
+    visitNewExpr(target: NewExpr): void
+    {
+        let content = this.field('name', this.nameToString(target.name));
+        let id = this.connection(this.parent, target.className(), content, this.label);
+
+        let i = 0;
+        for (let expr of target.args)
+        {
+            this.label = `args[${i++}]`;
+            this.parent = id;
+            expr.accept(this);
+        }
+    }
+
+    visitExpandExpr(target: ExpandExpr): void
+    {
+        let content = this.field('name', this.nameToString(target.name));
+        this.connection(this.parent, target.className(), content, this.label);
+    }
+
     private parent : number = 0;
     private id : number = 0;
     private label : string = '';
@@ -97,9 +117,6 @@ export class SvgPrinter implements IVisitor
             this.parent = id;
             expr.accept(this);
         }
-
-        this.label = '';
-        this.parent = id;
     }
 
     visitArrayExpr(target: ArrayExpr): void
@@ -179,22 +196,26 @@ export class SvgPrinter implements IVisitor
 
         if (target.functions)
         {
+            this.parent = id;
+            this.label = 'functions';
             let i = 0;
             for (let func of target.functions)
             {
-                this.parent = id;
-                this.label = `functions[${i++}]`;
+                //this.parent = id;
+                //this.label = `functions[${i++}]`;
                 func.accept(this);
             }
         }
 
         if (target.variables)
         {
+            this.parent = id;
+            this.label = `variables`;
             let i = 0;
             for (let vari of target.variables)
             {
-                this.parent = id;
-                this.label = `variables[${i++}]`;
+                //this.parent = id;
+                //this.label = `variables[${i++}]`;
                 vari.accept(this);
             }
         }
@@ -337,6 +358,10 @@ export class SvgPrinter implements IVisitor
         this.label = 'variable';
         this.parent = id;
         target.variable.accept(this);
+
+        this.label = 'expr';
+        this.parent = id;
+        target.expr.accept(this);
 
         this.label = 'stmt';
         this.parent = id;

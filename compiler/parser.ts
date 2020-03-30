@@ -45,24 +45,38 @@ export class Parser
         return tt;
     }
 
-    consume( type : TokenType, message : string = '' ) : Token
+    consume( ...types : TokenType[] ) : Token
     {
-        if (this.peek().type == type)
-        {
-            let tt = this.peek();
-            this.advance();
-            return tt;
-        }
-        else
-        {
-            let found = this.peek().type.lexeme;
-            if (this.peek().type == TokenType.NAME) found = this.peek().lexeme;
+        return this.consumeEx(null, ...types);
+    }
 
-            if (message.length == 0)
-                throw this.error(this.peek(), `Expected '${type.lexeme}', but found '${found}'`);
-            else
-                throw this.error(this.peek(), message);
+    consumeEx( message : string, ...types : TokenType[] ) : Token
+    {
+        for (let tt of types)
+        {
+            if (this.peek().type == tt)
+            {
+                let tt = this.peek();
+                this.advance();
+                return tt;
+            }
         }
+
+        let found = this.peek().type.lexeme;
+        if (this.peek().type == TokenType.NAME) found = this.peek().lexeme;
+
+        if (message && message.length > 0)
+            throw this.error(this.peek(), message);
+
+        let names = '';
+        let first = true;
+        for (let tt of types)
+        {
+            if (!first) names += ' or ';
+            first = false;
+            names += `'${tt.lexeme}'`;
+        }
+        throw this.error(this.peek(), `Expected ${names}, but found '${found}'`);
     }
 
     match( ...type : TokenType[] ) : boolean
@@ -99,13 +113,13 @@ export class Parser
 
             switch (this.peek().type)
             {
-            case TokenType.FUNCTION:
-            case TokenType.LET:
-            case TokenType.FOR:
-            case TokenType.IF:
-            case TokenType.WHILE:
-            case TokenType.RETURN:
-                return;
+                case TokenType.FUNCTION:
+                case TokenType.LET:
+                case TokenType.FOR:
+                case TokenType.IF:
+                case TokenType.WHILE:
+                case TokenType.RETURN:
+                    return;
             }
 
             this.advance();
@@ -154,7 +168,9 @@ export class Parser
 
     parseArgument() : Parameter
     {
-        let name = this.consume(TokenType.NAME, 'Missing argument name');
+        let vararg = this.match(TokenType.DOT_DOT_DOT);
+
+        let name = this.consumeEx('Missing argument name', TokenType.NAME);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.peek().type == TokenType.COLON)
@@ -173,13 +189,13 @@ export class Parser
             throw this.error(name, 'Missing argument type');
         }
 
-        return new Parameter( new Name([name.lexeme]), type, value);
+        return new Parameter( new Name([name.lexeme]), type, value, vararg);
     }
 
     parseFunction() : FunctionStmt
     {
-        this.consume(TokenType.FUNCTION, 'Missing function keyword');
-        let name = this.consume(TokenType.NAME, 'Missing function name');
+        this.consumeEx('Missing function keyword', TokenType.FUNCTION);
+        let name = this.consumeEx('Missing function name', TokenType.NAME);
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -207,7 +223,7 @@ export class Parser
     {
         let lexemes : string[] = [];
         do {
-            lexemes.push( this.consume(TokenType.NAME, 'Expected identifier').lexeme );
+            lexemes.push( this.consumeEx('Expected identifier', TokenType.NAME).lexeme );
         } while (qualified && this.match(TokenType.DOT));
         return new Name(lexemes);
     }
@@ -389,7 +405,7 @@ export class Parser
             else
             if (this.match(TokenType.DOT))
             {
-                let name = new Name([this.consume(TokenType.NAME, 'Expect name after \'.\'.').lexeme]);
+                let name = new Name([this.consumeEx('Expect name after \'.\'.', TokenType.NAME).lexeme]);
                 expr = new FieldExpr(expr, name);
             }
             else
@@ -416,7 +432,7 @@ export class Parser
         if (this.match(TokenType.LEFT_PAREN))
         {
             let expr = this.parseExpression();
-            this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+            this.consumeEx("Expect ')' after expression.", TokenType.RIGHT_PAREN);
             return new Group(expr);
         }
 
@@ -433,7 +449,36 @@ export class Parser
             return new ArrayExpr(values);
         }
 
+        if (this.match(TokenType.DOT_DOT_DOT))
+        {
+            return new ExpandExpr( this.parseName() );
+        }
+
+        if (this.peek().type == TokenType.NEW)
+        {
+            return this.parseNewExpr();
+        }
+
         throw this.error(this.peek(), 'Invalid expression with ' + this.peek().type.lexeme);
+    }
+
+    parseNewExpr() : IExpr
+    {
+        this.consume(TokenType.NEW);
+        let name = this.parseName(true);
+
+        this.consume(TokenType.LEFT_PAREN);
+
+        let args : IExpr[] = [];
+        if (this.peek().type != TokenType.RIGHT_PAREN)
+        {
+            do {
+                args.push(this.parseExpression());
+            } while (this.match(TokenType.COMMA));
+        }
+        this.consume(TokenType.RIGHT_PAREN);
+
+        return new NewExpr(name, args);
     }
 
     parseBlock() : BlockStmt
@@ -480,7 +525,7 @@ export class Parser
     parseClass() : ClassStmt
     {
         let type = this.advance().type;
-        let name = new Name([this.consume(TokenType.NAME, 'Missing class name').lexeme]);
+        let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
         let extended : Name = null;
         let implemented : Name[] = null;
 
@@ -661,11 +706,15 @@ export class Parser
     {
         this.consume(TokenType.FOR);
         this.consume(TokenType.LEFT_PAREN);
-        let variable = this.parseVariable();
+        let type = this.consume(TokenType.CONST, TokenType.LET).type;
+        let name = this.parseName();
+        this.consume(TokenType.OF);
+        let expr = this.parseExpression();
         this.consume(TokenType.RIGHT_PAREN);
         let stmt = this.parseBlockOrStmt();
 
-        return new ForOfStmt(variable, stmt);
+        let variable = new VariableStmt(name, null, null, type == TokenType.CONST);
+        return new ForOfStmt(variable, expr, stmt);
     }
 
     parseVariable( tname : Token = null) : VariableStmt
@@ -675,7 +724,7 @@ export class Parser
         if (!tname)
         {
             constant = this.advance().type == TokenType.CONST;
-            tname = this.consume(TokenType.NAME, 'Missing variable name');
+            tname = this.consumeEx('Missing variable name', TokenType.NAME);
         }
 
         let name = new Name([tname.lexeme]);

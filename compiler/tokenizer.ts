@@ -98,6 +98,7 @@ export class TokenType
     static readonly RIGHT_BRACKET = new TokenType('RIGHT_BRACKET', ']');
     static readonly COMMA = new TokenType('COMMA', ',');
     static readonly DOT = new TokenType('DOT', '.');
+    static readonly DOT_DOT_DOT = new TokenType('DOT_DOT_DOT', '...');
     static readonly MINUS = new TokenType('MINUS', '-');
     static readonly PLUS = new TokenType('PLUS', '+');
     static readonly SEMICOLON = new TokenType('SEMICOLON', ';');
@@ -161,6 +162,7 @@ export class TokenType
     static readonly TRY = new TokenType('TRY', 'try', true);
     static readonly CATCH = new TokenType('CATCH', 'catch', true);
     static readonly FINALLY = new TokenType('FINALLY', 'finally', true);
+    static readonly NEW = new TokenType('NEW', 'new', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -234,6 +236,11 @@ export class Tokenizer
                 case ',':
                     return this.token(TokenType.COMMA);
                 case '.':
+                    if (this.scanner.match('.'))
+                    {
+                        if (this.scanner.match('.')) return this.token(TokenType.DOT_DOT_DOT);
+                        this.scanner.unget();
+                    }
                     return this.token(TokenType.DOT);
                 case '-':
                     if (this.scanner.match('=')) return this.token(TokenType.MINUS_EQUAL);
@@ -243,6 +250,9 @@ export class Tokenizer
                     if (this.scanner.match('=')) return this.token(TokenType.PLUS_EQUAL);
                     if (this.scanner.match('+')) return this.token(TokenType.PLUS_PLUS);
                     return this.token(TokenType.PLUS);
+                case '!':
+                    if (this.scanner.match('=')) return this.token(TokenType.BANG_EQUAL);
+                    return this.token(TokenType.BANG);
                 case ';':
                     return this.token(TokenType.SEMICOLON);
                 case ':':

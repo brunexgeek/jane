@@ -290,6 +290,25 @@ export class FieldExpr implements IStmt
 	}
 }
 
+export class NewExpr implements IExpr
+{
+	name : Name;
+	args : IExpr[];
+	constructor( name : Name, args : IExpr[] )
+	{
+		this.name = name;
+		this.args = args;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitNewExpr(this);
+	}
+	className() : string
+	{
+		return 'NewExpr';
+	}
+}
+
 export class Accessor
 {
 	values : TokenType[];
@@ -403,10 +422,12 @@ export class IfStmt implements IStmt
 export class ForOfStmt implements IExpr
 {
 	variable : VariableStmt;
+	expr : IExpr;
 	stmt : IStmt;
-	constructor( variable : VariableStmt, stmt : IStmt )
+	constructor( variable : VariableStmt, expr : IExpr, stmt : IStmt )
 	{
 		this.variable = variable;
+		this.expr = expr;
 		this.stmt = stmt;
 	}
 	accept( visitor : Visitor ) : void
@@ -462,11 +483,13 @@ export class Parameter
 	name : Name;
 	type : TypeRef;
 	init : IExpr;
-	constructor( name : Name, type : TypeRef, init : IExpr )
+	vararg : boolean;
+	constructor( name : Name, type : TypeRef, init : IExpr, vararg : boolean )
 	{
 		this.name = name;
 		this.type = type;
 		this.init = init;
+		this.vararg = vararg;
 	}
 	accept( visitor : Visitor ) : void
 	{
@@ -475,6 +498,23 @@ export class Parameter
 	className() : string
 	{
 		return 'Parameter';
+	}
+}
+
+export class ExpandExpr implements IExpr
+{
+	name : Name;
+	constructor( name : Name )
+	{
+		this.name = name;
+	}
+	accept( visitor : Visitor ) : void
+	{
+		visitor.visitExpandExpr(this);
+	}
+	className() : string
+	{
+		return 'ExpandExpr';
 	}
 }
 
@@ -641,6 +681,7 @@ export interface IVisitor{
 	visitArrayExpr( target : ArrayExpr) : void;
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void;
 	visitFieldExpr( target : FieldExpr) : void;
+	visitNewExpr( target : NewExpr) : void;
 	visitAccessor( target : Accessor) : void;
 	visitBlockStmt( target : BlockStmt) : void;
 	visitReturnStmt( target : ReturnStmt) : void;
@@ -651,6 +692,7 @@ export interface IVisitor{
 	visitDoWhileStmt( target : DoWhileStmt) : void;
 	visitWhileStmt( target : WhileStmt) : void;
 	visitParameter( target : Parameter) : void;
+	visitExpandExpr( target : ExpandExpr) : void;
 	visitFunctionStmt( target : FunctionStmt) : void;
 	visitClassStmt( target : ClassStmt) : void;
 	visitExprStmt( target : ExprStmt) : void;
@@ -676,6 +718,7 @@ export class Visitor implements IVisitor {
 	visitArrayExpr( target : ArrayExpr) : void {}
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void {}
 	visitFieldExpr( target : FieldExpr) : void {}
+	visitNewExpr( target : NewExpr) : void {}
 	visitAccessor( target : Accessor) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
@@ -686,6 +729,7 @@ export class Visitor implements IVisitor {
 	visitDoWhileStmt( target : DoWhileStmt) : void {}
 	visitWhileStmt( target : WhileStmt) : void {}
 	visitParameter( target : Parameter) : void {}
+	visitExpandExpr( target : ExpandExpr) : void {}
 	visitFunctionStmt( target : FunctionStmt) : void {}
 	visitClassStmt( target : ClassStmt) : void {}
 	visitExprStmt( target : ExprStmt) : void {}
