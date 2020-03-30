@@ -55,9 +55,22 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
     }
 
+    nameToString( target : Name ) : string
+    {
+        let result = '';
+        let first = true;
+        for (let i of target.lexemes)
+        {
+            if (!first) result += '.';
+            first = false;
+            result += i;
+        }
+        return result;
+    }
+
     visitFieldExpr( target: FieldExpr ): void
     {
-        let content = this.field('name', target.name.lexeme);
+        let content = this.field('name', this.nameToString(target.name));
         let id = this.connection(this.parent, target.className(), content, this.label);
 
         this.label = 'callee';
@@ -69,13 +82,13 @@ export class SvgPrinter implements IVisitor
     }
 
     visitClassStmt(target: ClassStmt): void {
-        let content = this.field('name', target.name.lexeme);
+        let content = this.field('name', this.nameToString(target.name));
         if (target.extended)
-            content += this.field('extends', target.extended.lexeme);
+            content += this.field('extends', this.nameToString(target.extended));
         if (target.implemented)
         {
             let names = '';
-            for (let i of target.implemented) names +=  ' ' + i.lexeme;
+            for (let i of target.implemented) names +=  ' ' + this.nameToString(i);
             content += this.field('implements', names);
         }
         let id = this.connection(this.parent, target.className(),  content, this.label, SvgPrinter.CLASS_COLOR);
@@ -104,7 +117,7 @@ export class SvgPrinter implements IVisitor
     }
 
     visitName(target: Name): void {
-        this.parent = this.connection(this.parent, target.className(), target.lexeme, this.label);
+        this.parent = this.connection(this.parent, target.className(), this.nameToString(target), this.label);
     }
 
     visitStringLiteral(target: StringLiteral): void {
@@ -277,9 +290,9 @@ export class SvgPrinter implements IVisitor
     }
 
     visitParameter(target: Parameter): void {
-        let content = `<b>name:</b>   ${target.name.lexeme}`
+        let content = `<b>name:</b>   ${this.nameToString(target.name)}`;
         if (target.type)
-            content += `<br/><b>type:</b>   ${target.type.names[0].lexeme}`
+            content += `<br/><b>type:</b>   ${this.nameToString(target.type.name)}`
         let id = this.connection(this.parent, target.className(), content, this.label);
 
         if (target.init)
@@ -291,7 +304,7 @@ export class SvgPrinter implements IVisitor
     }
 
     visitFunctionStmt(target: FunctionStmt): void {
-        let content = this.field('name', target.name.lexeme);
+        let content = this.field('name', this.nameToString(target.name));
         content += this.field('type', this.typeRef(target.type));
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor));
@@ -328,18 +341,11 @@ export class SvgPrinter implements IVisitor
     {
         if (!target) return '&lt;null&gt;';
 
-        let value = '';
-        let first = true;
-        for (let i of target.names)
-        {
-            if (!first) value += '.';
-            value += i.lexeme;
-        }
-        return value;
+        return this.nameToString(target.name);
     }
 
     visitVariableStmt(target: VariableStmt): void {
-        let content = this.field('name', target.name.lexeme);
+        let content = this.field('name', this.nameToString(target.name));
         content += this.field('constant', target.constant.toString());
         content += this.field('type', this.typeRef(target.type));
         if (target.accessor)

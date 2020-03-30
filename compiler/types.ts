@@ -13,10 +13,10 @@ export interface IExpr
 
 export class Name implements IExpr
 {
-	lexeme : string;
-	constructor( lexeme : string )
+	lexemes : string[];
+	constructor( lexemes : string[] )
 	{
-		this.lexeme = lexeme;
+		this.lexemes = lexemes;
 	}
 	accept( visitor : Visitor ) : void
 	{
@@ -307,10 +307,10 @@ export class ReturnStmt implements IStmt
 
 export class TypeRef
 {
-	names : Name[];
-	constructor( names : Name[] )
+	name : Name;
+	constructor( name : Name )
 	{
-		this.names = names;
+		this.name = name;
 	}
 	accept( visitor : Visitor ) : void
 	{

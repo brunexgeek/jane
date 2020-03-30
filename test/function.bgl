@@ -46,7 +46,7 @@ function pickCard(x:number): number
 
 
 interface bla extends Z implements A, B, C {
-  papa : number;
+  papa : number.bla.paparapa;
   private bla() : number
   {
     return 8;

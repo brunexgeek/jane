@@ -79,7 +79,7 @@ sys.stdout.write('''export interface IExpr
     className(): string;
 }\n\n''')
 
-printType('Name', [{'name' : 'lexeme', 'type' : 'string'}], 'IExpr')
+printType('Name', [{'name' : 'lexemes', 'type' : 'string[]'}], 'IExpr')
 
 printType('StringLiteral', [
     {'name' : 'value', 'type' : 'string'},
@@ -143,7 +143,7 @@ printType('BlockStmt', [{'name' : 'stmts', 'type' : 'IStmt[]'}], 'IStmt')
 
 printType('ReturnStmt', [{'name' : 'expr', 'type' : 'IExpr'}], 'IStmt')
 
-printType('TypeRef', [{'name' : 'names', 'type' : 'Name[]'}])
+printType('TypeRef', [{'name' : 'name', 'type' : 'Name'}])
 
 printType('IfStmt', [
     {'name' : 'condition', 'type' : 'IStmt'},

@@ -156,7 +156,7 @@ export class Parser
             throw this.error(name, 'Missing argument type');
         }
 
-        return new Parameter( new Name(name.lexeme), type, value);
+        return new Parameter( new Name([name.lexeme]), type, value);
     }
 
     parseFunction() : FunctionStmt
@@ -183,13 +183,21 @@ export class Parser
 
         let block = this.parseBlock();
 
-        return new FunctionStmt(new Name(name.lexeme), args, type, block);
+        return new FunctionStmt(new Name([name.lexeme]), args, type, block);
+    }
+
+    parseName( qualified : boolean = false ) : Name
+    {
+        let lexemes : string[] = [];
+        do {
+            lexemes.push( this.consume(TokenType.NAME, 'Expected identifier').lexeme );
+        } while (qualified && this.match(TokenType.DOT));
+        return new Name(lexemes);
     }
 
     parseTypeRef() : TypeRef
     {
-        let type = this.consume(TokenType.NAME, 'Missing argument type');
-        return new TypeRef([new Name(type.lexeme)]);
+        return new TypeRef(this.parseName(true));
     }
 
     parseExpression() : IExpr
@@ -348,7 +356,7 @@ export class Parser
             else
             if (this.match(TokenType.DOT))
             {
-                let name = new Name(this.consume(TokenType.NAME, 'Expect name after \'.\'.').lexeme);
+                let name = new Name([this.consume(TokenType.NAME, 'Expect name after \'.\'.').lexeme]);
                 expr = new FieldExpr(expr, name);
             }
             else
@@ -425,20 +433,20 @@ export class Parser
     parseClass() : ClassStmt
     {
         let type = this.advance().type;
-        let name = new Name( this.consume(TokenType.NAME, 'Missing class name').lexeme );
+        let name = new Name([this.consume(TokenType.NAME, 'Missing class name').lexeme]);
         let extended : Name = null;
         let implemented : Name[] = null;
 
         if (this.match(TokenType.EXTENDS))
         {
-            extended = new Name(this.consume(TokenType.NAME, 'Missing extended type').lexeme);
+            extended = this.parseName(true);
         }
 
         if (this.match(TokenType.IMPLEMENTS))
         {
             implemented = [];
             do {
-                implemented.push(new Name(this.consume(TokenType.NAME, 'Missing extended type').lexeme));
+                implemented.push(this.parseName(true));
             } while (this.match(TokenType.COMMA));
         }
 
@@ -493,7 +501,7 @@ export class Parser
 
         let block = this.parseBlock();
 
-        return new FunctionStmt(new Name(name.lexeme), args, type, block);
+        return new FunctionStmt(new Name([name.lexeme]), args, type, block);
     }
 
     parseAccessor() : Accessor
@@ -614,7 +622,7 @@ export class Parser
             tname = this.consume(TokenType.NAME, 'Missing variable name');
         }
 
-        let name = new Name(tname.lexeme);
+        let name = new Name([tname.lexeme]);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.peek().type == TokenType.COLON)
