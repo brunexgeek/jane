@@ -218,7 +218,12 @@ export class SvgPrinter implements IVisitor
     {
         if (!target) return '';
         let result = this.nameToString(target.name);
-        for (let i = 0; i < target.dims; ++i) result += '[]';
+        let i = 0;
+        while (i < target.dims)
+        {
+            result += '[]';
+            ++i;
+        }
         return result;
     }
 
@@ -460,7 +465,7 @@ export class SvgPrinter implements IVisitor
     visitParameter(target: Parameter): void {
         let content = `<b>name:</b>   ${this.nameToString(target.name)}`;
         if (target.type)
-            content += `<br/><b>type:</b>   ${this.typerefToString(target.type)}`
+            content += `<br/><b>type:</b>   ${this.typerefToString(target.type)}`;
         let id = this.connection(this.parent, target.className(), content, this.label);
 
         if (target.init)
@@ -564,7 +569,9 @@ export class SvgPrinter implements IVisitor
 
     field( name : string, value : string, last : boolean = false ) : string
     {
-        return `<b>${name}:</b>   ${value}` + ((last) ? '' : '<br/>');
+        let result = `<b>${name}:</b>   ${value}`;
+        if (!last) result += '<br/>';
+        return result;
     }
 
     connection( parent : number, type : string, content : string = '', label : string = '', color : string = '#FFFFFF' ) : number

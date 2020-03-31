@@ -643,7 +643,7 @@ export class Parser
         {
             let cur = this.peek().type;
             if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED,
-                TokenType.READONLY, TokenType.EXPORT))
+                TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC))
                 break;
             values.push(cur);
         }

@@ -2,8 +2,15 @@ namespace beagle.compiler {
 
 export class SourceLocation
 {
-    constructor( public fileName : string, public line : number = 1, public column : number = 1 )
+    fileName : string;
+    line : number;
+    column : number;
+
+    constructor( fileName : string, line : number = 1, column : number = 1 )
     {
+        this.fileName = fileName;
+        this.line = line;
+        this.column = column;
     }
 
     clone() : SourceLocation
@@ -88,7 +95,8 @@ export class TokenType
 {
     public readonly name : string;
 	public readonly lexeme : string;
-    private static entries: { [name: string] : TokenType } = {};
+    private static names : string[] = [];
+    private static tokens : TokenType[] = [];
 
     // Single-character tokens
     static readonly LEFT_PAREN = new TokenType('LEFT_PAREN', '(');
@@ -170,19 +178,24 @@ export class TokenType
     static readonly BREAK = new TokenType('BREAK', 'break', true);
     static readonly INSTANCEOF = new TokenType('INSTANCEOF', 'instanceof', true);
     static readonly IN = new TokenType('IN', 'in', true);
+    static readonly STATIC = new TokenType('STATIC', 'static', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
         this.name = name;
 		this.lexeme = (lexeme.length == 0) ? name : lexeme;
-        if (kword && lexeme) TokenType.entries[`_${lexeme}`] = this;
+        if (kword && lexeme)
+        {
+            TokenType.names.push(lexeme);
+            TokenType.tokens.push(this);
+        }
 	}
 
 	public static resolve( name : string ) : TokenType
 	{
-        let item = TokenType.entries[`_${name}`];
-		if (item && item.lexeme.length > 0) return item;
-		return TokenType.NAME;
+        let i = TokenType.names.indexOf(name);
+        if (i < 0) return TokenType.NAME
+        return TokenType.tokens[i];
 	}
 }
 
