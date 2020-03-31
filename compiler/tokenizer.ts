@@ -45,7 +45,7 @@ export class Scanner
     {
         if (this.index < this.source.length)
             return this.source.charAt(this.index);
-        return null
+        return null;
     }
 
     advance() : string
@@ -71,6 +71,7 @@ export class Scanner
     unget() : string
     {
         if (this.index > 0) this.index--;
+        if (this.peek() == '\n') this.pos.line--;
         return this.peek();
     }
 
@@ -167,6 +168,8 @@ export class TokenType
     static readonly CASE = new TokenType('CASE', 'case', true);
     static readonly CONTINUE = new TokenType('CONTINUE', 'continue', true);
     static readonly BREAK = new TokenType('BREAK', 'break', true);
+    static readonly INSTANCEOF = new TokenType('INSTANCEOF', 'instanceof', true);
+    static readonly IN = new TokenType('IN', 'in', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -407,16 +410,30 @@ export class Tokenizer
             let c = this.scanner.advance();
             if (c == '\\')
             {
-                if (escape)
-                {
-                    value += '\\';
-                    escape = false;
-                }
-                else
-                    escape = true;
+                if (escape) value += '\\';
+                escape = !escape;
             }
             else
+            {
+                if (escape)
+                {
+                    switch (c)
+                    {
+                        case 'n': c = '\n'; break;
+                        case 'r': c = '\r'; break;
+                        case 't': c = '\t'; break;
+                        case 'b': c = '\b'; break;
+                        case '\'':
+                        case '"':
+                        case '`':
+                            break;
+                        default:
+                            throw Error('Invalid escape sequence');
+                    }
+                    escape = false;
+                }
                 value += c;
+            }
         }
 
         this.scanner.advance();

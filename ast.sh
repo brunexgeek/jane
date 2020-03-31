@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 BASEDIR=$(cd $(dirname $0) && pwd)
 

@@ -293,11 +293,13 @@ export class Parser
             case TokenType.MINUS_EQUAL:
             case TokenType.SLASH_EQUAL:
             case TokenType.STAR_EQUAL:
+            {
                 this.advance();
                 let right = this.parseAssignment();
                 if (expr instanceof NameLiteral || expr instanceof FieldExpr)
                     return expr = new AssignExpr(expr, operator, right);
                 throw this.error(tt, 'Invalid assignment l-value');
+            }
         }
 
         return expr;
@@ -350,7 +352,8 @@ export class Parser
         let expr = this.parseAddition();
 
         let operator = this.peek().type;
-        while (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))
+        while (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
+            TokenType.LESS_EQUAL, TokenType.IN, TokenType.INSTANCEOF))
         {
             let right = this.parseAddition();
             expr = new BinaryExpr(expr, operator, right);
@@ -465,7 +468,7 @@ export class Parser
         if (this.match(TokenType.LEFT_PAREN))
         {
             let expr = this.parseExpression();
-            this.consumeEx("Expect ')' after expression.", TokenType.RIGHT_PAREN);
+            this.consumeEx(`Expect \')\' after expression`, TokenType.RIGHT_PAREN);
             return new Group(expr);
         }
 
@@ -664,7 +667,6 @@ export class Parser
             case TokenType.LET:
             case TokenType.CONST:
                 throw this.error(this.peek(), `'${cur.lexeme}' declarations can only be declared inside a block.`);
-                break;
             case TokenType.IF:
                 return this.parseIfThenElse();
             case TokenType.RETURN:
@@ -683,9 +685,11 @@ export class Parser
                 return this.parseSwitchStmt();
             case TokenType.BREAK:
                 this.advance();
+                this.consume(TokenType.SEMICOLON);
                 return new BreakStmt();
             case TokenType.CONTINUE:
                 this.advance();
+                this.consume(TokenType.SEMICOLON);
                 return new ContinueStmt();
         }
         // all we have left is a expression statement

@@ -283,7 +283,7 @@ export class SvgPrinter implements IVisitor
 
     visitStringLiteral(target: StringLiteral): void {
         let content = this.field('type', target.type.name);
-        content += this.field('value', target.value);
+        content += this.field('value', escape(target.value));
         this.parent = this.connection(this.parent, target.className(), content, this.label);
     }
 
@@ -397,9 +397,12 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
         target.thenSide.accept(this);
 
-        this.label = 'else';
-        this.parent = id;
-        target.elseSide.accept(this);
+        if (target.elseSide)
+        {
+            this.label = 'else';
+            this.parent = id;
+            target.elseSide.accept(this);
+        }
 
         this.label = '<next>';
         this.parent = id;
