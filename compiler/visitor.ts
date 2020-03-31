@@ -481,6 +481,8 @@ export class SvgPrinter implements IVisitor
         content += this.field('type', this.typerefToString(target.type));
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor));
+        if (target.property)
+            content += this.field('property', target.property.name);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.FUNC_COLOR);
 
         if (target.params)

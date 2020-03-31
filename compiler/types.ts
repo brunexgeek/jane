@@ -563,6 +563,7 @@ export class FunctionStmt implements IStmt
 	type : TypeRef;
 	body : BlockStmt;
 	accessor : Accessor = null;
+	property : TokenType = null;
 	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt )
 	{
 		this.name = name;

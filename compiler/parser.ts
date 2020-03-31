@@ -558,6 +558,13 @@ export class Parser
         return this.parseStatement();
     }
 
+    parsePropertyPrefix() : Token
+    {
+        if (this.peek().type == TokenType.GET || this.peek().type == TokenType.SET)
+            return this.advance();
+        return null;
+    }
+
     parseClass() : ClassStmt
     {
         let type = this.advance().type;
@@ -585,6 +592,7 @@ export class Parser
         while (!this.eof() && this.peek().type != TokenType.RIGHT_BRACE)
         {
             let accessor = this.parseAccessor();
+            let property = this.parsePropertyPrefix();
 
             if (this.peek().type == TokenType.NAME)
             {
@@ -593,10 +601,12 @@ export class Parser
                 {
                     let func = this.parseMethod(name);
                     func.accessor = accessor;
+                    if (property) func.property = property.type;
                     funcs.push(func);
                 }
                 else
                 {
+                    if (property) this.error(property, 'Property or signature expected')
                     let vari = this.parseVariable(name);
                     vari.accessor = accessor;
                     vars.push(vari);

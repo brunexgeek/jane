@@ -216,6 +216,7 @@ printType('FunctionStmt', [
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'body', 'type' : 'BlockStmt'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
+    {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
 printType('ClassStmt', [

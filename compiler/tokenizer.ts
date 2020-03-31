@@ -179,11 +179,13 @@ export class TokenType
     static readonly INSTANCEOF = new TokenType('INSTANCEOF', 'instanceof', true);
     static readonly IN = new TokenType('IN', 'in', true);
     static readonly STATIC = new TokenType('STATIC', 'static', true);
+    static readonly GET = new TokenType('GET', 'get', true);
+    static readonly SET = new TokenType('SET', 'set', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
-        this.name = name;
-		this.lexeme = (lexeme.length == 0) ? name : lexeme;
+        this.name = this.lexeme = name;
+        if (lexeme.length == 0) this.lexeme = lexeme;
         if (kword && lexeme)
         {
             TokenType.names.push(lexeme);
@@ -194,7 +196,7 @@ export class TokenType
 	public static resolve( name : string ) : TokenType
 	{
         let i = TokenType.names.indexOf(name);
-        if (i < 0) return TokenType.NAME
+        if (i < 0) return TokenType.NAME;
         return TokenType.tokens[i];
 	}
 }
@@ -225,7 +227,7 @@ export class Tokenizer
 {
     ctx : CompilationContext;
     scanner : Scanner;
-    stack : Token[] = []
+    stack : Token[] = [];
     end : Token = new Token(TokenType.EOF, null, null);
 
     constructor( ctx : CompilationContext, scanner : Scanner )
@@ -406,9 +408,8 @@ export class Tokenizer
         }
     }
 
-    token( type : TokenType, lexeme? : string ) : Token
+    token( type : TokenType, lexeme : string = null ) : Token
     {
-        if (lexeme == undefined) lexeme = null;
         return new Token(type, lexeme, this.scanner.position);
     }
 
