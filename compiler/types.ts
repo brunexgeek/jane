@@ -1,4 +1,27 @@
+
+/*
+ *   Copyright 2020 Bruno Ribeiro
+ *   <https://github.com/brunexgeek/beagle-lang>
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+
+/*
+ * AUTO-GENERATED CODE. DO NOT EDIT!
+ */
+
 namespace beagle.compiler {
+
 export interface IStmt
 {
     accept( visitor : Visitor ) : void;
@@ -18,14 +41,8 @@ export class Name implements IExpr
 	{
 		this.lexemes = lexemes;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitName(this);
-	}
-	className() : string
-	{
-		return 'Name';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitName(this); }
+	className() : string { return 'Name'; }
 }
 
 export class StringLiteral implements IExpr
@@ -37,14 +54,8 @@ export class StringLiteral implements IExpr
 		this.value = value;
 		this.type = type;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitStringLiteral(this);
-	}
-	className() : string
-	{
-		return 'StringLiteral';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitStringLiteral(this); }
+	className() : string { return 'StringLiteral'; }
 }
 
 export class NumberLiteral implements IExpr
@@ -56,14 +67,8 @@ export class NumberLiteral implements IExpr
 		this.value = value;
 		this.converted = converted;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitNumberLiteral(this);
-	}
-	className() : string
-	{
-		return 'NumberLiteral';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitNumberLiteral(this); }
+	className() : string { return 'NumberLiteral'; }
 }
 
 export class BoolLiteral implements IExpr
@@ -73,14 +78,8 @@ export class BoolLiteral implements IExpr
 	{
 		this.converted = converted;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitBoolLiteral(this);
-	}
-	className() : string
-	{
-		return 'BoolLiteral';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitBoolLiteral(this); }
+	className() : string { return 'BoolLiteral'; }
 }
 
 export class NameLiteral implements IExpr
@@ -90,14 +89,8 @@ export class NameLiteral implements IExpr
 	{
 		this.value = value;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitNameLiteral(this);
-	}
-	className() : string
-	{
-		return 'NameLiteral';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitNameLiteral(this); }
+	className() : string { return 'NameLiteral'; }
 }
 
 export class Group implements IExpr
@@ -107,14 +100,8 @@ export class Group implements IExpr
 	{
 		this.expr = expr;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitGroup(this);
-	}
-	className() : string
-	{
-		return 'Group';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitGroup(this); }
+	className() : string { return 'Group'; }
 }
 
 export class NullLiteral implements IExpr
@@ -122,14 +109,8 @@ export class NullLiteral implements IExpr
 	constructor(  )
 	{
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitNullLiteral(this);
-	}
-	className() : string
-	{
-		return 'NullLiteral';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitNullLiteral(this); }
+	className() : string { return 'NullLiteral'; }
 }
 
 export class LogicalExpr implements IExpr
@@ -143,14 +124,8 @@ export class LogicalExpr implements IExpr
 		this.oper = oper;
 		this.right = right;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitLogicalExpr(this);
-	}
-	className() : string
-	{
-		return 'LogicalExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitLogicalExpr(this); }
+	className() : string { return 'LogicalExpr'; }
 }
 
 export class BinaryExpr implements IExpr
@@ -164,14 +139,8 @@ export class BinaryExpr implements IExpr
 		this.oper = oper;
 		this.right = right;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitBinaryExpr(this);
-	}
-	className() : string
-	{
-		return 'BinaryExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitBinaryExpr(this); }
+	className() : string { return 'BinaryExpr'; }
 }
 
 export class AssignExpr implements IExpr
@@ -185,14 +154,8 @@ export class AssignExpr implements IExpr
 		this.oper = oper;
 		this.right = right;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitAssignExpr(this);
-	}
-	className() : string
-	{
-		return 'AssignExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitAssignExpr(this); }
+	className() : string { return 'AssignExpr'; }
 }
 
 export class UnaryExpr implements IExpr
@@ -206,14 +169,8 @@ export class UnaryExpr implements IExpr
 		this.expr = expr;
 		this.post = post;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitUnaryExpr(this);
-	}
-	className() : string
-	{
-		return 'UnaryExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitUnaryExpr(this); }
+	className() : string { return 'UnaryExpr'; }
 }
 
 export class CallExpr implements IExpr
@@ -225,14 +182,8 @@ export class CallExpr implements IExpr
 		this.callee = callee;
 		this.args = args;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitCallExpr(this);
-	}
-	className() : string
-	{
-		return 'CallExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitCallExpr(this); }
+	className() : string { return 'CallExpr'; }
 }
 
 export class ArrayExpr implements IExpr
@@ -242,14 +193,8 @@ export class ArrayExpr implements IExpr
 	{
 		this.values = values;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitArrayExpr(this);
-	}
-	className() : string
-	{
-		return 'ArrayExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitArrayExpr(this); }
+	className() : string { return 'ArrayExpr'; }
 }
 
 export class ArrayAccessExpr implements IExpr
@@ -261,14 +206,8 @@ export class ArrayAccessExpr implements IExpr
 		this.callee = callee;
 		this.index = index;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitArrayAccessExpr(this);
-	}
-	className() : string
-	{
-		return 'ArrayAccessExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitArrayAccessExpr(this); }
+	className() : string { return 'ArrayAccessExpr'; }
 }
 
 export class FieldExpr implements IExpr
@@ -280,14 +219,8 @@ export class FieldExpr implements IExpr
 		this.callee = callee;
 		this.name = name;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitFieldExpr(this);
-	}
-	className() : string
-	{
-		return 'FieldExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitFieldExpr(this); }
+	className() : string { return 'FieldExpr'; }
 }
 
 export class NewExpr implements IExpr
@@ -299,14 +232,8 @@ export class NewExpr implements IExpr
 		this.name = name;
 		this.args = args;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitNewExpr(this);
-	}
-	className() : string
-	{
-		return 'NewExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitNewExpr(this); }
+	className() : string { return 'NewExpr'; }
 }
 
 export class Accessor
@@ -316,14 +243,8 @@ export class Accessor
 	{
 		this.values = values;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitAccessor(this);
-	}
-	className() : string
-	{
-		return 'Accessor';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitAccessor(this); }
+	className() : string { return 'Accessor'; }
 }
 
 export class BlockStmt implements IStmt
@@ -333,14 +254,8 @@ export class BlockStmt implements IStmt
 	{
 		this.stmts = stmts;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitBlockStmt(this);
-	}
-	className() : string
-	{
-		return 'BlockStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitBlockStmt(this); }
+	className() : string { return 'BlockStmt'; }
 }
 
 export class ReturnStmt implements IStmt
@@ -350,14 +265,8 @@ export class ReturnStmt implements IStmt
 	{
 		this.expr = expr;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitReturnStmt(this);
-	}
-	className() : string
-	{
-		return 'ReturnStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitReturnStmt(this); }
+	className() : string { return 'ReturnStmt'; }
 }
 
 export class NamespaceStmt implements IStmt
@@ -369,14 +278,8 @@ export class NamespaceStmt implements IStmt
 		this.name = name;
 		this.stmts = stmts;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitNamespaceStmt(this);
-	}
-	className() : string
-	{
-		return 'NamespaceStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitNamespaceStmt(this); }
+	className() : string { return 'NamespaceStmt'; }
 }
 
 export class TypeRef
@@ -388,14 +291,8 @@ export class TypeRef
 		this.name = name;
 		this.dims = dims;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitTypeRef(this);
-	}
-	className() : string
-	{
-		return 'TypeRef';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitTypeRef(this); }
+	className() : string { return 'TypeRef'; }
 }
 
 export class CaseStmt implements IStmt
@@ -407,14 +304,8 @@ export class CaseStmt implements IStmt
 		this.expr = expr;
 		this.stmts = stmts;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitCaseStmt(this);
-	}
-	className() : string
-	{
-		return 'CaseStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitCaseStmt(this); }
+	className() : string { return 'CaseStmt'; }
 }
 
 export class SwitchStmt implements IStmt
@@ -426,14 +317,8 @@ export class SwitchStmt implements IStmt
 		this.expr = expr;
 		this.cases = cases;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitSwitchStmt(this);
-	}
-	className() : string
-	{
-		return 'SwitchStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitSwitchStmt(this); }
+	className() : string { return 'SwitchStmt'; }
 }
 
 export class IfStmt implements IStmt
@@ -447,14 +332,8 @@ export class IfStmt implements IStmt
 		this.thenSide = thenSide;
 		this.elseSide = elseSide;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitIfStmt(this);
-	}
-	className() : string
-	{
-		return 'IfStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitIfStmt(this); }
+	className() : string { return 'IfStmt'; }
 }
 
 export class ForOfStmt implements IExpr
@@ -468,14 +347,8 @@ export class ForOfStmt implements IExpr
 		this.expr = expr;
 		this.stmt = stmt;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitForOfStmt(this);
-	}
-	className() : string
-	{
-		return 'ForOfStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitForOfStmt(this); }
+	className() : string { return 'ForOfStmt'; }
 }
 
 export class DoWhileStmt implements IStmt
@@ -487,14 +360,8 @@ export class DoWhileStmt implements IStmt
 		this.stmt = stmt;
 		this.condition = condition;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitDoWhileStmt(this);
-	}
-	className() : string
-	{
-		return 'DoWhileStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitDoWhileStmt(this); }
+	className() : string { return 'DoWhileStmt'; }
 }
 
 export class WhileStmt implements IStmt
@@ -506,14 +373,8 @@ export class WhileStmt implements IStmt
 		this.condition = condition;
 		this.stmt = stmt;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitWhileStmt(this);
-	}
-	className() : string
-	{
-		return 'WhileStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitWhileStmt(this); }
+	className() : string { return 'WhileStmt'; }
 }
 
 export class Parameter
@@ -529,14 +390,8 @@ export class Parameter
 		this.init = init;
 		this.vararg = vararg;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitParameter(this);
-	}
-	className() : string
-	{
-		return 'Parameter';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitParameter(this); }
+	className() : string { return 'Parameter'; }
 }
 
 export class ExpandExpr implements IExpr
@@ -546,14 +401,8 @@ export class ExpandExpr implements IExpr
 	{
 		this.name = name;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitExpandExpr(this);
-	}
-	className() : string
-	{
-		return 'ExpandExpr';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitExpandExpr(this); }
+	className() : string { return 'ExpandExpr'; }
 }
 
 export class FunctionStmt implements IStmt
@@ -571,14 +420,8 @@ export class FunctionStmt implements IStmt
 		this.type = type;
 		this.body = body;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitFunctionStmt(this);
-	}
-	className() : string
-	{
-		return 'FunctionStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitFunctionStmt(this); }
+	className() : string { return 'FunctionStmt'; }
 }
 
 export class ClassStmt implements IStmt
@@ -596,14 +439,8 @@ export class ClassStmt implements IStmt
 		this.variables = variables;
 		this.functions = functions;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitClassStmt(this);
-	}
-	className() : string
-	{
-		return 'ClassStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitClassStmt(this); }
+	className() : string { return 'ClassStmt'; }
 }
 
 export class ExprStmt implements IStmt
@@ -613,14 +450,8 @@ export class ExprStmt implements IStmt
 	{
 		this.expr = expr;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitExprStmt(this);
-	}
-	className() : string
-	{
-		return 'ExprStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitExprStmt(this); }
+	className() : string { return 'ExprStmt'; }
 }
 
 export class BreakStmt implements IStmt
@@ -628,14 +459,8 @@ export class BreakStmt implements IStmt
 	constructor(  )
 	{
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitBreakStmt(this);
-	}
-	className() : string
-	{
-		return 'BreakStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitBreakStmt(this); }
+	className() : string { return 'BreakStmt'; }
 }
 
 export class ContinueStmt implements IStmt
@@ -643,14 +468,8 @@ export class ContinueStmt implements IStmt
 	constructor(  )
 	{
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitContinueStmt(this);
-	}
-	className() : string
-	{
-		return 'ContinueStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitContinueStmt(this); }
+	className() : string { return 'ContinueStmt'; }
 }
 
 export class VariableStmt implements IStmt
@@ -667,14 +486,8 @@ export class VariableStmt implements IStmt
 		this.init = init;
 		this.constant = constant;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitVariableStmt(this);
-	}
-	className() : string
-	{
-		return 'VariableStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitVariableStmt(this); }
+	className() : string { return 'VariableStmt'; }
 }
 
 export class TryCatchStmt implements IStmt
@@ -690,14 +503,8 @@ export class TryCatchStmt implements IStmt
 		this.cblock = cblock;
 		this.fblock = fblock;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitTryCatchStmt(this);
-	}
-	className() : string
-	{
-		return 'TryCatchStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitTryCatchStmt(this); }
+	className() : string { return 'TryCatchStmt'; }
 }
 
 export class ThrowStmt implements IStmt
@@ -707,14 +514,8 @@ export class ThrowStmt implements IStmt
 	{
 		this.expr = expr;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitThrowStmt(this);
-	}
-	className() : string
-	{
-		return 'ThrowStmt';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitThrowStmt(this); }
+	className() : string { return 'ThrowStmt'; }
 }
 
 export class Unit
@@ -724,14 +525,8 @@ export class Unit
 	{
 		this.stmts = stmts;
 	}
-	accept( visitor : Visitor ) : void
-	{
-		visitor.visitUnit(this);
-	}
-	className() : string
-	{
-		return 'Unit';
-	}
+	accept( visitor : Visitor ) : void { visitor.visitUnit(this); }
+	className() : string { return 'Unit'; }
 }
 
 export interface IVisitor{

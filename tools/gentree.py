@@ -1,5 +1,22 @@
 #!/usr/bin/python
 
+#
+# Copyright 2020 Bruno Ribeiro
+# <https://github.com/brunexgeek/beagle-lang>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import sys;
 
 types = []
@@ -42,12 +59,10 @@ def printType(name, fields, parent = None):
     sys.stdout.write('\t}\n')
 
     # visitor caller
-    sys.stdout.write('\taccept( visitor : Visitor ) : void\n\t{\n')
-    sys.stdout.write('\t\tvisitor.visit' + name + '(this);\n')
-    sys.stdout.write('\t}\n')
+    sys.stdout.write('\taccept( visitor : Visitor ) : void { visitor.visit' + name + '(this); }\n')
 
     # class name helper
-    sys.stdout.write('\tclassName() : string\n\t{\n\t\treturn \'' + name + '\';\n\t}\n')
+    sys.stdout.write('\tclassName() : string { return \'' + name + '\'; }\n')
 
     sys.stdout.write('}\n\n')
 
@@ -64,20 +79,43 @@ def printVisitor():
         sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void {}\n')
     sys.stdout.write('}\n\n')
 
+sys.stdout.write('''
+/*
+ *   Copyright 2020 Bruno Ribeiro
+ *   <https://github.com/brunexgeek/beagle-lang>
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
 
-sys.stdout.write('namespace beagle.compiler {\n')
+/*
+ * AUTO-GENERATED CODE. DO NOT EDIT!
+ */
 
-sys.stdout.write('''export interface IStmt
+namespace beagle.compiler {
+
+export interface IStmt
 {
     accept( visitor : Visitor ) : void;
     className(): string;
-}\n\n''')
+}
 
-sys.stdout.write('''export interface IExpr
+export interface IExpr
 {
     accept( visitor : Visitor ) : void;
     className(): string;
-}\n\n''')
+}
+
+''')
 
 printType('Name', [{'name' : 'lexemes', 'type' : 'string[]'}], 'IExpr')
 
