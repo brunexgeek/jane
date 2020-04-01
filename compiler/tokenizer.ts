@@ -181,6 +181,7 @@ export class TokenType
     static readonly STATIC = new TokenType('STATIC', 'static', true);
     static readonly GET = new TokenType('GET', 'get', true);
     static readonly SET = new TokenType('SET', 'set', true);
+    static readonly DEFAULT = new TokenType('DEFAULT', 'default', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -442,7 +443,7 @@ export class Tokenizer
                         case '`':
                             break;
                         default:
-                            throw Error('Invalid escape sequence');
+                            throw new Error('Invalid escape sequence');
                     }
                     escape = false;
                 }

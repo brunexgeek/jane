@@ -154,12 +154,13 @@ export class Parser
 
     parseCaseStmt() : IStmt
     {
-        this.consume(TokenType.CASE);
-        let expr = this.parseExpression();
+        let type = this.consume(TokenType.CASE, TokenType.DEFAULT).type;
+        let expr : IExpr = null;
+        if (type == TokenType.CASE) expr = this.parseExpression();
         this.consume(TokenType.COLON);
 
         let stmts : IStmt[] = [];
-        while (this.peek().type != TokenType.RIGHT_BRACE && this.peek().type != TokenType.CASE)
+        while (this.peek().type != TokenType.RIGHT_BRACE && this.peek().type != TokenType.CASE && this.peek().type != TokenType.DEFAULT)
         {
             let stmt = this.parseBlockOrStmt();
             stmts.push(stmt);
