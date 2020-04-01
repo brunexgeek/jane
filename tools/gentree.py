@@ -101,8 +101,6 @@ sys.stdout.write('''
  * AUTO-GENERATED CODE. DO NOT EDIT!
  */
 
-namespace beagle.compiler {
-
 export interface IStmt
 {
     accept( visitor : Visitor ) : void;
@@ -294,5 +292,3 @@ printType('ThrowStmt', [
 printType('Unit', [{'name' : 'stmts', 'type' : 'IStmt[]'}])
 
 printVisitor()
-
-sys.stdout.write('}// namespace beagle.compiler\n')

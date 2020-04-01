@@ -20,7 +20,7 @@
  * AUTO-GENERATED CODE. DO NOT EDIT!
  */
 
-namespace beagle.compiler {
+import { TokenType } from './tokenizer';
 
 export interface IStmt
 {
@@ -610,5 +610,3 @@ export class Visitor implements IVisitor {
 	visitThrowStmt( target : ThrowStmt) : void {}
 	visitUnit( target : Unit) : void {}
 }
-
-}// namespace beagle.compiler

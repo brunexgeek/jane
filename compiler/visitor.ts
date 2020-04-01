@@ -15,10 +15,49 @@
  *   limitations under the License.
  */
 
-/// <reference path="tokenizer.ts" />
-/// <reference path="types.ts" />
+import {
+    IVisitor,
+    Name,
+	StringLiteral,
+	NumberLiteral,
+	BoolLiteral,
+	NameLiteral,
+	Group,
+	NullLiteral,
+	LogicalExpr,
+	BinaryExpr,
+	AssignExpr,
+	UnaryExpr,
+	CallExpr,
+	ArrayExpr,
+	ArrayAccessExpr,
+	FieldExpr,
+	NewExpr,
+	Accessor,
+	BlockStmt,
+	ReturnStmt,
+	NamespaceStmt,
+	TypeRef,
+	CaseStmt,
+	SwitchStmt,
+	IfStmt,
+	ForOfStmt,
+	DoWhileStmt,
+	WhileStmt,
+	Parameter,
+	ExpandExpr,
+	FunctionStmt,
+	ClassStmt,
+	ExprStmt,
+	BreakStmt,
+	ContinueStmt,
+	VariableStmt,
+	TryCatchStmt,
+	ThrowStmt,
+    Unit } from './types';
 
-namespace beagle.compiler {
+declare var require: any;
+let process = require("process");
 
 function print( value : string )
 {
@@ -620,6 +659,4 @@ export class SvgPrinter implements IVisitor
             print(`${parent} -> ${id} [label="${label}" style="${ (label == '<next>') ? 'dashed' : 'solid'}"];\n`);
         }
     }
-}
-
 }

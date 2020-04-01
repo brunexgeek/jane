@@ -15,8 +15,6 @@
  *   limitations under the License.
  */
 
-namespace beagle.compiler {
-
 export class SourceLocation
 {
     fileName : string;
@@ -39,6 +37,43 @@ export class SourceLocation
     {
         return this.line + ':' + this.column;
     }
+}
+
+export interface CompilationListener
+{
+
+	onStart() : void;
+
+	onError( location : SourceLocation | null, message : string ) : boolean;
+
+	onWarning( location : SourceLocation | null, message : string ) : boolean;
+
+	onFinish() : void;
+
+}
+
+export class ParserError extends Error
+{
+
+	constructor( message : string, public location : SourceLocation )
+	{
+		super(message);
+	}
+
+}
+
+export class CompilationContext
+{
+	listener : CompilationListener;
+	stringTable : string[];
+	generated : string;
+
+	constructor( listener : CompilationListener )
+	{
+		this.listener = listener;
+		this.stringTable = [];
+		this.generated = "";
+	}
 }
 
 export class Scanner
@@ -520,7 +555,5 @@ export class Tokenizer
         }
         return new Token(TokenType.NUMBER, lexeme, location);
     }
-
-}
 
 }

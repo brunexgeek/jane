@@ -15,27 +15,31 @@
  *   limitations under the License.
  */
 
-/// <reference path="tokenizer.ts" />
-/// <reference path="parser.ts" />
-/// <reference path="context.ts" />
-/// <reference path="visitor.ts" />
-/* // <reference path="AstPrinter.ts" /> */
-/* // <reference path="generator.ts" /> */
+import {
+	Tokenizer,
+	CompilationListener,
+	CompilationContext,
+	SourceLocation,
+	Scanner,
+	Token,
+	TokenType } from './tokenizer';
+import { Unit } from './types';
+import { Parser } from './parser';
+import { SvgPrinter } from './visitor';
 
-
-class MyListener implements beagle.compiler.CompilationListener
+class MyListener implements CompilationListener
 {
 
 	onStart() {
 	}
 
-	onError(location: beagle.compiler.SourceLocation, message: string): boolean {
+	onError(location: SourceLocation, message: string): boolean {
 		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
 		process.exit(1);
 		return true;
 	}
 
-	onWarning(location: beagle.compiler.SourceLocation, message: string): boolean {
+	onWarning(location: SourceLocation, message: string): boolean {
 		console.error(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
 		return true;
 	}
@@ -44,7 +48,6 @@ class MyListener implements beagle.compiler.CompilationListener
 	}
 
 }
-
 
 declare var require: any;
 require('source-map-support').install();
@@ -64,26 +67,26 @@ let outputFileName = process.argv[4];
 
 let content = fs.readFileSync(inputFileName);
 
-let ctx = new beagle.compiler.CompilationContext(new MyListener());
+let ctx = new CompilationContext(new MyListener());
 
 
 //let body = document.getElementsByTagName("body")[0];
-let ss = new beagle.compiler.Scanner(ctx, inputFileName, content.toString() );
-let tk = new beagle.compiler.Tokenizer(ctx, ss );
+let ss = new Scanner(ctx, inputFileName, content.toString() );
+let tk = new Tokenizer(ctx, ss );
 
 if (mode == 'tokenize')
 {
 	console.log('<html><body>');
-	let tok : beagle.compiler.Token = null;
-	while ((tok = tk.next()).type != beagle.compiler.TokenType.EOF)
+	let tok : Token = null;
+	while ((tok = tk.next()).type != TokenType.EOF)
 	{
 		let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.name) + '</strong> ';
 		if (tok.lexeme)
 		{
 			let color = '#070';
-			if (tok.type == beagle.compiler.TokenType.SSTRING ||
-				tok.type == beagle.compiler.TokenType.DSTRING ||
-				tok.type == beagle.compiler.TokenType.TSTRING)
+			if (tok.type == TokenType.SSTRING ||
+				tok.type == TokenType.DSTRING ||
+				tok.type == TokenType.TSTRING)
 			 	color = '#f70';
 			text += `<span style='color: ${color}'><i>${tok.lexeme}</i></span>`;
 		}
@@ -97,8 +100,8 @@ if (mode == 'tokenize')
 }
 else
 {
-	let pa = new beagle.compiler.Parser(tk, ctx);
-	let unit : beagle.compiler.Unit;
+	let pa = new Parser(tk, ctx);
+	let unit : Unit;
 	try {
 		unit = pa.parseTopLevel();
 	} catch (error)
@@ -117,7 +120,7 @@ else
 	if (mode == 'ast')
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-		let visitor = new beagle.compiler.SvgPrinter();
+		let visitor = new SvgPrinter();
 		visitor.visitUnit(unit);
 	}
 }

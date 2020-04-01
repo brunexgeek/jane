@@ -15,10 +15,54 @@
  *   limitations under the License.
  */
 
-/// <reference path="types.ts" />
-/// <reference path="tokenizer.ts" />
+import {
+    IStmt,
+    IExpr,
+    Name,
+	StringLiteral,
+	NumberLiteral,
+	BoolLiteral,
+	NameLiteral,
+	Group,
+	NullLiteral,
+	LogicalExpr,
+	BinaryExpr,
+	AssignExpr,
+	UnaryExpr,
+	CallExpr,
+	ArrayExpr,
+	ArrayAccessExpr,
+	FieldExpr,
+	NewExpr,
+	Accessor,
+	BlockStmt,
+	ReturnStmt,
+	NamespaceStmt,
+	TypeRef,
+	CaseStmt,
+	SwitchStmt,
+	IfStmt,
+	ForOfStmt,
+	DoWhileStmt,
+	WhileStmt,
+	Parameter,
+	ExpandExpr,
+	FunctionStmt,
+	ClassStmt,
+	ExprStmt,
+	BreakStmt,
+	ContinueStmt,
+	VariableStmt,
+	TryCatchStmt,
+	ThrowStmt,
+    Unit } from './types';
 
-namespace beagle.compiler {
+import {
+    TokenType,
+    Tokenizer,
+    SourceLocation,
+    Token,
+    CompilationContext } from './tokenizer';
 
 export class ParseError extends Error
 {
@@ -856,7 +900,4 @@ export class Parser
 
         return new TryCatchStmt(block, variable, cblock, fblock);
     }
-}
-
-
 }
