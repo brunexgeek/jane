@@ -311,29 +311,16 @@ export class SvgPrinter implements IVisitor
         }
         let id = this.connection(this.parent, target.className(),  content, this.label, SvgPrinter.CLASS_COLOR);
 
-        if (target.functions)
+        if (target.stmts)
         {
             this.parent = id;
-            this.label = 'functions';
+            this.label = 'stmts';
             let i = 0;
-            for (let func of target.functions)
+            for (let func of target.stmts)
             {
                 //this.parent = id;
                 //this.label = `functions[${i++}]`;
                 func.accept(this);
-            }
-        }
-
-        if (target.variables)
-        {
-            this.parent = id;
-            this.label = `variables`;
-            let i = 0;
-            for (let vari of target.variables)
-            {
-                //this.parent = id;
-                //this.label = `variables[${i++}]`;
-                vari.accept(this);
             }
         }
 

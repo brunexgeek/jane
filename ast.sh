@@ -12,4 +12,4 @@ SVGFILE="./ast.svg"
 if [ -f "$SVGFILE" ]; then
     mv "$SVGFILE" "$SVGFILE.bak"
 fi
-$BASEDIR/build.sh && node beagle.js ast $SOURCE | dot -T svg -o$SVGFILE
+$BASEDIR/build.sh && node compiler/beagle.js ast $SOURCE | dot -T svg -o$SVGFILE

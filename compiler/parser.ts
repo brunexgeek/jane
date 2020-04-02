@@ -648,8 +648,7 @@ export class Parser
 
         this.consume(TokenType.LEFT_BRACE);
 
-        let funcs : FunctionStmt[] = [];
-        let vars : VariableStmt[] = [];
+        let stmts : IStmt[] = [];
         while (!this.eof() && this.peek().type != TokenType.RIGHT_BRACE)
         {
             let accessor = this.parseAccessor();
@@ -663,20 +662,20 @@ export class Parser
                     let func = this.parseMethod(name);
                     func.accessor = accessor;
                     if (property) func.property = property.type;
-                    funcs.push(func);
+                    stmts.push(func);
                 }
                 else
                 {
-                    if (property) this.error(property, 'Property or signature expected')
+                    if (property) this.error(property, 'Property or signature expected');
                     let vari = this.parseVariable(name);
                     vari.accessor = accessor;
-                    vars.push(vari);
+                    stmts.push(vari);
                 }
             }
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        return new ClassStmt(name, extended, implemented, vars, funcs);
+        return new ClassStmt(name, extended, implemented, stmts);
     }
 
     parseMethod( name : Token ) : FunctionStmt

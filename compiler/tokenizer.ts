@@ -15,6 +15,8 @@
  *   limitations under the License.
  */
 
+import { IStmt } from './types';
+
 export class SourceLocation
 {
     fileName : string;
@@ -66,7 +68,8 @@ export class CompilationContext
 {
 	listener : CompilationListener;
 	stringTable : string[];
-	generated : string;
+    generated : string;
+    types : StmtMap = new StmtMap();
 
 	constructor( listener : CompilationListener )
 	{
@@ -74,6 +77,25 @@ export class CompilationContext
 		this.stringTable = [];
 		this.generated = "";
 	}
+}
+
+class StmtMap
+{
+    keys : string[] = [];
+    values : IStmt[] = [];
+
+    find( key : string ) : IStmt
+    {
+        let idx = this.keys.indexOf(key);
+        if (idx == -1) return null;
+        return this.values[idx];
+    }
+
+    insert( key : string, value : IStmt )
+    {
+        this.keys.push(key);
+        this.values.push(value);
+    }
 }
 
 export class Scanner

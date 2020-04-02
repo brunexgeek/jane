@@ -201,6 +201,7 @@ printType('NamespaceStmt', [
 printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'dims', 'type' : 'number'},
+    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     ])
 
 printType('CaseStmt', [
@@ -253,14 +254,15 @@ printType('FunctionStmt', [
     {'name' : 'body', 'type' : 'BlockStmt'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
+    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     ], 'IStmt')
 
 printType('ClassStmt', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'extended', 'type' : 'Name'},
     {'name' : 'implemented', 'type' : 'Name[]'},
-    {'name' : 'variables', 'type' : 'VariableStmt[]'},
-    {'name' : 'functions', 'type' : 'FunctionStmt[]'},
+    {'name' : 'stmts', 'type' : 'IStmt[]'},
+    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     ], 'IStmt')
 
 printType('ExprStmt', [
@@ -276,6 +278,7 @@ printType('VariableStmt', [
     {'name' : 'init', 'type' : 'IExpr'},
     {'name' : 'constant', 'type' : 'boolean', 'init' : 'false'},
     {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
+    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     ], 'IStmt')
 
 printType('TryCatchStmt', [

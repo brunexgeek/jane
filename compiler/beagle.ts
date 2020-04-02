@@ -26,6 +26,7 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
+import { TypeUID } from './typeinf';
 
 class MyListener implements CompilationListener
 {
@@ -109,7 +110,10 @@ else
 		process.exit(1);
 	}
 
-	/* if (mode == 'generate')
+	let visitor = new TypeUID(ctx);
+	visitor.visitUnit(unit);
+
+	/*if (mode == 'generate')
 	{
 		//console.log("<html><body><pre>");
 		let generator = new beagle.compiler.generator.CppGenerator(ctx);

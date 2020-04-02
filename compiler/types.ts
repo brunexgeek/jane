@@ -286,6 +286,7 @@ export class TypeRef
 {
 	name : Name;
 	dims : number;
+	uid : string = '';
 	constructor( name : Name, dims : number )
 	{
 		this.name = name;
@@ -413,6 +414,7 @@ export class FunctionStmt implements IStmt
 	body : BlockStmt;
 	accessor : Accessor = null;
 	property : TokenType = null;
+	uid : string = '';
 	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt )
 	{
 		this.name = name;
@@ -429,15 +431,14 @@ export class ClassStmt implements IStmt
 	name : Name;
 	extended : Name;
 	implemented : Name[];
-	variables : VariableStmt[];
-	functions : FunctionStmt[];
-	constructor( name : Name, extended : Name, implemented : Name[], variables : VariableStmt[], functions : FunctionStmt[] )
+	stmts : IStmt[];
+	uid : string = '';
+	constructor( name : Name, extended : Name, implemented : Name[], stmts : IStmt[] )
 	{
 		this.name = name;
 		this.extended = extended;
 		this.implemented = implemented;
-		this.variables = variables;
-		this.functions = functions;
+		this.stmts = stmts;
 	}
 	accept( visitor : Visitor ) : void { visitor.visitClassStmt(this); }
 	className() : string { return 'ClassStmt'; }
@@ -479,6 +480,7 @@ export class VariableStmt implements IStmt
 	init : IExpr;
 	constant : boolean;
 	accessor : Accessor;
+	uid : string = '';
 	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean = false )
 	{
 		this.name = name;
