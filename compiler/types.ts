@@ -473,6 +473,19 @@ export class ContinueStmt implements IStmt
 	className() : string { return 'ContinueStmt'; }
 }
 
+export class ImportStmt implements IStmt
+{
+	names : Name[];
+	source : string;
+	constructor( names : Name[], source : string )
+	{
+		this.names = names;
+		this.source = source;
+	}
+	accept( visitor : Visitor ) : void { visitor.visitImportStmt(this); }
+	className() : string { return 'ImportStmt'; }
+}
+
 export class VariableStmt implements IStmt
 {
 	name : Name;
@@ -566,6 +579,7 @@ export interface IVisitor{
 	visitExprStmt( target : ExprStmt) : void;
 	visitBreakStmt( target : BreakStmt) : void;
 	visitContinueStmt( target : ContinueStmt) : void;
+	visitImportStmt( target : ImportStmt) : void;
 	visitVariableStmt( target : VariableStmt) : void;
 	visitTryCatchStmt( target : TryCatchStmt) : void;
 	visitThrowStmt( target : ThrowStmt) : void;
@@ -607,8 +621,10 @@ export class Visitor implements IVisitor {
 	visitExprStmt( target : ExprStmt) : void {}
 	visitBreakStmt( target : BreakStmt) : void {}
 	visitContinueStmt( target : ContinueStmt) : void {}
+	visitImportStmt( target : ImportStmt) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}
 	visitUnit( target : Unit) : void {}
 }
+

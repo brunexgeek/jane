@@ -55,7 +55,8 @@ import {
 	VariableStmt,
 	TryCatchStmt,
 	ThrowStmt,
-    Unit } from './types';
+    Unit,
+    ImportStmt } from './types';
 
 class SignatureMap
 {
@@ -91,6 +92,10 @@ export class TypeUID implements IVisitor
     constructor( ctx : CompilationContext )
     {
         this.ctx = ctx;
+    }
+
+    visitImportStmt(target: ImportStmt): void {
+
     }
 
     visitName(target: Name): void {

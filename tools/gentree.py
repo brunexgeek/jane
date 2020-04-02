@@ -101,6 +101,8 @@ sys.stdout.write('''
  * AUTO-GENERATED CODE. DO NOT EDIT!
  */
 
+import { TokenType } from './tokenizer';
+
 export interface IStmt
 {
     accept( visitor : Visitor ) : void;
@@ -270,7 +272,13 @@ printType('ExprStmt', [
     ], 'IStmt');
 
 printType('BreakStmt', [], 'IStmt');
+
 printType('ContinueStmt', [], 'IStmt');
+
+printType('ImportStmt', [
+    {'name' : 'names', 'type' : 'Name[]'},
+    {'name' : 'source', 'type' : 'string'}
+    ], 'IStmt')
 
 printType('VariableStmt', [
     {'name' : 'name', 'type' : 'Name'},

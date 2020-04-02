@@ -256,6 +256,8 @@ export class TokenType
     static readonly GET = new TokenType('GET', 'get', true);
     static readonly SET = new TokenType('SET', 'set', true);
     static readonly DEFAULT = new TokenType('DEFAULT', 'default', true);
+    static readonly IMPORT = new TokenType('IMPORT', 'import', true);
+    static readonly FROM = new TokenType('FROM', 'from', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {

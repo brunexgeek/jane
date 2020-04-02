@@ -54,7 +54,8 @@ import {
 	VariableStmt,
 	TryCatchStmt,
 	ThrowStmt,
-    Unit } from './types';
+    Unit,
+    ImportStmt } from './types';
 
 declare var require: any;
 let process = require("process");
@@ -66,6 +67,22 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor
 {
+    visitImportStmt(target: ImportStmt): void {
+        let content = this.field('from', target.source);
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
+
+        let i = 0;
+        for (let name of target.names)
+        {
+            this.label = `names[${i++}]`;
+            this.parent = id;
+            name.accept(this);
+        }
+
+        this.parent = id;
+        this.label = '<next>';
+    }
+
     visitBreakStmt(target: BreakStmt): void
     {
         let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);

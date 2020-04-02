@@ -55,7 +55,8 @@ import {
 	VariableStmt,
 	TryCatchStmt,
 	ThrowStmt,
-    Unit } from './types';
+    Unit,
+    ImportStmt} from './types';
 
 import {
     TokenType,
@@ -195,6 +196,9 @@ export class Parser
         do {
             try
             {
+                if (this.peek().type == TokenType.IMPORT)
+                    stmts.push( this.parseImport() );
+                else
                 if (this.peek().type == TokenType.NAMESPACE)
                     stmts.push( this.parseNamespace() );
                 else
@@ -210,6 +214,28 @@ export class Parser
         if (hasError) throw Error('The code has one or more errors');
 
         return new Unit(stmts);
+    }
+
+    parseImport() : IStmt
+    {
+        this.consume(TokenType.IMPORT);
+        this.consume(TokenType.LEFT_BRACE);
+
+        let names : Name[] = [];
+        do {
+            names.push( this.parseName() );
+        } while (this.match(TokenType.COMMA));
+
+        this.consume(TokenType.RIGHT_BRACE);
+        this.consume(TokenType.FROM);
+
+        let tt = this.peek();
+        if (tt.type != TokenType.SSTRING && tt.type != TokenType.DSTRING && tt.type != TokenType.TSTRING)
+            throw this.error(tt, 'String literal expected');
+        this.advance();
+        this.consume(TokenType.SEMICOLON);
+
+        return new ImportStmt(names, tt.lexeme);
     }
 
     parseCaseStmt() : IStmt
@@ -672,6 +698,8 @@ export class Parser
                     stmts.push(vari);
                 }
             }
+            else
+                throw this.error(this.peek(), 'Invalid token ' + this.peek().type.name);
         }
         this.consume(TokenType.RIGHT_BRACE);
 
