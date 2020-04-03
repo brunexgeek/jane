@@ -162,8 +162,9 @@ export class Parser
 
     error( token : Token, message : string ) : ParseError
     {
-        this.ctx.listener.onError(token.location, message);
-        return new ParseError(message, token.location);
+        let result = new ParseError(message, token.location);
+        this.ctx.listener.onError(token.location, result);
+        return result;
     }
 
     synchronize()
@@ -284,11 +285,14 @@ export class Parser
         let stmts : IStmt[] = [];
         this.consume(TokenType.NAMESPACE);
         let name = this.parseName(true);
+        this.ctx.namespaceStack.push(name);
         this.consume(TokenType.LEFT_BRACE);
 
         do {
                 stmts.push( this.parseDeclationStmt() );
         } while (!this.match(TokenType.RIGHT_BRACE));
+
+        this.ctx.namespaceStack.pop();
 
         return new NamespaceStmt(name, stmts);
     }
@@ -343,7 +347,9 @@ export class Parser
 
         let block = this.parseBlock();
 
-        return new FunctionStmt(new Name([name.lexeme]), args, type, block);
+        let result = new FunctionStmt(new Name([name.lexeme]), args, type, block);
+        result.nspace = this.ctx.currentNamespace;
+        return result;
     }
 
     parseName( qualified : boolean = false ) : Name
@@ -360,13 +366,22 @@ export class Parser
         let name = this.parseName(true);
         let dims = 0;
 
+        let generics : Name[] = [];
+        if (this.match(TokenType.LESS))
+        {
+            do {
+                generics.push( this.parseName() );
+            } while (this.match(TokenType.COMMA));
+            this.consume(TokenType.GREATER);
+        }
+
         while (this.match(TokenType.LEFT_BRACKET))
         {
             dims++;
             this.consume(TokenType.RIGHT_BRACKET);
         }
 
-        return new TypeRef(name, dims);
+        return new TypeRef(name, generics, dims);
     }
 
     parseExpression() : IExpr
@@ -663,6 +678,15 @@ export class Parser
     {
         let type = this.advance().type;
         let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
+        let generics : Name[] = [];
+        if (this.match(TokenType.LESS))
+        {
+            do {
+                generics.push( this.parseName() );
+            } while (this.match(TokenType.COMMA));
+            this.consume(TokenType.GREATER);
+        }
+
         let extended : Name = null;
         let implemented : Name[] = null;
 
@@ -710,7 +734,15 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        return new ClassStmt(name, extended, implemented, stmts);
+        let result = new ClassStmt(name, generics, extended, implemented, stmts);
+        result.nspace = this.ctx.currentNamespace;
+
+        let qname = this.ctx.currentNamespaceString;
+        if (qname.length > 0) qname += '.';
+        qname += result.name.lexemes[0];
+        this.ctx.types.insert(qname, result);
+
+        return result;
     }
 
     parseMethod( name : Token ) : FunctionStmt
@@ -899,7 +931,9 @@ export class Parser
         }
         this.consume(TokenType.SEMICOLON);
 
-        return new VariableStmt(name, type, value, constant);
+        let result = new VariableStmt(name, type, value, constant);
+        result.nspace = this.ctx.currentNamespace;
+        return result;
     }
 
     parseThrow() : IStmt

@@ -1,4 +1,4 @@
-declare var require: any;
+declare let require: any;
 let fs = require("fs");
 
 export function readfile( fileName : string ) : string
@@ -17,10 +17,10 @@ export function dirname( fileName : string ) : string
     return path.substr(0, path.lastIndexOf('/') + 1 );
 }
 
-export class HashMap<K, V>
+export class Map<K, V>
 {
     private keys : K[] = [];
-    private values : V[] = [];
+    public values : V[] = [];
 
     find( key : K ) : V
     {
@@ -33,5 +33,10 @@ export class HashMap<K, V>
     {
         this.keys.push(key);
         this.values.push(value);
+    }
+
+    contains( key : K ) : boolean
+    {
+        return this.keys.indexOf(key) >= 0;
     }
 }

@@ -59,7 +59,7 @@ import {
     ImportStmt,
     IStmt} from './types';
 
-declare var require: any;
+declare let require: any;
 
 class SignatureMap
 {

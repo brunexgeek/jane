@@ -43,8 +43,19 @@ export class Name implements IExpr
 	}
 	accept( visitor : Visitor ) : void { visitor.visitName(this); }
 	className() : string { return 'Name'; }
+toString() : string
+    {
+        let result = '';
+        let first = true;
+        for (let i of this.lexemes)
+        {
+            if (!first) result += '.';
+            first = false;
+            result += i;
+        }
+        return result;
+    }
 }
-
 export class StringLiteral implements IExpr
 {
 	value : string;
@@ -285,11 +296,13 @@ export class NamespaceStmt implements IStmt
 export class TypeRef
 {
 	name : Name;
+	generics : Name[];
 	dims : number;
 	uid : string = '';
-	constructor( name : Name, dims : number )
+	constructor( name : Name, generics : Name[], dims : number )
 	{
 		this.name = name;
+		this.generics = generics;
 		this.dims = dims;
 	}
 	accept( visitor : Visitor ) : void { visitor.visitTypeRef(this); }
@@ -415,6 +428,7 @@ export class FunctionStmt implements IStmt
 	accessor : Accessor = null;
 	property : TokenType = null;
 	uid : string = '';
+	nspace : Name = null;
 	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt )
 	{
 		this.name = name;
@@ -429,13 +443,16 @@ export class FunctionStmt implements IStmt
 export class ClassStmt implements IStmt
 {
 	name : Name;
+	generics : Name[];
 	extended : Name;
 	implemented : Name[];
 	stmts : IStmt[];
 	uid : string = '';
-	constructor( name : Name, extended : Name, implemented : Name[], stmts : IStmt[] )
+	nspace : Name = null;
+	constructor( name : Name, generics : Name[], extended : Name, implemented : Name[], stmts : IStmt[] )
 	{
 		this.name = name;
+		this.generics = generics;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
@@ -494,6 +511,7 @@ export class VariableStmt implements IStmt
 	constant : boolean;
 	accessor : Accessor;
 	uid : string = '';
+	nspace : Name = null;
 	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean = false )
 	{
 		this.name = name;

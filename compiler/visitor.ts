@@ -57,7 +57,7 @@ import {
     Unit,
     ImportStmt } from './types';
 
-declare var require: any;
+declare let require: any;
 let process = require("process");
 
 function print( value : string )
@@ -616,14 +616,30 @@ export class SvgPrinter implements IVisitor
         this.parent = id;
     }
 
-    visitUnit(target: Unit): void {
+    printGraph()
+    {
         print(`digraph AST {
-        node [shape=record style=filled fontsize=10];
-        edge [fontsize=10];
-        splines=polyline;
+            node [shape=record style=filled fontsize=10];
+            edge [fontsize=10];
+            splines=polyline;\n`);
+    }
 
-        0 [label=<{<b>Unit</b>}>];\n`);
+    visitUnits( target : Unit[] )
+    {
+        this.printGraph();
+        let id = 0;
+        for (let unit of target )
+            this.visitUnit(unit, id++);
+        print('}');
+    }
 
+    visitUnit( target: Unit, sid : number = -1 ): void {
+        if (sid < 0)
+            this.printGraph();
+        else
+            print(`subgraph graph_${sid} {`);
+
+        print(`${++this.id} [label=<{<b>Unit</b>}>]`);
         this.parent = this.id;
         this.label = 'stmts';
         for (let stmt of target.stmts)

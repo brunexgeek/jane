@@ -21,7 +21,7 @@ import sys;
 
 types = []
 
-def printType(name, fields, parent = None):
+def printType(name, fields, parent = None, keep_open = False ):
     types.append(name)
     sys.stdout.write('export class ' + name)
     if parent != None: sys.stdout.write(' implements ' + parent)
@@ -64,7 +64,7 @@ def printType(name, fields, parent = None):
     # class name helper
     sys.stdout.write('\tclassName() : string { return \'' + name + '\'; }\n')
 
-    sys.stdout.write('}\n\n')
+    if (not keep_open): sys.stdout.write('}\n\n')
 
 def printVisitor():
     # interface
@@ -117,7 +117,21 @@ export interface IExpr
 
 ''')
 
-printType('Name', [{'name' : 'lexemes', 'type' : 'string[]'}], 'IExpr')
+printType('Name', [{'name' : 'lexemes', 'type' : 'string[]'}], 'IExpr', True)
+sys.stdout.write('''\ttoString() : string
+    {
+        let result = '';
+        let first = true;
+        for (let i of this.lexemes)
+        {
+            if (!first) result += '.';
+            first = false;
+            result += i;
+        }
+        return result;
+    }
+}
+''')
 
 printType('StringLiteral', [
     {'name' : 'value', 'type' : 'string'},
@@ -202,6 +216,7 @@ printType('NamespaceStmt', [
 
 printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'dims', 'type' : 'number'},
     {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     ])
@@ -257,14 +272,17 @@ printType('FunctionStmt', [
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
     {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
+    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
 printType('ClassStmt', [
     {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'extended', 'type' : 'Name'},
     {'name' : 'implemented', 'type' : 'Name[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
+    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
 printType('ExprStmt', [
@@ -287,6 +305,7 @@ printType('VariableStmt', [
     {'name' : 'constant', 'type' : 'boolean', 'init' : 'false'},
     {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
     {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
+    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
 printType('TryCatchStmt', [

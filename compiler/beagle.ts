@@ -36,8 +36,9 @@ class MyListener implements CompilationListener
 	onStart() {
 	}
 
-	onError(location: SourceLocation, message: string): boolean {
-		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + message);
+	onError(location: SourceLocation, error : Error): boolean {
+		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
+		console.error(error.stack);
 		process.exit(1);
 		return true;
 	}
@@ -97,10 +98,17 @@ else*/
 	let comp = new Compiler(new MyListener());
 	let units = comp.compile(inputFileName);
 
+	if (mode == 'types')
+	{
+		for (let type of comp.ctx.types.values)
+		{
+			console.log(`Defined type '${type.name}'`);
+		}
+	}
 	if (mode == 'ast')
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();
-		visitor.visitUnit(units[0]);
+		visitor.visitUnit(comp.ctx.units.values[0]);
 	}
 }

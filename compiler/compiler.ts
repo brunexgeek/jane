@@ -1,5 +1,5 @@
-import { IStmt, Unit } from './types';
-import { readfile, dirname } from './io';
+import { IStmt, Unit, Name, ClassStmt } from './types';
+import { readfile, dirname, realpath, Map } from './io';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser } from './parser';
 import { TypeUID } from './typeinf';
@@ -32,45 +32,50 @@ export interface CompilationListener
 {
 	onStart() : void;
 
-	onError( location : SourceLocation, message : string ) : boolean;
+	onError( location : SourceLocation, error : Error ) : boolean;
 
 	onWarning( location : SourceLocation, message : string ) : boolean;
 
 	onFinish() : void;
 }
 
-class StmtMap
-{
-    keys : string[] = [];
-    values : IStmt[] = [];
-
-    find( key : string ) : IStmt
-    {
-        let idx = this.keys.indexOf(key);
-        if (idx == -1) return null;
-        return this.values[idx];
-    }
-
-    insert( key : string, value : IStmt )
-    {
-        this.keys.push(key);
-        this.values.push(value);
-    }
-}
-
 export class CompilationContext
 {
 	listener : CompilationListener;
-	stringTable : string[];
-    generated : string;
-    types : StmtMap = new StmtMap();
+    units : Map<string, Unit> = new Map();
+    types : Map<string, ClassStmt> = new Map();
+    namespaceStack : Name[] = [];
 
 	constructor( listener : CompilationListener )
 	{
 		this.listener = listener;
-		this.stringTable = [];
-		this.generated = "";
-	}
+    }
+
+    get currentNamespace() : Name
+    {
+        if (this.namespaceStack.length == 0) return null;
+
+        let result : string[] = [];
+        for (let name of this.namespaceStack)
+            result.concat(name.lexemes);
+
+        return new Name(result);
+    }
+
+    get currentNamespaceString() : string
+    {
+        if (this.namespaceStack.length == 0) return '';
+
+        let result : string = '';
+        let first = true;
+        for (let name of this.namespaceStack)
+        {
+            if (!first) result += '.';
+            first = false;
+            result += name.lexemes;
+        }
+        return result;
+    }
 }
 
 export class CompilerError extends Error
@@ -90,31 +95,30 @@ export class Compiler
         this.ctx = new CompilationContext(listener);
     }
 
-    compile( fileName : string ) : Unit[]
+    compile( fileName : string )
     {
-        let result : Unit[] = [];
+        if (this.ctx.units.contains(fileName)) return;
+        console.error(`Compiling ${fileName}`);
         let source : string = readfile(fileName);
         let scanner = new Scanner(this.ctx, fileName, source);
         let tok = new Tokenizer(this.ctx, scanner);
         let parser = new Parser(tok, this.ctx);
         let unit : Unit;
         unit = parser.parseTopLevel();
+        this.ctx.units.insert(fileName, unit);
 
         if (unit.imports)
         {
             let cdir = dirname(fileName);
             for (let imp of unit.imports)
             {
-                let path = cdir + imp.source;
-                result.concat( this.compile(path) );
+                let path = realpath(cdir + imp.source + '.ts');
+                this.compile(path);
             }
         }
 
         //let typeuid = new TypeUID(this.ctx);
         //typeuid.process(unit);
-        result.push(unit);
-
-        return result;
     }
 
 }
