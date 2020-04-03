@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-import { CompilationContext } from './tokenizer';
+import { CompilationContext } from './compiler';
 import {
     IVisitor,
     Name,
@@ -56,7 +56,10 @@ import {
 	TryCatchStmt,
 	ThrowStmt,
     Unit,
-    ImportStmt } from './types';
+    ImportStmt,
+    IStmt} from './types';
+
+declare var require: any;
 
 class SignatureMap
 {
@@ -84,7 +87,7 @@ class SignatureMap
     }
 }
 
-export class TypeUID implements IVisitor
+export class TypeUID
 {
     signatures : SignatureMap = new SignatureMap();
     ctx : CompilationContext;
@@ -94,23 +97,127 @@ export class TypeUID implements IVisitor
         this.ctx = ctx;
     }
 
-    visitImportStmt(target: ImportStmt): void {
-
+    process( unit : Unit )
+    {
+        this.processStmts(unit.stmts);
     }
 
+    processStmts( stmts : IStmt[] )
+    {
+        for (let stmt of stmts)
+        {
+            if (stmt instanceof NamespaceStmt)
+                this.processStmts(stmt.stmts);
+            else
+            if (stmt instanceof ClassStmt)
+                this.processClass(stmt);
+            else
+            if (stmt instanceof FunctionStmt)
+                this.processFunction(stmt);
+            else
+            if (stmt instanceof VariableStmt)
+                this.processVariable(stmt);
+        }
+    }
+
+    typeUid( target : TypeRef ) : string
+    {
+        return target.name.lexemes[ target.name.lexemes.length - 1 ];
+    }
+
+    typeSignature( target : TypeRef ) : string
+    {
+        if (!target) return '';
+
+        let result = '';
+        let i = 0;
+        while (i++ < target.dims) result += '[';
+        if (!target.uid || target.uid.length == 0)
+            target.uid = this.typeUid(target);
+        result += this.signatures.find(target.uid);
+        return result;
+    }
+
+    processFunction(target: FunctionStmt): void {
+        let sign = '';
+
+        sign += target.name.lexemes[0] + ':';
+        if (target.property) sign += '@';
+        sign += '(';
+        for (let par of target.params)
+        {
+            if (par.vararg) sign += '.';
+            sign += this.typeSignature(par.type);
+        }
+        sign += ')';
+        if (target.type)
+            sign += this.typeSignature(target.type);
+        else
+            sign += 'V';
+        target.uid = sign;
+        console.error('---- signature is ' + sign);
+    }
+
+    processClass(target: ClassStmt): void {
+        let content = '';
+        for (let f of target.stmts)
+        {
+            if (f instanceof FunctionStmt)
+                this.processFunction(f);
+            else
+            if (f instanceof VariableStmt)
+                this.processVariable(f);
+            else
+                continue;
+            content += f.uid;
+        }
+
+        target.uid = target.name.lexemes[0] + '_' + this.sha256(content);
+        console.error('---- signature is ' + target.uid);
+    }
+
+    processVariable(target: VariableStmt): void
+    {
+        let sign = target.name.lexemes[0] + ':';
+        sign += this.typeSignature(target.type);
+        target.uid = sign;
+        console.error('---- signature is ' + sign);
+    }
+
+    sha256( value : string ) : string
+    {
+        return require('crypto').createHash("sha256").update(value).digest('hex');
+    }
+}
+
+export class TypeInference implements IVisitor
+{
+    ctx : CompilationContext;
+    stack : string[] = [];
+
+    constructor( ctx : CompilationContext )
+    {
+        this.ctx = ctx;
+    }
     visitName(target: Name): void {
 
     }
-    visitStringLiteral(target: StringLiteral): void {
-
+    visitStringLiteral(target: StringLiteral): void
+    {
+        this.stack.push('string');
     }
-    visitNumberLiteral(target: NumberLiteral): void {
 
+    visitNumberLiteral(target: NumberLiteral): void
+    {
+        this.stack.push('number');
     }
-    visitBoolLiteral(target: BoolLiteral): void {
 
+    visitBoolLiteral(target: BoolLiteral): void
+    {
+        this.stack.push('boolean');
     }
-    visitNameLiteral(target: NameLiteral): void {
+    visitNameLiteral(target: NameLiteral): void
+    {
 
     }
     visitGroup(target: Group): void {
@@ -156,10 +263,7 @@ export class TypeUID implements IVisitor
 
     }
     visitNamespaceStmt(target: NamespaceStmt): void {
-        for (let f of target.stmts)
-        {
-            f.accept(this);
-        }
+
     }
     visitTypeRef(target: TypeRef): void {
 
@@ -188,89 +292,48 @@ export class TypeUID implements IVisitor
     visitExpandExpr(target: ExpandExpr): void {
 
     }
-
-    typeUid( target : TypeRef ) : string
-    {
-        return target.name.lexemes[ target.name.lexemes.length - 1 ];
-    }
-
-    typeSignature( target : TypeRef ) : string
-    {
-        if (!target) return '';
-
-        let result = '';
-        let i = 0;
-        while (i++ < target.dims) result += '[';
-        if (!target.uid || target.uid.length == 0)
-            target.uid = this.typeUid(target);
-        result += this.signatures.find(target.uid);
-        return result;
-    }
-
     visitFunctionStmt(target: FunctionStmt): void {
-        let sign = '';
 
-        sign += target.name.lexemes[0] + ':';
-        if (target.property) sign += '@';
-        sign += '(';
-        for (let par of target.params)
-        {
-            if (par.vararg) sign += '.';
-            sign += this.typeSignature(par.type);
-        }
-        sign += ')';
-        if (target.type)
-        {
-            sign += this.typeSignature(target.type);
-        }
-        target.uid = sign;
-        console.error('---- signature is ' + sign);
     }
-
     visitClassStmt(target: ClassStmt): void {
-        /*let content = '';
-        for (let f of target.stmts)
-        {
-            if (f instanceof FunctionStmt || f instanceof VariableStmt)
-            {
-                f.accept(this);
-                content += f.uid;
-            }
-        }
 
-        target.uid = target.name.lexemes[0] + '_' +
-            require('crypto')
-                .createHash("sha256")
-                .update(content)
-                .digest('hex');
-        console.error('---- signature is ' + target.uid);*/
-        this.ctx.types.insert(target.name.lexemes[0], target);
     }
-
     visitExprStmt(target: ExprStmt): void {
 
     }
     visitBreakStmt(target: BreakStmt): void {
 
     }
-    visitContinueStmt(target: ContinueStmt): void {
+
+    visitContinueStmt(target: ContinueStmt): void
+    {
 
     }
+
+    visitImportStmt(target: ImportStmt): void
+    {
+
+    }
+
     visitVariableStmt(target: VariableStmt): void
     {
-        let sign = target.name.lexemes[0] + ':';
-        sign += this.typeSignature(target.type);
-        target.uid = sign;
-        console.error('---- signature is ' + sign);
+        if (target.init) target.init.accept(this);
     }
-    visitTryCatchStmt(target: TryCatchStmt): void {
+
+    visitTryCatchStmt(target: TryCatchStmt): void
+    {
 
     }
-    visitThrowStmt(target: ThrowStmt): void {
+
+    visitThrowStmt(target: ThrowStmt): void
+    {
 
     }
-    visitUnit(target: Unit): void {
-        for (let f of target.stmts) f.accept(this);
+
+    visitUnit(target: Unit): void
+    {
+        for (let stmt of target.stmts)
+            stmt.accept(this);
     }
 
 }

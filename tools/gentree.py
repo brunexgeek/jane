@@ -300,6 +300,9 @@ printType('ThrowStmt', [
     {'name' : 'expr', 'type' : 'IExpr'}
     ], 'IStmt')
 
-printType('Unit', [{'name' : 'stmts', 'type' : 'IStmt[]'}])
+printType('Unit', [
+    {'name' : 'stmts', 'type' : 'IStmt[]'},
+    {'name' : 'imports', 'type' : 'ImportStmt[]'}
+    ])
 
 printVisitor()

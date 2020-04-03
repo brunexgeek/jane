@@ -15,88 +15,7 @@
  *   limitations under the License.
  */
 
-import { IStmt } from './types';
-
-export class SourceLocation
-{
-    fileName : string;
-    line : number;
-    column : number;
-
-    constructor( fileName : string, line : number = 1, column : number = 1 )
-    {
-        this.fileName = fileName;
-        this.line = line;
-        this.column = column;
-    }
-
-    clone() : SourceLocation
-    {
-        return new SourceLocation(this.fileName, this.line, this.column);
-    }
-
-    toString() : string
-    {
-        return this.line + ':' + this.column;
-    }
-}
-
-export interface CompilationListener
-{
-
-	onStart() : void;
-
-	onError( location : SourceLocation | null, message : string ) : boolean;
-
-	onWarning( location : SourceLocation | null, message : string ) : boolean;
-
-	onFinish() : void;
-
-}
-
-export class ParserError extends Error
-{
-
-	constructor( message : string, public location : SourceLocation )
-	{
-		super(message);
-	}
-
-}
-
-export class CompilationContext
-{
-	listener : CompilationListener;
-	stringTable : string[];
-    generated : string;
-    types : StmtMap = new StmtMap();
-
-	constructor( listener : CompilationListener )
-	{
-		this.listener = listener;
-		this.stringTable = [];
-		this.generated = "";
-	}
-}
-
-class StmtMap
-{
-    keys : string[] = [];
-    values : IStmt[] = [];
-
-    find( key : string ) : IStmt
-    {
-        let idx = this.keys.indexOf(key);
-        if (idx == -1) return null;
-        return this.values[idx];
-    }
-
-    insert( key : string, value : IStmt )
-    {
-        this.keys.push(key);
-        this.values.push(value);
-    }
-}
+import { CompilationContext, SourceLocation } from './compiler';
 
 export class Scanner
 {
@@ -258,6 +177,7 @@ export class TokenType
     static readonly DEFAULT = new TokenType('DEFAULT', 'default', true);
     static readonly IMPORT = new TokenType('IMPORT', 'import', true);
     static readonly FROM = new TokenType('FROM', 'from', true);
+    static readonly DECLARE = new TokenType('DECLARE', 'declare', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {

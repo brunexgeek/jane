@@ -17,12 +17,14 @@
 
 import {
 	Tokenizer,
-	CompilationListener,
-	CompilationContext,
-	SourceLocation,
 	Scanner,
 	Token,
 	TokenType } from './tokenizer';
+import {
+	Compiler,
+	CompilationListener,
+	CompilationContext,
+	SourceLocation } from './compiler';
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
@@ -50,7 +52,7 @@ class MyListener implements CompilationListener
 
 }
 
-declare var require: any;
+declare let require: any;
 require('source-map-support').install();
 let fs = require("fs");
 let util = require("util");
@@ -66,16 +68,7 @@ let mode = process.argv[2];
 let inputFileName = process.argv[3];
 let outputFileName = process.argv[4];
 
-let content = fs.readFileSync(inputFileName);
-
-let ctx = new CompilationContext(new MyListener());
-
-
-//let body = document.getElementsByTagName("body")[0];
-let ss = new Scanner(ctx, inputFileName, content.toString() );
-let tk = new Tokenizer(ctx, ss );
-
-if (mode == 'tokenize')
+/*if (mode == 'tokenize')
 {
 	console.log('<html><body>');
 	let tok : Token = null;
@@ -99,32 +92,15 @@ if (mode == 'tokenize')
 	}
 	console.log('</body></html>');
 }
-else
+else*/
 {
-	let pa = new Parser(tk, ctx);
-	let unit : Unit;
-	try {
-		unit = pa.parseTopLevel();
-	} catch (error)
-	{
-		process.exit(1);
-	}
+	let comp = new Compiler(new MyListener());
+	let units = comp.compile(inputFileName);
 
-	let visitor = new TypeUID(ctx);
-	visitor.visitUnit(unit);
-
-	/*if (mode == 'generate')
-	{
-		//console.log("<html><body><pre>");
-		let generator = new beagle.compiler.generator.CppGenerator(ctx);
-		console.log(generator.generate(unit));
-		//console.log("</pre></body></html>");
-	}
-	else*/
 	if (mode == 'ast')
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();
-		visitor.visitUnit(unit);
+		visitor.visitUnit(units[0]);
 	}
 }

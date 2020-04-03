@@ -61,9 +61,11 @@ import {
 import {
     TokenType,
     Tokenizer,
+    Token } from './tokenizer';
+
+import {
     SourceLocation,
-    Token,
-    CompilationContext } from './tokenizer';
+    CompilationContext } from './compiler';
 
 export class ParseError extends Error
 {
@@ -190,6 +192,7 @@ export class Parser
     parseTopLevel() : Unit
     {
         let stmts : IStmt[] = [];
+        let imports : ImportStmt[] = [];
         let tt : Token;
         let hasError = false;
 
@@ -197,7 +200,11 @@ export class Parser
             try
             {
                 if (this.peek().type == TokenType.IMPORT)
-                    stmts.push( this.parseImport() );
+                {
+                    let result = this.parseImport();
+                    stmts.push(result);
+                    imports.push(result);
+                }
                 else
                 if (this.peek().type == TokenType.NAMESPACE)
                     stmts.push( this.parseNamespace() );
@@ -213,10 +220,10 @@ export class Parser
 
         if (hasError) throw Error('The code has one or more errors');
 
-        return new Unit(stmts);
+        return new Unit(stmts, imports);
     }
 
-    parseImport() : IStmt
+    parseImport() : ImportStmt
     {
         this.consume(TokenType.IMPORT);
         this.consume(TokenType.LEFT_BRACE);
@@ -741,7 +748,7 @@ export class Parser
         {
             let cur = this.peek().type;
             if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED,
-                TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC))
+                TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC, TokenType.DECLARE))
                 break;
             values.push(cur);
         }
@@ -789,6 +796,8 @@ export class Parser
                 this.advance();
                 this.consume(TokenType.SEMICOLON);
                 return new ContinueStmt();
+            case TokenType.LEFT_BRACE:
+                return this.parseBlock();
         }
         // all we have left is a expression statement
         let expr = this.parseExpression();

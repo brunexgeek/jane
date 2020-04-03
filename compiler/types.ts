@@ -536,9 +536,11 @@ export class ThrowStmt implements IStmt
 export class Unit
 {
 	stmts : IStmt[];
-	constructor( stmts : IStmt[] )
+	imports : ImportStmt[];
+	constructor( stmts : IStmt[], imports : ImportStmt[] )
 	{
 		this.stmts = stmts;
+		this.imports = imports;
 	}
 	accept( visitor : Visitor ) : void { visitor.visitUnit(this); }
 	className() : string { return 'Unit'; }
