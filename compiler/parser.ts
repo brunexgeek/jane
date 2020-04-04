@@ -896,7 +896,7 @@ export class Parser
             type = this.parseTypeRef();
         }
         else
-            type = new TypeRef(new Name(['void']), [], 0, false, null);
+            type = new TypeRef(new Name(['void']), [], 0, false, this.peek().location);
 
         let block : BlockStmt = null;
         if (this.peekType() == TokenType.LEFT_BRACE)

@@ -15,7 +15,7 @@
  *   limitations under the License.
  */
 
-import { CompilationContext } from './compiler';
+import { CompilationContext, SourceLocation } from './compiler';
 import {
     IVisitor,
     Name,
@@ -57,10 +57,16 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    IStmt} from './types';
+    IStmt,
+    TypeCastExpr,
+    PropertyStmt,
+    NameAndGenerics,
+    ForStmt} from './types';
+import { TokenType } from './tokenizer';
+import { realpath, dirname, Logger } from './utils';
 
-declare let require: any;
 
+/*
 class SignatureMap
 {
     keys : string[] = [];
@@ -138,7 +144,7 @@ export class TypeUID
         return result;
     }
 
-    processFunction(target: FunctionStmt): void {
+    processFunction(target: FunctionStmt): string {
         let sign = '';
 
         sign += target.name.lexemes[0] + ':';
@@ -158,7 +164,7 @@ export class TypeUID
         console.error('---- signature is ' + sign);
     }
 
-    processClass(target: ClassStmt): void {
+    processClass(target: ClassStmt): string {
         let content = '';
         for (let f of target.stmts)
         {
@@ -176,7 +182,7 @@ export class TypeUID
         console.error('---- signature is ' + target.uid);
     }
 
-    processVariable(target: VariableStmt): void
+    processVariable(target: VariableStmt): string
     {
         let sign = target.name.lexemes[0] + ':';
         sign += this.typeSignature(target.type);
@@ -188,152 +194,487 @@ export class TypeUID
     {
         return require('crypto').createHash("sha256").update(value).digest('hex');
     }
+}*/
+
+class ScopeEntry
+{
+    target : IStmt;
+    type : TypeRef;
 }
 
-export class TypeInference implements IVisitor
+class Scope
+{
+    private entries : Map<string, ScopeEntry> = new Map();
+
+    constructor()
+    {
+        //this.insert('result', new NullLiteral(), new TypeRef(new Name(['result'], null), null, 0));
+        //if (this.entries.find('result')) console.error('Got it!');
+    }
+
+    insert( name : string, target : IStmt, type : TypeRef )
+    {
+        console.error(`Adding '${name}' -> ${target.className()}`);
+        let item = new ScopeEntry();
+        item.target = target;
+        item.type = type;
+        this.entries.set(name, item);
+    }
+
+    find( name : string ) : ScopeEntry
+    {
+        return this.entries.get(name);
+    }
+}
+
+export class SemanticError extends Error
+{
+    public location : SourceLocation;
+
+    constructor( message : string, location : SourceLocation = null )
+    {
+        if (location) message += ' at ' + location.toString();
+        super(message);
+        this.location = location;
+    }
+}
+
+export function findSymbol( unit : Unit, name : string ) : IStmt
+{
+    let stmt = <IStmt> unit.variables.get(name);
+    if (stmt) return stmt;
+    stmt = <IStmt> unit.functions.get(name);
+    if (stmt) return stmt;
+    stmt = <IStmt> unit.types.get(name);
+    if (stmt) return stmt;
+    return null;
+}
+
+export class TypeInference implements IVisitor<TypeRef>
 {
     ctx : CompilationContext;
-    stack : string[] = [];
+    stack : Scope[] = [new Scope()];
+    imports : Map<string, IStmt> = new Map();
+    unit : Unit = null;
+    types : string[] = [];
 
     constructor( ctx : CompilationContext )
     {
         this.ctx = ctx;
     }
-    visitName(target: Name): void {
 
-    }
-    visitStringLiteral(target: StringLiteral): void
+    visitTypeCastExpr(target: TypeCastExpr): TypeRef
     {
-        this.stack.push('string');
+        throw new Error("Method not implemented.");
     }
 
-    visitNumberLiteral(target: NumberLiteral): void
+    visitPropertyStmt(target: PropertyStmt): TypeRef
     {
-        this.stack.push('number');
+        let result : TypeRef = null;
+        if (target.type)
+        {
+            result = target.type.accept(this);
+        }
+        if (target.init)
+        {
+            let itype = target.init.accept(this);
+            if (result && !this.checkCompatibleTypes(result, itype))
+                this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
+
+            if (!result) result = itype;
+        }
+        target.type = result;
+
+        this.top().insert(target.name.toString(), target, result);
+        return result;
     }
 
-    visitBoolLiteral(target: BoolLiteral): void
+    processImports()
     {
-        this.stack.push('boolean');
+        let dir = dirname(this.unit.fileName);
+        for (let imp of this.unit.imports)
+        {
+            let source = realpath(dir + imp.source + '.ts');
+            let unit = this.ctx.units.get(source);
+            for (let name of imp.names)
+            {
+                if (unit)
+                {
+                    let stmt = findSymbol(unit, name.qualified);
+                    if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
+                    this.imports.set(name.qualified, stmt);
+                }
+                else
+                {
+                    this.error(name.location, `Unable to find symbol ${name.qualified}`);
+                }
+            }
+        }
     }
-    visitNameLiteral(target: NameLiteral): void
+
+    visitNameAndGenerics(target: NameAndGenerics): TypeRef {
+        return null;
+    }
+
+    visitForStmt(target: ForStmt): TypeRef {
+        return null;
+    }
+
+    push()
     {
-
-    }
-    visitGroup(target: Group): void {
-
-    }
-    visitNullLiteral(target: NullLiteral): void {
-
-    }
-    visitLogicalExpr(target: LogicalExpr): void {
-
-    }
-    visitBinaryExpr(target: BinaryExpr): void {
-
-    }
-    visitAssignExpr(target: AssignExpr): void {
-
-    }
-    visitUnaryExpr(target: UnaryExpr): void {
-
-    }
-    visitCallExpr(target: CallExpr): void {
-
-    }
-    visitArrayExpr(target: ArrayExpr): void {
-
-    }
-    visitArrayAccessExpr(target: ArrayAccessExpr): void {
-
-    }
-    visitFieldExpr(target: FieldExpr): void {
-
-    }
-    visitNewExpr(target: NewExpr): void {
-
-    }
-    visitAccessor(target: Accessor): void {
-
-    }
-    visitBlockStmt(target: BlockStmt): void {
-
-    }
-    visitReturnStmt(target: ReturnStmt): void {
-
-    }
-    visitNamespaceStmt(target: NamespaceStmt): void {
-
-    }
-    visitTypeRef(target: TypeRef): void {
-
-    }
-    visitCaseStmt(target: CaseStmt): void {
-
-    }
-    visitSwitchStmt(target: SwitchStmt): void {
-
-    }
-    visitIfStmt(target: IfStmt): void {
-
-    }
-    visitForOfStmt(target: ForOfStmt): void {
-
-    }
-    visitDoWhileStmt(target: DoWhileStmt): void {
-
-    }
-    visitWhileStmt(target: WhileStmt): void {
-
-    }
-    visitParameter(target: Parameter): void {
-
-    }
-    visitExpandExpr(target: ExpandExpr): void {
-
-    }
-    visitFunctionStmt(target: FunctionStmt): void {
-
-    }
-    visitClassStmt(target: ClassStmt): void {
-
-    }
-    visitExprStmt(target: ExprStmt): void {
-
-    }
-    visitBreakStmt(target: BreakStmt): void {
-
+        this.stack.push(new Scope());
+        console.error('push scope');
     }
 
-    visitContinueStmt(target: ContinueStmt): void
+    pop()
     {
-
+        if (this.stack.length <= 1)
+            throw new SemanticError('Type inference stack underflow');
+        this.stack.pop();
+        console.error('pop scope');
     }
 
-    visitImportStmt(target: ImportStmt): void
+    top() : Scope
     {
-
+        return this.stack[ this.stack.length - 1 ];
     }
 
-    visitVariableStmt(target: VariableStmt): void
+    error( location : SourceLocation, message : string ) : SemanticError
     {
-        if (target.init) target.init.accept(this);
+        let result = new SemanticError(message, location);
+        this.ctx.listener.onError(location, result);
+        return result;
     }
 
-    visitTryCatchStmt(target: TryCatchStmt): void
+    find( name : string ) : ScopeEntry
     {
+        if (this.stack.length == 0) return null;
 
+        let i = this.stack.length - 1;
+        let entry : ScopeEntry = null;
+        while (i >= 0)
+        {
+            entry = this.stack[i].find(name);
+            if (entry != null) break;
+            --i;
+        }
+        if (entry)
+            console.error(`Found '${name}' (${this.stack.length} scopes)`);
+        else
+            console.error(`Missing '${name}'  (${this.stack.length} scopes)`);
+        return entry;
     }
 
-    visitThrowStmt(target: ThrowStmt): void
-    {
-
+    visitName(target: Name) : TypeRef {
+        return null;
     }
 
-    visitUnit(target: Unit): void
+    visitStringLiteral(target: StringLiteral) : TypeRef
     {
+        return TypeRef.STRING;
+    }
+
+    visitNumberLiteral(target: NumberLiteral) : TypeRef
+    {
+        return TypeRef.NUMBER;
+    }
+
+    visitBoolLiteral(target: BoolLiteral) : TypeRef
+    {
+        return TypeRef.BOOLEAN;
+    }
+
+    visitNameLiteral(target: NameLiteral) : TypeRef
+    {
+        let entry = this.find(target.value);
+        if (entry == null)
+            this.error(target.location, `Cannot find name '${target.value}'`);
+        else
+            return entry.type;
+    }
+
+    visitGroup(target: Group) : TypeRef
+    {
+        return target.expr.accept(this);
+    }
+
+    visitNullLiteral(target: NullLiteral) : TypeRef
+    {
+        return TypeRef.NULL;
+    }
+
+    visitLogicalExpr(target: LogicalExpr) : TypeRef
+    {
+        let left = target.left.accept(this);
+        let right = target.right.accept(this);
+        if (!this.checkCompatibleTypes(left, right))
+            throw this.error(target.location, 'Incompatible types for logical operator');
+        return TypeRef.BOOLEAN;
+    }
+
+    visitBinaryExpr(target: BinaryExpr) : TypeRef
+    {
+        let left = target.left.accept(this);
+        let right = target.right.accept(this);
+        if (!this.checkCompatibleTypes(left, right))
+            this.error(target.location, `Incompatible types for binary operator (${left} and ${right})`);
+        if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
+            this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
+        return left;
+    }
+
+    visitAssignExpr(target: AssignExpr) : TypeRef
+    {
+        let left = target.left.accept(this);
+        let right = target.right.accept(this);
+        if (left != right)
+            throw this.error(target.location, 'Incompatible types for logical operator');
+        if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
+            throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
+        return left;
+    }
+
+    visitUnaryExpr(target: UnaryExpr) : TypeRef
+    {
+        return target.expr.accept(this);
+    }
+
+    visitCallExpr(target: CallExpr) : TypeRef
+    {
+        return target.callee.accept(this);
+    }
+
+    visitArrayExpr(target: ArrayExpr) : TypeRef
+    {
+        if (target.values.length > 0)
+            return target.values[0].accept(this);
+        return TypeRef.ANY;
+    }
+
+    visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
+    {
+        return target.callee.accept(this);
+    }
+
+    visitFieldExpr(target: FieldExpr) : TypeRef
+    {
+        let type = target.callee.accept(this);
+        return null;
+    }
+
+    visitNewExpr(target: NewExpr) : TypeRef
+    {
+        return target.type = target.type.accept(this);
+    }
+
+    visitAccessor(target: Accessor) : TypeRef
+    {
+        return null;
+    }
+
+    visitBlockStmt(target: BlockStmt) : TypeRef {
+        this.push();
+
         for (let stmt of target.stmts)
             stmt.accept(this);
+
+        this.pop();
+        return null;
+    }
+
+    visitReturnStmt(target: ReturnStmt) : TypeRef
+    {
+        return target.expr.accept(this);
+    }
+
+    visitNamespaceStmt(target: NamespaceStmt) : TypeRef
+    {
+        this.push();
+        for (let stmt of target.stmts) stmt.accept(this);
+        this.pop();
+        return null;
+    }
+
+    resolveType( type : TypeRef ) : TypeRef
+    {
+        let name = type.name.toString();
+
+        if (name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
+        if (this.types.indexOf(name) >= 0) return type;
+        if (this.imports.get(name)) return type;
+        throw this.error(type.location, `Unknown type '${name}'`);
+    }
+
+    visitTypeRef(target: TypeRef) : TypeRef
+    {
+        return this.resolveType(target);
+    }
+
+    visitCaseStmt(target: CaseStmt) : TypeRef
+    {
+        target.expr.accept(this);
+        for (let stmt of target.stmts) stmt.accept(this);
+
+        return null;
+    }
+
+    visitSwitchStmt(target: SwitchStmt) : TypeRef
+    {
+        target.expr.accept(this);
+        for (let stmt of target.cases) stmt.accept(this);
+        return null;
+    }
+
+    visitIfStmt(target: IfStmt) : TypeRef
+    {
+        target.condition.accept(this);
+        if (target.thenSide) target.thenSide.accept(this);
+        if (target.elseSide) target.elseSide.accept(this);
+
+        return null;
+    }
+
+    visitForOfStmt(target: ForOfStmt) : TypeRef
+    {
+        target.expr.accept(this);
+        target.stmt.accept(this);
+        return null;
+    }
+
+    visitDoWhileStmt(target: DoWhileStmt) : TypeRef
+    {
+        target.condition.accept(this);
+        target.stmt.accept(this);
+        return null;
+    }
+
+    visitWhileStmt(target: WhileStmt) : TypeRef
+    {
+        target.condition.accept(this);
+        target.stmt.accept(this);
+        return null;
+    }
+    visitParameter(target: Parameter) : TypeRef
+    {
+        return null;
+    }
+
+    visitExpandExpr(target: ExpandExpr) : TypeRef
+    {
+        return null;
+    }
+
+    visitFunctionStmt(target: FunctionStmt) : TypeRef
+    {
+        if (target.isGeneric) return null;
+        this.push();
+
+        if (!target.type)
+            target.type = TypeRef.VOID;
+        else
+            target.type.accept(this);
+
+        for (let param of target.params)
+        {
+            param.type.accept(this);
+            this.top().insert(param.name.toString(), param, param.type);
+        }
+
+        if (target.body) target.body.accept(this);
+
+        this.pop();
+
+        return target.type;
+    }
+
+    visitClassStmt(target: ClassStmt) : TypeRef
+    {
+        this.push();
+
+        for (let stmt of target.stmts)
+            stmt.accept(this);
+
+        this.pop();
+        return null;
+    }
+
+    visitExprStmt(target: ExprStmt) : TypeRef
+    {
+        return target.expr.accept(this);
+    }
+
+    visitBreakStmt(target: BreakStmt) : TypeRef {
+        return null;
+    }
+
+    visitContinueStmt(target: ContinueStmt) : TypeRef
+    {
+        return null;
+    }
+
+    visitImportStmt(target: ImportStmt) : TypeRef
+    {
+        return null;
+    }
+
+    checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
+    {
+        if (type1 == TypeRef.BOOLEAN || type1 == TypeRef.NUMBER)
+            return type2.toString() == type1.toString();
+        if (type1 == TypeRef.STRING || type2 == TypeRef.NULL)
+            return true;
+        if (type1 == TypeRef.ANY || type2 == TypeRef.ANY)
+            return true;
+        return type2.toString() == type1.toString();
+    }
+
+    visitVariableStmt(target: VariableStmt) : TypeRef
+    {
+        let result : TypeRef = null;
+        if (target.type)
+        {
+            result = target.type.accept(this);
+        }
+        if (target.init)
+        {
+            let itype = target.init.accept(this);
+            if (result && !this.checkCompatibleTypes(result, itype))
+                this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
+
+            if (!result) result = itype;
+        }
+        target.type = result;
+
+        this.top().insert(target.name.toString(), target, result);
+        return result;
+    }
+
+    visitTryCatchStmt(target: TryCatchStmt) : TypeRef
+    {
+        target.block.accept(this);
+        target.cblock.accept(this);
+        target.fblock.accept(this);
+        return null;
+    }
+
+    visitThrowStmt(target: ThrowStmt) : TypeRef
+    {
+        target.expr.accept(this);
+        return null;
+    }
+
+    visitUnit(target: Unit) : TypeRef
+    {
+        try {
+            this.unit = target;
+            this.processImports();
+            for (let stmt of target.stmts) stmt.accept(this);
+        } catch (error)
+        {
+            this.ctx.listener.onError(error.location, error);
+        }
+
+        return null;
     }
 
 }

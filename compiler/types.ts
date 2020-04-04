@@ -446,6 +446,13 @@ export class TypeRef implements INode
     }
     get canonical() : string { return this.toString(false); }
     get qualified() : string { return this.toString(); }
+    static readonly VOID = new TypeRef(new Name(['void']), null, 0, false);
+    static readonly NUMBER = new TypeRef(new Name(['number']), null, 0, false);
+    static readonly STRING = new TypeRef(new Name(['string']), null, 0, true);
+    static readonly BOOLEAN = new TypeRef(new Name(['boolean']), null, 0, false);
+    static readonly NULL = new TypeRef(new Name(['null']), null, 0, false);
+    static readonly ANY = new TypeRef(new Name(['any']), null, 0, false);
+    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
 }
 export class CaseStmt implements IStmt
 {
@@ -635,6 +642,7 @@ export class FunctionStmt implements IStmt
         result += `):${this.type.toString()}`;
         return result;
     }
+    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
 }
 export class ClassStmt implements IStmt
 {
@@ -672,6 +680,7 @@ toString() : string
         }
         return result;
     }
+    get isGeneric() : boolean { return this.name.generics && this.name.generics.length > 0; }
 }export class ExprStmt implements IStmt
 {
 	expr : IExpr;

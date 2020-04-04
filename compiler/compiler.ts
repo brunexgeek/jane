@@ -2,6 +2,7 @@ import { IStmt, Unit, Name, ClassStmt } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser, NodePromoter, injectObject, injectCallable } from './parser';
+import { TypeInference } from './typeinf';
 
 export class SourceLocation
 {
@@ -81,9 +82,10 @@ export class Compiler
         injectCallable(this.ctx);
     }
 
-    compile( fileName : string )
+    parseSource( fileName : string ) : Unit
     {
         if (this.ctx.units.has(fileName)) return;
+
         Logger.writeln(`Compiling ${fileName}`);
         let source : string = readfile(fileName);
         let scanner = new Scanner(this.ctx, fileName, source);
@@ -101,13 +103,33 @@ export class Compiler
                 for (let imp of unit.imports)
                 {
                     let path = realpath(cdir + imp.source + '.ts');
-                    this.compile(path);
+                    this.parseSource(path);
                 }
             }
-
-            let prom = new NodePromoter();
-            prom.process(unit);
         }
+
+        let prom = new NodePromoter();
+        prom.process(unit);
+
+        return unit;
+    }
+
+    typeInference()
+    {
+        let it = this.ctx.units.values();
+        while (true)
+        {
+            let ir = it.next();
+            if (ir.done) break;
+            let inf = new TypeInference(this.ctx);
+            inf.visitUnit(ir.value);
+        }
+    }
+
+    compile( fileName : string )
+    {
+        this.parseSource(fileName);
+        this.typeInference();
     }
 
 }
