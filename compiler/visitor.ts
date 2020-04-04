@@ -65,7 +65,7 @@ function print( value : string )
     process.stdout.write(value);
 }
 
-export class SvgPrinter implements IVisitor
+export class SvgPrinter implements IVisitor<void>
 {
     visitImportStmt(target: ImportStmt): void {
         let content = this.field('from', target.source);
@@ -319,11 +319,11 @@ export class SvgPrinter implements IVisitor
     visitClassStmt(target: ClassStmt): void {
         let content = this.field('name', this.nameToString(target.name));
         if (target.extended)
-            content += this.field('extends', this.nameToString(target.extended));
+            content += this.field('extends', this.typerefToString(target.extended));
         if (target.implemented)
         {
             let names = '';
-            for (let i of target.implemented) names +=  ' ' + this.nameToString(i);
+            for (let i of target.implemented) names +=  ' ' + this.typerefToString(i);
             content += this.field('implements', names);
         }
         let id = this.connection(this.parent, target.className(),  content, this.label, SvgPrinter.CLASS_COLOR);

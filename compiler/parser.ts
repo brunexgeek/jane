@@ -173,11 +173,12 @@ export class Parser
 
         while (this.peek().type != TokenType.EOF)
         {
-            //if (prev.type == TokenType.SEMICOLON) return;
+            if (prev.type == TokenType.SEMICOLON) return;
 
             switch (this.peek().type)
             {
                 case TokenType.FUNCTION:
+                case TokenType.CLASS:
                 case TokenType.LET:
                 case TokenType.FOR:
                 case TokenType.IF:
@@ -186,7 +187,7 @@ export class Parser
                     return;
             }
 
-            this.advance();
+            prev = this.advance();
         }
     }
 
@@ -226,7 +227,7 @@ export class Parser
 
     parseImport() : ImportStmt
     {
-        this.consume(TokenType.IMPORT);
+        let location = this.consume(TokenType.IMPORT).location;
         this.consume(TokenType.LEFT_BRACE);
 
         let names : Name[] = [];
@@ -243,7 +244,9 @@ export class Parser
         this.advance();
         this.consume(TokenType.SEMICOLON);
 
-        return new ImportStmt(names, tt.lexeme);
+        let result = new ImportStmt(names, tt.lexeme);
+        result.location = location;
+        return result;
     }
 
     parseCaseStmt() : IStmt
@@ -283,7 +286,7 @@ export class Parser
     parseNamespace() : IStmt
     {
         let stmts : IStmt[] = [];
-        this.consume(TokenType.NAMESPACE);
+        let location = this.consume(TokenType.NAMESPACE).location;
         let name = this.parseName(true);
         this.ctx.namespaceStack.push(name);
         this.consume(TokenType.LEFT_BRACE);
@@ -294,7 +297,7 @@ export class Parser
 
         this.ctx.namespaceStack.pop();
 
-        return new NamespaceStmt(name, stmts);
+        return new NamespaceStmt(name, stmts, location);
     }
 
     parseArgument() : Parameter
@@ -320,13 +323,22 @@ export class Parser
             throw this.error(name, 'Missing argument type');
         }
 
-        return new Parameter( new Name([name.lexeme]), type, value, vararg);
+        return new Parameter( new Name([name.lexeme]), type, value, vararg, name.location);
     }
 
     parseFunction() : FunctionStmt
     {
         this.consumeEx('Missing function keyword', TokenType.FUNCTION);
         let name = this.consumeEx('Missing function name', TokenType.NAME);
+
+        let generics : Name[] = [];
+        if (this.match(TokenType.LESS))
+        {
+            do {
+                generics.push( this.parseName() );
+            } while (this.match(TokenType.COMMA));
+            this.consume(TokenType.GREATER);
+        }
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -347,22 +359,24 @@ export class Parser
 
         let block = this.parseBlock();
 
-        let result = new FunctionStmt(new Name([name.lexeme]), args, type, block);
+        let result = new FunctionStmt(new Name([name.lexeme]), generics, args, type, block, name.location);
         result.nspace = this.ctx.currentNamespace;
         return result;
     }
 
     parseName( qualified : boolean = false ) : Name
     {
+        let location = this.peek().location;
         let lexemes : string[] = [];
         do {
             lexemes.push( this.consumeEx('Expected identifier', TokenType.NAME).lexeme );
         } while (qualified && this.match(TokenType.DOT));
-        return new Name(lexemes);
+        return new Name(lexemes, location);
     }
 
     parseTypeRef() : TypeRef
     {
+        let location = this.peek().location;
         let name = this.parseName(true);
         let dims = 0;
 
@@ -381,7 +395,7 @@ export class Parser
             this.consume(TokenType.RIGHT_BRACKET);
         }
 
-        return new TypeRef(name, generics, dims);
+        return new TypeRef(name, generics, dims, location);
     }
 
     parseExpression() : IExpr
@@ -394,6 +408,7 @@ export class Parser
         let tt = this.peek();
         let expr = this.parseOr();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         switch (operator)
         {
@@ -406,7 +421,7 @@ export class Parser
                 this.advance();
                 let right = this.parseAssignment();
                 if (expr instanceof NameLiteral || expr instanceof FieldExpr)
-                    return expr = new AssignExpr(expr, operator, right);
+                    return expr = new AssignExpr(expr, operator, right, location);
                 throw this.error(tt, 'Invalid assignment l-value');
             }
         }
@@ -418,11 +433,12 @@ export class Parser
     {
         let expr = this.parseAnd();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.OR))
         {
             let right = this.parseAnd();
-            expr = new LogicalExpr(expr, operator, right);
+            expr = new LogicalExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -432,11 +448,12 @@ export class Parser
     {
         let expr = this.parseEquality();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.AND))
         {
             let right = this.parseEquality();
-            expr = new LogicalExpr(expr, operator, right);
+            expr = new LogicalExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -446,11 +463,12 @@ export class Parser
     {
         let expr = this.parseComparison();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
         {
             let right = this.parseComparison();
-            expr = new BinaryExpr(expr, operator, right);
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -460,12 +478,13 @@ export class Parser
     {
         let expr = this.parseAddition();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
             TokenType.LESS_EQUAL, TokenType.IN, TokenType.INSTANCEOF))
         {
             let right = this.parseAddition();
-            expr = new BinaryExpr(expr, operator, right);
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -475,11 +494,12 @@ export class Parser
     {
         let expr = this.parseMultiplication();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.PLUS, TokenType.MINUS))
         {
             let right = this.parseMultiplication();
-            expr = new BinaryExpr(expr, operator, right);
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -489,11 +509,12 @@ export class Parser
     {
         let expr = this.parsePreUnary();
 
+        let location = this.peek().location;
         let operator = this.peek().type;
         while (this.match(TokenType.STAR, TokenType.SLASH))
         {
             let right = this.parsePreUnary();
-            expr = new BinaryExpr(expr, operator, right);
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -563,22 +584,24 @@ export class Parser
     parseAtomic() : IExpr
     {
         let tt = this.peek();
+        let location = tt.location;
 
-        if (this.match(TokenType.FALSE)) return new BoolLiteral(false);
-        if (this.match(TokenType.TRUE)) return new BoolLiteral(true);
-        if (this.match(TokenType.NIL)) return new NullLiteral();
-        if (this.peek().type == TokenType.NAME) return new NameLiteral(this.advance().lexeme);
+        if (this.match(TokenType.FALSE)) return new BoolLiteral(false, location);
+        if (this.match(TokenType.TRUE)) return new BoolLiteral(true, location);
+        if (this.match(TokenType.NIL)) return new NullLiteral(location);
+        if (this.peek().type == TokenType.NAME)
+            return new NameLiteral(this.advance().lexeme, location);
 
         if (this.match(TokenType.NUMBER))
-            return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme) );
+            return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme), location );
         if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
-            return new StringLiteral(tt.lexeme, tt.type);
+            return new StringLiteral(tt.lexeme, tt.type, location);
 
         if (this.match(TokenType.LEFT_PAREN))
         {
             let expr = this.parseExpression();
             this.consumeEx(`Expect \')\' after expression`, TokenType.RIGHT_PAREN);
-            return new Group(expr);
+            return new Group(expr, location);
         }
 
         if (this.match(TokenType.LEFT_BRACKET))
@@ -591,12 +614,12 @@ export class Parser
                 } while (this.match(TokenType.COMMA));
             }
             this.consume(TokenType.RIGHT_BRACKET);
-            return new ArrayExpr(values);
+            return new ArrayExpr(values, location);
         }
 
         if (this.match(TokenType.DOT_DOT_DOT))
         {
-            return new ExpandExpr( this.parseName() );
+            return new ExpandExpr( this.parseName(), location );
         }
 
         if (this.peek().type == TokenType.NEW)
@@ -687,19 +710,19 @@ export class Parser
             this.consume(TokenType.GREATER);
         }
 
-        let extended : Name = null;
-        let implemented : Name[] = null;
+        let extended : TypeRef = null;
+        let implemented : TypeRef[] = null;
 
         if (this.match(TokenType.EXTENDS))
         {
-            extended = this.parseName(true);
+            extended = this.parseTypeRef();
         }
 
         if (this.match(TokenType.IMPLEMENTS))
         {
             implemented = [];
             do {
-                implemented.push(this.parseName(true));
+                implemented.push(this.parseTypeRef());
             } while (this.match(TokenType.COMMA));
         }
 
@@ -714,7 +737,7 @@ export class Parser
             if (this.peek().type == TokenType.NAME)
             {
                 let name = this.advance();
-                if (this.peek().type == TokenType.LEFT_PAREN)
+                if (this.peek().type == TokenType.LEFT_PAREN || this.peek().type == TokenType.LESS)
                 {
                     let func = this.parseMethod(name);
                     func.accessor = accessor;
@@ -747,6 +770,15 @@ export class Parser
 
     parseMethod( name : Token ) : FunctionStmt
     {
+        let generics : Name[] = [];
+        if (this.match(TokenType.LESS))
+        {
+            do {
+                generics.push( this.parseName() );
+            } while (this.match(TokenType.COMMA));
+            this.consume(TokenType.GREATER);
+        }
+
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
         if (this.peek().type != TokenType.RIGHT_PAREN)
@@ -770,7 +802,7 @@ export class Parser
         else
             this.consume(TokenType.SEMICOLON);
 
-        return new FunctionStmt(new Name([name.lexeme]), args, type, block);
+        return new FunctionStmt(new Name([name.lexeme]), generics, args, type, block);
     }
 
     parseAccessor() : Accessor
@@ -933,6 +965,7 @@ export class Parser
 
         let result = new VariableStmt(name, type, value, constant);
         result.nspace = this.ctx.currentNamespace;
+        result.location = tname.location;
         return result;
     }
 

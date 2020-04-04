@@ -28,7 +28,6 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
-import { TypeUID } from './typeinf';
 
 class MyListener implements CompilationListener
 {

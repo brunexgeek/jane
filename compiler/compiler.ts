@@ -2,7 +2,6 @@ import { IStmt, Unit, Name, ClassStmt } from './types';
 import { readfile, dirname, realpath, Map } from './io';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser } from './parser';
-import { TypeUID } from './typeinf';
 
 export class SourceLocation
 {

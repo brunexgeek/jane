@@ -27,6 +27,8 @@ def printType(name, fields, parent = None, keep_open = False ):
     if parent != None: sys.stdout.write(' implements ' + parent)
     sys.stdout.write('\n{\n')
 
+    fields.append( {'name' : 'location', 'type' : 'SourceLocation', 'ctor' : True, 'init' : 'null'} )
+
     # fields
     for f in fields:
         sys.stdout.write('\t' + f['name'] + ' : ' + f['type'])
@@ -52,14 +54,14 @@ def printType(name, fields, parent = None, keep_open = False ):
                 sys.stdout.write('\'' + f['init'] + '\'')
             else:
                 sys.stdout.write(f['init'])
-    sys.stdout.write(' )\n\t{\n')
+    sys.stdout.write(' )\n\t{\n\t\tthis.location = location;\n')
     for f in fields:
         if 'ctor' in f and f['ctor'] == False: continue
         sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
     sys.stdout.write('\t}\n')
 
     # visitor caller
-    sys.stdout.write('\taccept( visitor : Visitor ) : void { visitor.visit' + name + '(this); }\n')
+    sys.stdout.write('\taccept<T>( visitor : IVisitor<T> ) : T { return visitor.visit' + name + '(this); }\n')
 
     # class name helper
     sys.stdout.write('\tclassName() : string { return \'' + name + '\'; }\n')
@@ -68,13 +70,13 @@ def printType(name, fields, parent = None, keep_open = False ):
 
 def printVisitor():
     # interface
-    sys.stdout.write('''export interface IVisitor{\n''')
+    sys.stdout.write('''export interface IVisitor<T>{\n''')
     for t in types:
-        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void;\n')
+        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : T;\n')
     sys.stdout.write('}\n\n')
 
     # class
-    sys.stdout.write('''export class Visitor implements IVisitor {\n''')
+    sys.stdout.write('''export class Visitor implements IVisitor<void> {\n''')
     for t in types:
         sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void {}\n')
     sys.stdout.write('}\n\n')
@@ -102,16 +104,17 @@ sys.stdout.write('''
  */
 
 import { TokenType } from './tokenizer';
+import { SourceLocation } from './compiler';
 
 export interface IStmt
 {
-    accept( visitor : Visitor ) : void;
+    accept<T>( visitor : IVisitor<T> ) : T;
     className(): string;
 }
 
 export interface IExpr
 {
-    accept( visitor : Visitor ) : void;
+    accept<T>( visitor : IVisitor<T> ) : T;
     className(): string;
 }
 
@@ -205,9 +208,13 @@ printType('Accessor', [
     {'name' : 'values', 'type' : 'TokenType[]'}
     ])
 
-printType('BlockStmt', [{'name' : 'stmts', 'type' : 'IStmt[]'}], 'IStmt')
+printType('BlockStmt', [
+    {'name' : 'stmts', 'type' : 'IStmt[]'}
+    ], 'IStmt')
 
-printType('ReturnStmt', [{'name' : 'expr', 'type' : 'IExpr'}], 'IStmt')
+printType('ReturnStmt', [
+    {'name' : 'expr', 'type' : 'IExpr'}
+    ], 'IStmt')
 
 printType('NamespaceStmt', [
     {'name' : 'name', 'type' : 'Name'},
@@ -218,8 +225,28 @@ printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'dims', 'type' : 'number'},
-    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
-    ])
+    ], None, True)
+sys.stdout.write('''\ttoString() : string
+    {
+        let result = this.name.toString();
+        if (this.generics)
+        {
+            result += '<';
+            let first = true;
+            for (let i of this.generics)
+            {
+                if (!first) result += '.';
+                first = false;
+                result += i.toString();
+            }
+            result += '>';
+        }
+        let i = this.dims;
+        while (i-- > 0) result += '[]';
+        return result;
+    }
+}
+''')
 
 printType('CaseStmt', [
     {'name' : 'expr', 'type' : 'IExpr'},
@@ -260,28 +287,29 @@ printType('Parameter', [
     {'name' : 'vararg', 'type' : 'boolean'},
     ])
 
+
+# TODO: rename to 'SpreadExpr'
 printType('ExpandExpr', [
     {'name' : 'name', 'type' : 'Name'}
     ], 'IExpr')
 
 printType('FunctionStmt', [
     {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'params', 'type' : 'Parameter[]'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'body', 'type' : 'BlockStmt'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
-    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
 printType('ClassStmt', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'generics', 'type' : 'Name[]'},
-    {'name' : 'extended', 'type' : 'Name'},
-    {'name' : 'implemented', 'type' : 'Name[]'},
+    {'name' : 'extended', 'type' : 'TypeRef'},
+    {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
-    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
@@ -302,9 +330,8 @@ printType('VariableStmt', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'init', 'type' : 'IExpr'},
-    {'name' : 'constant', 'type' : 'boolean', 'init' : 'false'},
+    {'name' : 'constant', 'type' : 'boolean'},
     {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
-    {'name' : 'uid', 'type' : 'string', 'init' : '', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt')
 
