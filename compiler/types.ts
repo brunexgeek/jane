@@ -41,7 +41,6 @@ export class Name implements IExpr
 	location : SourceLocation;
 	constructor( lexemes : string[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.lexemes = lexemes;
 		this.location = location;
 	}
@@ -69,7 +68,6 @@ export class StringLiteral implements IExpr
 	location : SourceLocation;
 	constructor( value : string, type : TokenType, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.value = value;
 		this.type = type;
 		this.location = location;
@@ -85,7 +83,6 @@ export class NumberLiteral implements IExpr
 	location : SourceLocation;
 	constructor( value : string, converted : number, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.value = value;
 		this.converted = converted;
 		this.location = location;
@@ -100,7 +97,6 @@ export class BoolLiteral implements IExpr
 	location : SourceLocation;
 	constructor( converted : boolean, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.converted = converted;
 		this.location = location;
 	}
@@ -114,7 +110,6 @@ export class NameLiteral implements IExpr
 	location : SourceLocation;
 	constructor( value : string, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.value = value;
 		this.location = location;
 	}
@@ -128,7 +123,6 @@ export class Group implements IExpr
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.location = location;
 	}
@@ -141,7 +135,6 @@ export class NullLiteral implements IExpr
 	location : SourceLocation;
 	constructor( location : SourceLocation = null )
 	{
-		this.location = location;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNullLiteral(this); }
@@ -156,7 +149,6 @@ export class LogicalExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -174,7 +166,6 @@ export class BinaryExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -192,7 +183,6 @@ export class AssignExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -210,7 +200,6 @@ export class UnaryExpr implements IExpr
 	location : SourceLocation;
 	constructor( oper : TokenType, expr : IExpr, post : boolean, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.oper = oper;
 		this.expr = expr;
 		this.post = post;
@@ -227,7 +216,6 @@ export class CallExpr implements IExpr
 	location : SourceLocation;
 	constructor( callee : IExpr, args : IExpr[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.callee = callee;
 		this.args = args;
 		this.location = location;
@@ -242,7 +230,6 @@ export class ArrayExpr implements IExpr
 	location : SourceLocation;
 	constructor( values : IExpr[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.values = values;
 		this.location = location;
 	}
@@ -257,7 +244,6 @@ export class ArrayAccessExpr implements IExpr
 	location : SourceLocation;
 	constructor( callee : IExpr, index : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.callee = callee;
 		this.index = index;
 		this.location = location;
@@ -273,7 +259,6 @@ export class FieldExpr implements IExpr
 	location : SourceLocation;
 	constructor( callee : IExpr, name : Name, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.callee = callee;
 		this.name = name;
 		this.location = location;
@@ -289,7 +274,6 @@ export class NewExpr implements IExpr
 	location : SourceLocation;
 	constructor( type : TypeRef, args : IExpr[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.type = type;
 		this.args = args;
 		this.location = location;
@@ -304,7 +288,6 @@ export class Accessor
 	location : SourceLocation;
 	constructor( values : TokenType[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.values = values;
 		this.location = location;
 	}
@@ -318,7 +301,6 @@ export class BlockStmt implements IStmt
 	location : SourceLocation;
 	constructor( stmts : IStmt[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.stmts = stmts;
 		this.location = location;
 	}
@@ -332,7 +314,6 @@ export class ReturnStmt implements IStmt
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.location = location;
 	}
@@ -344,30 +325,69 @@ export class NamespaceStmt implements IStmt
 {
 	name : Name;
 	stmts : IStmt[];
+	accessor : Accessor;
 	location : SourceLocation;
-	constructor( name : Name, stmts : IStmt[], location : SourceLocation = null )
+	constructor( name : Name, stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.stmts = stmts;
+		this.accessor = accessor;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNamespaceStmt(this); }
 	className() : string { return 'NamespaceStmt'; }
 }
 
+export class NameAndGenerics
+{
+	name : Name;
+	generics : NameAndGenerics[];
+	location : SourceLocation;
+	constructor( name : Name, generics : NameAndGenerics[], location : SourceLocation = null )
+	{
+		this.name = name;
+		this.generics = generics;
+		this.location = location;
+	}
+	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNameAndGenerics(this); }
+	className() : string { return 'NameAndGenerics'; }
+	toString( qualified : boolean = true) : string
+    {
+        let result = '';
+        if (qualified)
+            result = this.name.qualified;
+        else
+            result = this.name.canonical;
+        if (this.generics && this.generics.length > 0)
+        {
+            result += '<';
+            let first = true;
+            for (let i of this.generics)
+            {
+                if (!first) result += '.';
+                first = false;
+                result += i.toString(qualified);
+            }
+            result += '>';
+        }
+        return result;
+    }
+    get canonical() : string { return this.toString(false); }
+    get qualified() : string { return this.toString(); }
+}
 export class TypeRef
 {
 	name : Name;
 	generics : TypeRef[];
 	dims : number;
+	nullable : boolean;
 	location : SourceLocation;
-	constructor( name : Name, generics : TypeRef[], dims : number, location : SourceLocation = null )
+	constructor( name : Name, generics : TypeRef[], dims : number, nullable : boolean, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.generics = generics;
 		this.dims = dims;
+		this.nullable = nullable;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTypeRef(this); }
@@ -390,9 +410,11 @@ export class TypeRef
                 result += i.toString(qualified);
             }
             result += '>';
+            let i = this.dims;
+            while (i-- > 0) result += '[]';
+            return result;
         }
-        let i = this.dims;
-        while (i-- > 0) result += '[]';
+        if (this.nullable) result += '| null';
         return result;
     }
     get canonical() : string { return this.toString(false); }
@@ -405,7 +427,6 @@ export class CaseStmt implements IStmt
 	location : SourceLocation;
 	constructor( expr : IExpr, stmts : IStmt[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.stmts = stmts;
 		this.location = location;
@@ -421,7 +442,6 @@ export class SwitchStmt implements IStmt
 	location : SourceLocation;
 	constructor( expr : IExpr, cases : IStmt[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.cases = cases;
 		this.location = location;
@@ -438,7 +458,6 @@ export class IfStmt implements IStmt
 	location : SourceLocation;
 	constructor( condition : IStmt, thenSide : IStmt, elseSide : IStmt, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.condition = condition;
 		this.thenSide = thenSide;
 		this.elseSide = elseSide;
@@ -456,7 +475,6 @@ export class ForOfStmt implements IExpr
 	location : SourceLocation;
 	constructor( variable : VariableStmt, expr : IExpr, stmt : IStmt, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.variable = variable;
 		this.expr = expr;
 		this.stmt = stmt;
@@ -473,7 +491,6 @@ export class DoWhileStmt implements IStmt
 	location : SourceLocation;
 	constructor( stmt : IStmt, condition : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.stmt = stmt;
 		this.condition = condition;
 		this.location = location;
@@ -489,7 +506,6 @@ export class WhileStmt implements IStmt
 	location : SourceLocation;
 	constructor( condition : IStmt, stmt : IStmt, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.condition = condition;
 		this.stmt = stmt;
 		this.location = location;
@@ -507,7 +523,6 @@ export class Parameter
 	location : SourceLocation;
 	constructor( name : Name, type : TypeRef, init : IExpr, vararg : boolean, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.type = type;
 		this.init = init;
@@ -524,7 +539,6 @@ export class ExpandExpr implements IExpr
 	location : SourceLocation;
 	constructor( name : Name, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.location = location;
 	}
@@ -539,18 +553,18 @@ export class FunctionStmt implements IStmt
 	params : Parameter[];
 	type : TypeRef;
 	body : BlockStmt;
-	accessor : Accessor = null;
+	accessor : Accessor;
 	property : TokenType = null;
 	nspace : Name = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, location : SourceLocation = null )
+	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, accessor : Accessor = null, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.generics = generics;
 		this.params = params;
 		this.type = type;
 		this.body = body;
+		this.accessor = accessor;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitFunctionStmt(this); }
@@ -579,19 +593,20 @@ export class FunctionStmt implements IStmt
 }
 export class ClassStmt implements IStmt
 {
-	name : TypeRef;
-	extended : TypeRef;
-	implemented : TypeRef[];
+	name : NameAndGenerics;
+	extended : NameAndGenerics;
+	implemented : NameAndGenerics[];
 	stmts : IStmt[];
+	accessor : Accessor;
 	nspace : Name = null;
 	location : SourceLocation;
-	constructor( name : TypeRef, extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], location : SourceLocation = null )
+	constructor( name : NameAndGenerics, extended : NameAndGenerics, implemented : NameAndGenerics[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
+		this.accessor = accessor;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitClassStmt(this); }
@@ -619,7 +634,6 @@ toString() : string
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.location = location;
 	}
@@ -633,7 +647,6 @@ export class BreakStmt implements IStmt
 	constructor( location : SourceLocation = null )
 	{
 		this.location = location;
-		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitBreakStmt(this); }
 	className() : string { return 'BreakStmt'; }
@@ -644,7 +657,6 @@ export class ContinueStmt implements IStmt
 	location : SourceLocation;
 	constructor( location : SourceLocation = null )
 	{
-		this.location = location;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitContinueStmt(this); }
@@ -658,7 +670,6 @@ export class ImportStmt implements IStmt
 	location : SourceLocation;
 	constructor( names : Name[], source : string, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.names = names;
 		this.source = source;
 		this.location = location;
@@ -676,13 +687,13 @@ export class VariableStmt implements IStmt
 	accessor : Accessor;
 	nspace : Name = null;
 	location : SourceLocation;
-	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, location : SourceLocation = null )
+	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, accessor : Accessor = null, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.name = name;
 		this.type = type;
 		this.init = init;
 		this.constant = constant;
+		this.accessor = accessor;
 		this.location = location;
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitVariableStmt(this); }
@@ -706,7 +717,6 @@ export class TryCatchStmt implements IStmt
 	location : SourceLocation;
 	constructor( block : IStmt, variable : Name, cblock : IStmt, fblock : IStmt, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.block = block;
 		this.variable = variable;
 		this.cblock = cblock;
@@ -723,7 +733,6 @@ export class ThrowStmt implements IStmt
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
-		this.location = location;
 		this.expr = expr;
 		this.location = location;
 	}
@@ -742,7 +751,6 @@ export class Unit
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )
 	{
-		this.location = location;
 		this.stmts = stmts;
 		this.imports = imports;
 		this.location = location;
@@ -772,6 +780,7 @@ export interface IVisitor<T>{
 	visitBlockStmt( target : BlockStmt) : T;
 	visitReturnStmt( target : ReturnStmt) : T;
 	visitNamespaceStmt( target : NamespaceStmt) : T;
+	visitNameAndGenerics( target : NameAndGenerics) : T;
 	visitTypeRef( target : TypeRef) : T;
 	visitCaseStmt( target : CaseStmt) : T;
 	visitSwitchStmt( target : SwitchStmt) : T;
@@ -814,6 +823,7 @@ export class Visitor implements IVisitor<void> {
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
 	visitNamespaceStmt( target : NamespaceStmt) : void {}
+	visitNameAndGenerics( target : NameAndGenerics) : void {}
 	visitTypeRef( target : TypeRef) : void {}
 	visitCaseStmt( target : CaseStmt) : void {}
 	visitSwitchStmt( target : SwitchStmt) : void {}

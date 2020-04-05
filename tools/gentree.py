@@ -24,7 +24,11 @@ types = []
 def printType(name, fields, parent = None, keep_open = False ):
     types.append(name)
     sys.stdout.write('export class ' + name)
-    if parent != None: sys.stdout.write(' implements ' + parent)
+    if parent != None:
+        if parent.startswith('I'):
+            sys.stdout.write(' implements ' + parent)
+        else:
+            sys.stdout.write(' extends ' + parent)
     sys.stdout.write('\n{\n')
 
     fields.append( {'name' : 'location', 'type' : 'SourceLocation', 'ctor' : True, 'init' : 'null'} )
@@ -42,8 +46,10 @@ def printType(name, fields, parent = None, keep_open = False ):
 
     # constructor
     first = True;
+    hasSuper = False;
     sys.stdout.write('\tconstructor( ')
     for f in fields:
+        if 'super' in f and f['super'] == True: hasSuper = True
         if 'ctor' in f and f['ctor'] == False: continue
         if not first: sys.stdout.write(', ')
         first = False
@@ -54,10 +60,23 @@ def printType(name, fields, parent = None, keep_open = False ):
                 sys.stdout.write('\'' + f['init'] + '\'')
             else:
                 sys.stdout.write(f['init'])
-    sys.stdout.write(' )\n\t{\n\t\tthis.location = location;\n')
+    sys.stdout.write(' )\n\t{\n')
+
+    if hasSuper:
+        sys.stdout.write('\t\tsuper(')
+        first = True
+        for f in fields:
+            if not 'super' in f or f['super'] == False: continue
+            if not first: sys.stdout.write(',')
+            first = False
+            sys.stdout.write(f['name'])
+        sys.stdout.write(')\n')
+
     for f in fields:
+        if 'super' in f and f['super'] == True: continue
         if 'ctor' in f and f['ctor'] == False: continue
         sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
+
     sys.stdout.write('\t}\n')
 
     # visitor caller
@@ -220,13 +239,13 @@ printType('ReturnStmt', [
 
 printType('NamespaceStmt', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'stmts', 'type' : 'IStmt[]'}
+    {'name' : 'stmts', 'type' : 'IStmt[]'},
+    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     ], 'IStmt')
 
-printType('TypeRef', [
+printType('NameAndGenerics', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'TypeRef[]'},
-    {'name' : 'dims', 'type' : 'number'},
+    {'name' : 'generics', 'type' : 'NameAndGenerics[]'}
     ], None, True)
 sys.stdout.write('''\ttoString( qualified : boolean = true) : string
     {
@@ -247,8 +266,42 @@ sys.stdout.write('''\ttoString( qualified : boolean = true) : string
             }
             result += '>';
         }
-        let i = this.dims;
-        while (i-- > 0) result += '[]';
+        return result;
+    }
+    get canonical() : string { return this.toString(false); }
+    get qualified() : string { return this.toString(); }
+}
+''')
+
+printType('TypeRef', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'generics', 'type' : 'TypeRef[]'},
+    {'name' : 'dims', 'type' : 'number'},
+    {'name' : 'nullable', 'type' : 'boolean'},
+    ], None, True)
+sys.stdout.write('''\ttoString( qualified : boolean = true) : string
+    {
+        let result = '';
+        if (qualified)
+            result = this.name.qualified;
+        else
+            result = this.name.canonical;
+        if (this.generics && this.generics.length > 0)
+        {
+            result += '<';
+            let first = true;
+            for (let i of this.generics)
+            {
+                if (!first) result += '.';
+                first = false;
+                result += i.toString(qualified);
+            }
+            result += '>';
+            let i = this.dims;
+            while (i-- > 0) result += '[]';
+            return result;
+        }
+        if (this.nullable) result += '| null';
         return result;
     }
     get canonical() : string { return this.toString(false); }
@@ -307,7 +360,7 @@ printType('FunctionStmt', [
     {'name' : 'params', 'type' : 'Parameter[]'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'body', 'type' : 'BlockStmt'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
+    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
@@ -336,10 +389,11 @@ sys.stdout.write('''
 ''')
 
 printType('ClassStmt', [
-    {'name' : 'name', 'type' : 'TypeRef'},
-    {'name' : 'extended', 'type' : 'TypeRef'},
-    {'name' : 'implemented', 'type' : 'TypeRef[]'},
+    {'name' : 'name', 'type' : 'NameAndGenerics'},
+    {'name' : 'extended', 'type' : 'NameAndGenerics'},
+    {'name' : 'implemented', 'type' : 'NameAndGenerics[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
+    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''toString() : string
@@ -379,7 +433,7 @@ printType('VariableStmt', [
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'init', 'type' : 'IExpr'},
     {'name' : 'constant', 'type' : 'boolean'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
+    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''

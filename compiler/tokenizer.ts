@@ -112,6 +112,7 @@ export class TokenType
     static readonly AND = new TokenType('AND', '&&');
     static readonly OR = new TokenType('OR', '||');
     static readonly EOF = new TokenType('EOF');
+    static readonly PIPE = new TokenType('|');
     // One or two character tokens
     static readonly BANG = new TokenType('BANG', '!');
     static readonly BANG_EQUAL = new TokenType('BANG_EQUAL', '!=');
@@ -295,6 +296,8 @@ export class Tokenizer
                 case '"':
                 case '`':
                     return this.string();
+                case '|':
+                    return this.token(TokenType.PIPE);
                 case '?':
                     return this.token(TokenType.QUESTION);
                 case '%':

@@ -56,7 +56,8 @@ import {
 	TryCatchStmt,
 	ThrowStmt,
     Unit,
-    ImportStmt} from './types';
+    ImportStmt,
+    NameAndGenerics } from './types';
 
 import {
     TokenType,
@@ -196,7 +197,6 @@ export class Parser
     {
         let stmts : IStmt[] = [];
         let imports : ImportStmt[] = [];
-        let tt : Token;
         let hasError = false;
 
         do {
@@ -209,10 +209,7 @@ export class Parser
                     imports.push(result);
                 }
                 else
-                if (this.peek().type == TokenType.NAMESPACE)
-                    stmts.push( this.parseNamespace() );
-                else
-                    stmts.push( this.parseDeclationStmt() );
+                    stmts.push( this.parseNamespaceOrDeclaration() );
             } catch (error)
             {
                 console.error(error);
@@ -221,7 +218,7 @@ export class Parser
             }
         } while (this.peek().type != TokenType.EOF);
 
-        if (hasError) throw Error('The code has one or more errors');
+        if (hasError) throw this.error(null, 'The code has one or more errors');
 
         this.unit.imports = imports;
         this.unit.stmts = stmts;
@@ -286,7 +283,17 @@ export class Parser
         return new SwitchStmt(expr, stmts);
     }
 
-    parseNamespace() : IStmt
+    parseNamespaceOrDeclaration()
+    {
+        let accessor = this.parseAccessor();
+
+        if (this.peek().type == TokenType.NAMESPACE)
+            return this.parseNamespace(accessor);
+        else
+            return this.parseDeclationStmt(accessor);
+    }
+
+    parseNamespace( accessor : Accessor ) : IStmt
     {
         let stmts : IStmt[] = [];
         let location = this.consume(TokenType.NAMESPACE).location;
@@ -295,12 +302,12 @@ export class Parser
         this.consume(TokenType.LEFT_BRACE);
 
         do {
-                stmts.push( this.parseDeclationStmt() );
+            stmts.push( this.parseNamespaceOrDeclaration() );
         } while (!this.match(TokenType.RIGHT_BRACE));
 
         this.ctx.namespaceStack.pop();
 
-        return new NamespaceStmt(name, stmts, location);
+        return new NamespaceStmt(name, stmts, accessor, location);
     }
 
     parseArgument() : Parameter
@@ -329,7 +336,7 @@ export class Parser
         return new Parameter( new Name([name.lexeme]), type, value, vararg, name.location);
     }
 
-    parseFunction() : FunctionStmt
+    parseFunction( accessor : Accessor ) : FunctionStmt
     {
         this.consumeEx('Missing function keyword', TokenType.FUNCTION);
         let name = this.consumeEx('Missing function name', TokenType.NAME);
@@ -360,11 +367,11 @@ export class Parser
             type = this.parseTypeRef();
         }
         else
-            type = new TypeRef(new Name(['void']), [], null);
+            type = new TypeRef(new Name(['void']), [], 0, false, null);
 
         let block = this.parseBlock();
 
-        let result = new FunctionStmt(new Name([name.lexeme]), generics, args, type, block, name.location);
+        let result = new FunctionStmt(new Name([name.lexeme]), generics, args, type, block, accessor, name.location);
         result.nspace = this.ctx.currentNamespace;
         return result;
     }
@@ -379,11 +386,30 @@ export class Parser
         return new Name(lexemes, location);
     }
 
+    parseNameAndGenerics() : NameAndGenerics
+    {
+        let location = this.peek().location;
+        let name = this.parseName(true);
+        let dims = 0;
+
+        let generics : NameAndGenerics[] = [];
+        if (this.match(TokenType.LESS))
+        {
+            do {
+                generics.push( this.parseNameAndGenerics() );
+            } while (this.match(TokenType.COMMA));
+            this.consume(TokenType.GREATER);
+        }
+
+        return new NameAndGenerics(name, generics, location);
+    }
+
     parseTypeRef() : TypeRef
     {
         let location = this.peek().location;
         let name = this.parseName(true);
         let dims = 0;
+        let nullable = false;
 
         let generics : TypeRef[] = [];
         if (this.match(TokenType.LESS))
@@ -400,7 +426,13 @@ export class Parser
             this.consume(TokenType.RIGHT_BRACKET);
         }
 
-        return new TypeRef(name, generics, dims, location);
+        if (this.match(TokenType.PIPE))
+        {
+            let token = this.consume(TokenType.NIL);
+            nullable = true;
+        }
+
+        return new TypeRef(name, generics, dims, nullable, location);
     }
 
     parseExpression() : IExpr
@@ -684,39 +716,41 @@ export class Parser
     }
 
     // used by top-level and namespaces
-    parseDeclationStmt() : IStmt
+    parseDeclationStmt( accessor : Accessor ) : IStmt
     {
-        let accessor = this.parseAccessor();
         let cur = this.peek().type;
         switch (cur)
         {
             case TokenType.LET:
             case TokenType.CONST:
             {
-                let stmt = this.parseVariable();
+                let stmt = this.parseVariable(accessor);
                 let qname = this.qualifyName(stmt.name);
                 this.unit.variables.set(qname, stmt);
                 return stmt;
             }
             case TokenType.FUNCTION:
             {
-                let stmt = this.parseFunction();
+                let stmt = this.parseFunction(accessor);
                 let qname = this.qualifyName(stmt.name);
                 this.unit.functions.set(qname, stmt);
                 return stmt;
             }
-            case TokenType.CLASS:
+            /*case TokenType.CLASS:
             case TokenType.INTERFACE:
                 {
-                let stmt = this.parseClass();
+                let stmt = this.parseClass(accessor);
                 let qname = stmt.name.qualified;
                 this.unit.types.set(qname, stmt);
                 this.ctx.types.set(qname, stmt);
                 return stmt;
-            }
+            }*/
         }
 
-        return this.parseStatement();
+        throw this.error(this.peek(), 'Unexpected token');
+
+
+        //return this.parseStatement();
     }
 
     parsePropertyPrefix() : Token
@@ -740,24 +774,24 @@ export class Parser
         return null;
     }
 
-    parseClass() : ClassStmt
+    parseClass( accessor : Accessor ) : ClassStmt
     {
         let type = this.advance().type;
         //let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
-        let name = this.parseTypeRef();
-        let extended : TypeRef = null;
-        let implemented : TypeRef[] = null;
+        let name = this.parseNameAndGenerics();
+        let extended : NameAndGenerics = null;
+        let implemented : NameAndGenerics[] = null;
 
         if (this.match(TokenType.EXTENDS))
         {
-            extended = this.parseTypeRef();
+            extended = this.parseNameAndGenerics();
         }
 
         if (this.match(TokenType.IMPLEMENTS))
         {
             implemented = [];
             do {
-                implemented.push(this.parseTypeRef());
+                implemented.push(this.parseNameAndGenerics());
             } while (this.match(TokenType.COMMA));
         }
 
@@ -782,7 +816,7 @@ export class Parser
                 else
                 {
                     if (property) this.error(property, 'Property or signature expected');
-                    let vari = this.parseVariable(name);
+                    let vari = this.parseProperty(name, accessor);
                     vari.accessor = accessor;
                     stmts.push(vari);
                 }
@@ -792,7 +826,7 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        let result = new ClassStmt(name, extended, implemented, stmts);
+        let result = new ClassStmt(name, extended, implemented, stmts, accessor);
         result.nspace = this.ctx.currentNamespace;
 
         return result;
@@ -826,7 +860,7 @@ export class Parser
             type = this.parseTypeRef();
         }
         else
-            type = new TypeRef(new Name(['void']), [], null);
+            type = new TypeRef(new Name(['void']), [], 0, false, null);
 
         let block : BlockStmt = null;
         if (this.peek().type == TokenType.LEFT_BRACE)
@@ -855,7 +889,7 @@ export class Parser
     parseVariableOrStatement() : IStmt
     {
         if (this.peek().type == TokenType.LET || this.peek().type == TokenType.CONST)
-            return this.parseVariable();
+            return this.parseVariable(null);
         return this.parseStatement();
     }
 
@@ -965,15 +999,40 @@ export class Parser
         return new ForOfStmt(variable, expr, stmt);
     }
 
-    parseVariable( tname : Token = null) : VariableStmt
+    parseProperty( tname : Token, accessor : Accessor ) : VariableStmt
+    {
+        let name = new Name([tname.lexeme]);
+        let type : TypeRef = null;
+        let value : IExpr = null;
+        if (this.peek().type == TokenType.COLON)
+        {
+            this.advance();
+            type = this.parseTypeRef();
+        }
+        if (this.peek().type == TokenType.EQUAL)
+        {
+            this.advance();
+            value = this.parseExpression();
+        }
+
+        if (type == null && value == null)
+        {
+            throw this.error(tname, 'Missing argument type');
+        }
+        this.consume(TokenType.SEMICOLON);
+
+        let result = new VariableStmt(name, type, value, false, accessor);
+        result.nspace = this.ctx.currentNamespace;
+        result.location = tname.location;
+        return result;
+    }
+
+    parseVariable( accessor : Accessor ) : VariableStmt
     {
         let constant : boolean = false;
 
-        if (!tname)
-        {
-            constant = this.advance().type == TokenType.CONST;
-            tname = this.consumeEx('Missing variable name', TokenType.NAME);
-        }
+        constant = this.advance().type == TokenType.CONST;
+        let tname = this.consumeEx('Missing variable name', TokenType.NAME);
 
         let name = new Name([tname.lexeme]);
         let type : TypeRef = null;
@@ -995,9 +1054,8 @@ export class Parser
         }
         this.consume(TokenType.SEMICOLON);
 
-        let result = new VariableStmt(name, type, value, constant);
+        let result = new VariableStmt(name, type, value, constant, accessor, tname.location);
         result.nspace = this.ctx.currentNamespace;
-        result.location = tname.location;
         return result;
     }
 

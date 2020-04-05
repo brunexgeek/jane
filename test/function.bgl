@@ -1,7 +1,7 @@
 namespace bla.ble {
 
 function func1() : void {
-  let value : number = 5;
+  let value : number | null = 5;
   try {
   func2(5, 5+6)()(`asd`);
   } catch(errobj){}
@@ -21,7 +21,7 @@ function func2( x : number ) : void {
   }
 }
 
-}
+
 
 function func3( x : number, y : string ) : number {
     let z = x * 235;
@@ -61,13 +61,4 @@ function pickCard(x:number): number
 let fileName : string;
 let size = 0;
 
-interface bla extends Z implements A, B, C {
-  papa : number.bla.paparapa;
-  private bla() : number
-  {
-    return 8;
-  }
-  get blaee() : string {
-
-  }
 }
