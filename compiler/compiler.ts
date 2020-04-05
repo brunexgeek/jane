@@ -1,5 +1,5 @@
 import { IStmt, Unit, Name, ClassStmt } from './types';
-import { readfile, dirname, realpath, Map } from './io';
+import { readfile, dirname, realpath } from './io';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser } from './parser';
 
@@ -96,15 +96,15 @@ export class Compiler
 
     compile( fileName : string )
     {
-        if (this.ctx.units.contains(fileName)) return;
+        if (this.ctx.units.has(fileName)) return;
         console.error(`Compiling ${fileName}`);
         let source : string = readfile(fileName);
         let scanner = new Scanner(this.ctx, fileName, source);
         let tok = new Tokenizer(this.ctx, scanner);
         let parser = new Parser(tok, this.ctx);
         let unit : Unit;
-        unit = parser.parseTopLevel();
-        this.ctx.units.insert(fileName, unit);
+        unit = parser.parse();
+        this.ctx.units.set(fileName, unit);
 
         if (unit.imports)
         {

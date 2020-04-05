@@ -128,6 +128,9 @@ export class TokenType
     static readonly PLUS_PLUS = new TokenType('PLUS_PLUS', '++');
     static readonly MINUS_MINUS = new TokenType('MINUS_MINUS', '--');
 
+    static readonly GET = new TokenType('GET', 'get');
+    static readonly SET = new TokenType('SET', 'set');
+
     // Literals
     static readonly NAME = new TokenType('NAME', 'identifier');
     static readonly QNAME = new TokenType('QNAME');
@@ -172,8 +175,6 @@ export class TokenType
     static readonly INSTANCEOF = new TokenType('INSTANCEOF', 'instanceof', true);
     static readonly IN = new TokenType('IN', 'in', true);
     static readonly STATIC = new TokenType('STATIC', 'static', true);
-    static readonly GET = new TokenType('GET', 'get', true);
-    static readonly SET = new TokenType('SET', 'set', true);
     static readonly DEFAULT = new TokenType('DEFAULT', 'default', true);
     static readonly IMPORT = new TokenType('IMPORT', 'import', true);
     static readonly FROM = new TokenType('FROM', 'from', true);
@@ -182,7 +183,7 @@ export class TokenType
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
         this.name = this.lexeme = name;
-        if (lexeme.length == 0) this.lexeme = lexeme;
+        if (lexeme.length != 0) this.lexeme = lexeme;
         if (kword && lexeme)
         {
             TokenType.names.push(lexeme);

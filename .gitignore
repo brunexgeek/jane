@@ -1,0 +1,11 @@
+*.js
+*.map
+*.c
+*.cc
+*.h
+*.hh
+*.o
+*.orig
+*.svg
+*.dot
+*.bak

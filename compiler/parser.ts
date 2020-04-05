@@ -83,11 +83,14 @@ export class Parser
     private tok : Tokenizer;
     private ctx : CompilationContext;
     private stack : Token[] = [];
+    private unit : Unit = null;
 
     constructor( tok : Tokenizer, ctx : CompilationContext )
     {
         this.tok = tok;
         this.ctx = ctx;
+        this.unit = new Unit([], []);
+        this.unit.fileName = tok.scanner.pos.fileName;
     }
 
     peek() : Token
@@ -173,17 +176,15 @@ export class Parser
 
         while (this.peek().type != TokenType.EOF)
         {
-            if (prev.type == TokenType.SEMICOLON) return;
+            //if (prev.type == TokenType.SEMICOLON) return;
 
-            switch (this.peek().type)
+           switch (this.peek().type)
             {
+                case TokenType.NAMESPACE:
+                case TokenType.EXPORT:
                 case TokenType.FUNCTION:
                 case TokenType.CLASS:
                 case TokenType.LET:
-                case TokenType.FOR:
-                case TokenType.IF:
-                case TokenType.WHILE:
-                case TokenType.RETURN:
                     return;
             }
 
@@ -191,7 +192,7 @@ export class Parser
         }
     }
 
-    parseTopLevel() : Unit
+    parse() : Unit
     {
         let stmts : IStmt[] = [];
         let imports : ImportStmt[] = [];
@@ -222,7 +223,9 @@ export class Parser
 
         if (hasError) throw Error('The code has one or more errors');
 
-        return new Unit(stmts, imports);
+        this.unit.imports = imports;
+        this.unit.stmts = stmts;
+        return this.unit;
     }
 
     parseImport() : ImportStmt
@@ -356,6 +359,8 @@ export class Parser
             this.advance();
             type = this.parseTypeRef();
         }
+        else
+            type = new TypeRef(new Name(['void']), [], null);
 
         let block = this.parseBlock();
 
@@ -380,11 +385,11 @@ export class Parser
         let name = this.parseName(true);
         let dims = 0;
 
-        let generics : Name[] = [];
+        let generics : TypeRef[] = [];
         if (this.match(TokenType.LESS))
         {
             do {
-                generics.push( this.parseName() );
+                generics.push( this.parseTypeRef() );
             } while (this.match(TokenType.COMMA));
             this.consume(TokenType.GREATER);
         }
@@ -633,7 +638,7 @@ export class Parser
     parseNewExpr() : IExpr
     {
         this.consume(TokenType.NEW);
-        let name = this.parseName(true);
+        let type = this.parseTypeRef();
 
         this.consume(TokenType.LEFT_PAREN);
 
@@ -646,7 +651,7 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_PAREN);
 
-        return new NewExpr(name, args);
+        return new NewExpr(type, args);
     }
 
     parseBlock() : BlockStmt
@@ -671,6 +676,14 @@ export class Parser
             return this.parseStatement();
     }
 
+    qualifyName( name : Name ) : string
+    {
+        let qname = this.ctx.currentNamespaceString;
+        if (qname.length > 0) qname += '.';
+        return qname += name.toString();
+    }
+
+    // used by top-level and namespaces
     parseDeclationStmt() : IStmt
     {
         let accessor = this.parseAccessor();
@@ -679,12 +692,28 @@ export class Parser
         {
             case TokenType.LET:
             case TokenType.CONST:
-                return this.parseVariable();
+            {
+                let stmt = this.parseVariable();
+                let qname = this.qualifyName(stmt.name);
+                this.unit.variables.set(qname, stmt);
+                return stmt;
+            }
             case TokenType.FUNCTION:
-                return this.parseFunction();
+            {
+                let stmt = this.parseFunction();
+                let qname = this.qualifyName(stmt.name);
+                this.unit.functions.set(qname, stmt);
+                return stmt;
+            }
             case TokenType.CLASS:
             case TokenType.INTERFACE:
-                return this.parseClass();
+                {
+                let stmt = this.parseClass();
+                let qname = stmt.name.qualified;
+                this.unit.types.set(qname, stmt);
+                this.ctx.types.set(qname, stmt);
+                return stmt;
+            }
         }
 
         return this.parseStatement();
@@ -692,24 +721,30 @@ export class Parser
 
     parsePropertyPrefix() : Token
     {
-        if (this.peek().type == TokenType.GET || this.peek().type == TokenType.SET)
-            return this.advance();
+        let value = this.peek();
+
+        if (value.type != TokenType.NAME) return null;
+
+        let result : TokenType = null;
+        if (value.lexeme == TokenType.SET.lexeme)
+            result = TokenType.SET;
+        else
+        if (value.lexeme == TokenType.GET.lexeme)
+            result = TokenType.GET;
+
+        if (result != null)
+        {
+            this.advance();
+            return new Token(result, value.lexeme, value.location);
+        }
         return null;
     }
 
     parseClass() : ClassStmt
     {
         let type = this.advance().type;
-        let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
-        let generics : Name[] = [];
-        if (this.match(TokenType.LESS))
-        {
-            do {
-                generics.push( this.parseName() );
-            } while (this.match(TokenType.COMMA));
-            this.consume(TokenType.GREATER);
-        }
-
+        //let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
+        let name = this.parseTypeRef();
         let extended : TypeRef = null;
         let implemented : TypeRef[] = null;
 
@@ -757,13 +792,8 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        let result = new ClassStmt(name, generics, extended, implemented, stmts);
+        let result = new ClassStmt(name, extended, implemented, stmts);
         result.nspace = this.ctx.currentNamespace;
-
-        let qname = this.ctx.currentNamespaceString;
-        if (qname.length > 0) qname += '.';
-        qname += result.name.lexemes[0];
-        this.ctx.types.insert(qname, result);
 
         return result;
     }
@@ -795,6 +825,8 @@ export class Parser
             this.advance();
             type = this.parseTypeRef();
         }
+        else
+            type = new TypeRef(new Name(['void']), [], null);
 
         let block : BlockStmt = null;
         if (this.peek().type == TokenType.LEFT_BRACE)

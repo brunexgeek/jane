@@ -16,7 +16,7 @@ export function dirname( fileName : string ) : string
     let path = realpath(fileName);
     return path.substr(0, path.lastIndexOf('/') + 1 );
 }
-
+/*
 export class Map<K, V>
 {
     private keys : K[] = [];
@@ -39,4 +39,4 @@ export class Map<K, V>
     {
         return this.keys.indexOf(key) >= 0;
     }
-}
+}*/

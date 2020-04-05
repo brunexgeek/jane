@@ -133,6 +133,8 @@ sys.stdout.write('''\ttoString() : string
         }
         return result;
     }
+    get canonical() : string { if (this.lexemes.length > 0) return this.lexemes[0]; else return ''; }
+    get qualified() : string { return this.toString(); }
 }
 ''')
 
@@ -200,7 +202,7 @@ printType('FieldExpr', [
     ], 'IExpr')
 
 printType('NewExpr', [
-    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'args', 'type' : 'IExpr[]'}
     ], 'IExpr')
 
@@ -223,13 +225,17 @@ printType('NamespaceStmt', [
 
 printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'Name[]'},
+    {'name' : 'generics', 'type' : 'TypeRef[]'},
     {'name' : 'dims', 'type' : 'number'},
     ], None, True)
-sys.stdout.write('''\ttoString() : string
+sys.stdout.write('''\ttoString( qualified : boolean = true) : string
     {
-        let result = this.name.toString();
-        if (this.generics)
+        let result = '';
+        if (qualified)
+            result = this.name.qualified;
+        else
+            result = this.name.canonical;
+        if (this.generics && this.generics.length > 0)
         {
             result += '<';
             let first = true;
@@ -237,7 +243,7 @@ sys.stdout.write('''\ttoString() : string
             {
                 if (!first) result += '.';
                 first = false;
-                result += i.toString();
+                result += i.toString(qualified);
             }
             result += '>';
         }
@@ -245,6 +251,8 @@ sys.stdout.write('''\ttoString() : string
         while (i-- > 0) result += '[]';
         return result;
     }
+    get canonical() : string { return this.toString(false); }
+    get qualified() : string { return this.toString(); }
 }
 ''')
 
@@ -302,16 +310,56 @@ printType('FunctionStmt', [
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null', 'ctor' : False},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
-    ], 'IStmt')
+    ], 'IStmt', True)
+sys.stdout.write('''
+    toString(): string
+    {
+        let result = '';
+        if (this.property == TokenType.SET)
+            result += 'set ';
+        else
+        if (this.property == TokenType.GET)
+            result += 'get ';
+        result += `${this.name.toString()}(`;
+        let first = true;
+        for (let par of this.params)
+        {
+            if (!first) result += ',';
+            first = false;
+            if (par.vararg) result += '...';
+            result += `${par.name.toString()}:${par.type.toString()}`;
+        }
+        result += `):${this.type.toString()}`;
+        return result;
+    }
+}
+''')
 
 printType('ClassStmt', [
-    {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'Name[]'},
+    {'name' : 'name', 'type' : 'TypeRef'},
     {'name' : 'extended', 'type' : 'TypeRef'},
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
-    ], 'IStmt')
+    ], 'IStmt', True)
+sys.stdout.write('''toString() : string
+    {
+        let result = this.name.toString();
+        if (this.extended) result += ` extends ${this.extended.toString()}`;
+        if (this.implemented && this.implemented.length > 0)
+        {
+            result += ' implements ';
+            let first = true;
+            for (let type of this.implemented)
+            {
+                if (!first) result += ', ';
+                first = false;
+                result += type.toString();
+            }
+        }
+        return result;
+    }
+}''')
 
 printType('ExprStmt', [
     {'name' : 'expr', 'type' : 'IExpr'},
@@ -333,7 +381,18 @@ printType('VariableStmt', [
     {'name' : 'constant', 'type' : 'boolean'},
     {'name' : 'accessor', 'type' : 'Accessor', 'ctor' : False},
     {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
-    ], 'IStmt')
+    ], 'IStmt', True)
+sys.stdout.write('''
+    toString() : string
+    {
+        let result : string;
+        if (this.constant) result = 'const '; else result = 'let ';
+        result += this.name.toString();
+        if (this.type) result += ` = ${this.type.toString()}`;
+        return result;
+    }
+}
+''')
 
 printType('TryCatchStmt', [
     {'name' : 'block', 'type' : 'IStmt'},
@@ -347,8 +406,12 @@ printType('ThrowStmt', [
     ], 'IStmt')
 
 printType('Unit', [
+    {'name' : 'fileName', 'type' : 'string', 'init' : '', 'ctor' : False},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
-    {'name' : 'imports', 'type' : 'ImportStmt[]'}
+    {'name' : 'imports', 'type' : 'ImportStmt[]'},
+    {'name' : 'variables', 'type' : 'Map<string,VariableStmt>', 'init' : 'new Map()', 'ctor' : False},
+    {'name' : 'types', 'type' : 'Map<string,ClassStmt>', 'init' : 'new Map()', 'ctor' : False},
+    {'name' : 'functions', 'type' : 'Map<string,FunctionStmt>', 'init' : 'new Map()', 'ctor' : False}
     ])
 
 printVisitor()

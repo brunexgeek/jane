@@ -59,6 +59,8 @@ export class Name implements IExpr
         }
         return result;
     }
+    get canonical() : string { if (this.lexemes.length > 0) return this.lexemes[0]; else return ''; }
+    get qualified() : string { return this.toString(); }
 }
 export class StringLiteral implements IExpr
 {
@@ -282,13 +284,13 @@ export class FieldExpr implements IExpr
 
 export class NewExpr implements IExpr
 {
-	name : Name;
+	type : TypeRef;
 	args : IExpr[];
 	location : SourceLocation;
-	constructor( name : Name, args : IExpr[], location : SourceLocation = null )
+	constructor( type : TypeRef, args : IExpr[], location : SourceLocation = null )
 	{
 		this.location = location;
-		this.name = name;
+		this.type = type;
 		this.args = args;
 		this.location = location;
 	}
@@ -357,10 +359,10 @@ export class NamespaceStmt implements IStmt
 export class TypeRef
 {
 	name : Name;
-	generics : Name[];
+	generics : TypeRef[];
 	dims : number;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], dims : number, location : SourceLocation = null )
+	constructor( name : Name, generics : TypeRef[], dims : number, location : SourceLocation = null )
 	{
 		this.location = location;
 		this.name = name;
@@ -370,10 +372,14 @@ export class TypeRef
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTypeRef(this); }
 	className() : string { return 'TypeRef'; }
-	toString() : string
+	toString( qualified : boolean = true) : string
     {
-        let result = this.name.toString();
-        if (this.generics)
+        let result = '';
+        if (qualified)
+            result = this.name.qualified;
+        else
+            result = this.name.canonical;
+        if (this.generics && this.generics.length > 0)
         {
             result += '<';
             let first = true;
@@ -381,7 +387,7 @@ export class TypeRef
             {
                 if (!first) result += '.';
                 first = false;
-                result += i.toString();
+                result += i.toString(qualified);
             }
             result += '>';
         }
@@ -389,6 +395,8 @@ export class TypeRef
         while (i-- > 0) result += '[]';
         return result;
     }
+    get canonical() : string { return this.toString(false); }
+    get qualified() : string { return this.toString(); }
 }
 export class CaseStmt implements IStmt
 {
@@ -547,22 +555,40 @@ export class FunctionStmt implements IStmt
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitFunctionStmt(this); }
 	className() : string { return 'FunctionStmt'; }
-}
 
+    toString(): string
+    {
+        let result = '';
+        if (this.property == TokenType.SET)
+            result += 'set ';
+        else
+        if (this.property == TokenType.GET)
+            result += 'get ';
+        result += `${this.name.toString()}(`;
+        let first = true;
+        for (let par of this.params)
+        {
+            if (!first) result += ',';
+            first = false;
+            if (par.vararg) result += '...';
+            result += `${par.name.toString()}:${par.type.toString()}`;
+        }
+        result += `):${this.type.toString()}`;
+        return result;
+    }
+}
 export class ClassStmt implements IStmt
 {
-	name : Name;
-	generics : Name[];
+	name : TypeRef;
 	extended : TypeRef;
 	implemented : TypeRef[];
 	stmts : IStmt[];
 	nspace : Name = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], location : SourceLocation = null )
+	constructor( name : TypeRef, extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], location : SourceLocation = null )
 	{
 		this.location = location;
 		this.name = name;
-		this.generics = generics;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
@@ -570,9 +596,24 @@ export class ClassStmt implements IStmt
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitClassStmt(this); }
 	className() : string { return 'ClassStmt'; }
-}
-
-export class ExprStmt implements IStmt
+toString() : string
+    {
+        let result = this.name.toString();
+        if (this.extended) result += ` extends ${this.extended.toString()}`;
+        if (this.implemented && this.implemented.length > 0)
+        {
+            result += ' implements ';
+            let first = true;
+            for (let type of this.implemented)
+            {
+                if (!first) result += ', ';
+                first = false;
+                result += type.toString();
+            }
+        }
+        return result;
+    }
+}export class ExprStmt implements IStmt
 {
 	expr : IExpr;
 	location : SourceLocation;
@@ -646,8 +687,16 @@ export class VariableStmt implements IStmt
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitVariableStmt(this); }
 	className() : string { return 'VariableStmt'; }
-}
 
+    toString() : string
+    {
+        let result : string;
+        if (this.constant) result = 'const '; else result = 'let ';
+        result += this.name.toString();
+        if (this.type) result += ` = ${this.type.toString()}`;
+        return result;
+    }
+}
 export class TryCatchStmt implements IStmt
 {
 	block : IStmt;
@@ -684,8 +733,12 @@ export class ThrowStmt implements IStmt
 
 export class Unit
 {
+	fileName : string = '';
 	stmts : IStmt[];
 	imports : ImportStmt[];
+	variables : Map<string,VariableStmt> = new Map();
+	types : Map<string,ClassStmt> = new Map();
+	functions : Map<string,FunctionStmt> = new Map();
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )
 	{

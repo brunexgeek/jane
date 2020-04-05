@@ -37,8 +37,8 @@ class MyListener implements CompilationListener
 
 	onError(location: SourceLocation, error : Error): boolean {
 		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
-		console.error(error.stack);
-		process.exit(1);
+		//console.error(error.stack);
+		//process.exit(1);
 		return true;
 	}
 
@@ -99,15 +99,35 @@ else*/
 
 	if (mode == 'types')
 	{
-		for (let type of comp.ctx.types.values)
-		{
+		for (let type of comp.ctx.types.values())
 			console.log(`Defined type '${type.name}'`);
+		for (let unit of comp.ctx.units.values())
+		{
+			console.error(`Unit ${unit.fileName}`);
+			if (unit.functions.size > 0)
+			{
+				console.error(`  Functions`);
+				for (let item of unit.functions.values())
+					console.error(`  -- ${item.toString()}`);
+			}
+			if (unit.variables.size > 0)
+			{
+				console.error(`  Variables`);
+				for (let item of unit.variables.values())
+					console.error(`  -- ${item.toString()}`);
+			}
+			if (unit.types.size > 0)
+			{
+				console.error(`  Types`);
+				for (let item of unit.types.values())
+					console.error(`  -- ${item.toString()}`);
+			}
 		}
 	}
 	if (mode == 'ast')
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();
-		visitor.visitUnit(comp.ctx.units.values[0]);
+		visitor.visitUnit(comp.ctx.units.values().next().value);
 	}
 }

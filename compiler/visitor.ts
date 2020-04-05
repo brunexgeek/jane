@@ -141,7 +141,7 @@ export class SvgPrinter implements IVisitor<void>
 
     visitNewExpr(target: NewExpr): void
     {
-        let content = this.field('name', this.nameToString(target.name));
+        let content = this.field('name', this.typerefToString(target.type));
         let id = this.connection(this.parent, target.className(), content, this.label);
 
         let i = 0;
@@ -317,7 +317,7 @@ export class SvgPrinter implements IVisitor<void>
     }
 
     visitClassStmt(target: ClassStmt): void {
-        let content = this.field('name', this.nameToString(target.name));
+        let content = this.field('name', this.typerefToString(target.name));
         if (target.extended)
             content += this.field('extends', this.typerefToString(target.extended));
         if (target.implemented)
@@ -639,7 +639,10 @@ export class SvgPrinter implements IVisitor<void>
         else
             print(`subgraph graph_${sid} {`);
 
-        print(`${++this.id} [label=<{<b>Unit</b>}>]`);
+        //print(`${++this.id} [label=<{<b>Unit</b>}>]`);
+        let content = this.field('fileName', target.fileName);
+        this.node(++this.id, target.className(), content, SvgPrinter.STMT_COLOR);
+
         this.parent = this.id;
         this.label = 'stmts';
         for (let stmt of target.stmts)
