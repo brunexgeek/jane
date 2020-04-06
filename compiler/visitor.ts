@@ -41,7 +41,8 @@ import {
 	CaseStmt,
 	SwitchStmt,
 	IfStmt,
-	ForOfStmt,
+    ForOfStmt,
+    ForStmt,
 	DoWhileStmt,
 	WhileStmt,
 	Parameter,
@@ -68,7 +69,6 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor<void>
 {
-
     visitImportStmt(target: ImportStmt): void {
         let content = this.field('from', target.source);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
@@ -499,6 +499,29 @@ export class SvgPrinter implements IVisitor<void>
         this.label = 'expr';
         this.parent = id;
         target.expr.accept(this);
+
+        this.label = 'stmt';
+        this.parent = id;
+        target.stmt.accept(this);
+
+        this.label = '<next>';
+        this.parent = id;
+    }
+
+    visitForStmt(target: ForStmt): void {
+        let id = this.connection(this.parent, target.className(), '', this.label, SvgPrinter.STMT_COLOR);
+
+        this.label = 'init';
+        this.parent = id;
+        target.init.accept(this);
+
+        this.label = 'condition';
+        this.parent = id;
+        target.condition.accept(this);
+
+        this.label = 'fexpr';
+        this.parent = id;
+        target.fexpr.accept(this);
 
         this.label = 'stmt';
         this.parent = id;

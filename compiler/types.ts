@@ -484,6 +484,25 @@ export class ForOfStmt implements IExpr
 	className() : string { return 'ForOfStmt'; }
 }
 
+export class ForStmt implements IExpr
+{
+	init : IStmt;
+	condition : IExpr;
+	fexpr : IExpr;
+	stmt : IStmt;
+	location : SourceLocation;
+	constructor( init : IStmt, condition : IExpr, fexpr : IExpr, stmt : IStmt, location : SourceLocation = null )
+	{
+		this.init = init;
+		this.condition = condition;
+		this.fexpr = fexpr;
+		this.stmt = stmt;
+		this.location = location;
+	}
+	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitForStmt(this); }
+	className() : string { return 'ForStmt'; }
+}
+
 export class DoWhileStmt implements IStmt
 {
 	stmt : IStmt;
@@ -786,6 +805,7 @@ export interface IVisitor<T>{
 	visitSwitchStmt( target : SwitchStmt) : T;
 	visitIfStmt( target : IfStmt) : T;
 	visitForOfStmt( target : ForOfStmt) : T;
+	visitForStmt( target : ForStmt) : T;
 	visitDoWhileStmt( target : DoWhileStmt) : T;
 	visitWhileStmt( target : WhileStmt) : T;
 	visitParameter( target : Parameter) : T;
@@ -829,6 +849,7 @@ export class Visitor implements IVisitor<void> {
 	visitSwitchStmt( target : SwitchStmt) : void {}
 	visitIfStmt( target : IfStmt) : void {}
 	visitForOfStmt( target : ForOfStmt) : void {}
+	visitForStmt( target : ForStmt) : void {}
 	visitDoWhileStmt( target : DoWhileStmt) : void {}
 	visitWhileStmt( target : WhileStmt) : void {}
 	visitParameter( target : Parameter) : void {}

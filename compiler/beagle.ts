@@ -124,7 +124,7 @@ else*/
 			}
 		}
 	}
-	if (mode == 'ast')
+	if (mode == 'ast' && comp.ctx.units.size > 0)
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();

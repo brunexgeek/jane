@@ -57,7 +57,8 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    NameAndGenerics } from './types';
+    NameAndGenerics,
+    ForStmt} from './types';
 
 import {
     TokenType,
@@ -85,6 +86,7 @@ export class Parser
     private ctx : CompilationContext;
     private stack : Token[] = [];
     private unit : Unit = null;
+    private hasError = false;
 
     constructor( tok : Tokenizer, ctx : CompilationContext )
     {
@@ -105,6 +107,19 @@ export class Parser
         return this.stack[0];
     }
 
+    peekType() : TokenType
+    {
+        return this.peek().type;
+    }
+
+    check( ...types : TokenType[] ) : boolean
+    {
+        let cur = this.peekType();
+        for (let type of types)
+            if (cur == type) return true;
+        return false;
+    }
+
     advance() : Token
     {
         let tt = this.peek();
@@ -121,7 +136,7 @@ export class Parser
     {
         for (let tt of types)
         {
-            if (this.peek().type == tt)
+            if (this.peekType() == tt)
             {
                 let tt = this.peek();
                 this.advance();
@@ -129,8 +144,8 @@ export class Parser
             }
         }
 
-        let found = this.peek().type.lexeme;
-        if (this.peek().type == TokenType.NAME) found = this.peek().lexeme;
+        let found = this.peekType().lexeme;
+        if (this.peekType() == TokenType.NAME) found = this.peek().lexeme;
 
         if (message && message.length > 0)
             throw this.error(this.peek(), message);
@@ -150,7 +165,7 @@ export class Parser
     {
         for (let t of type)
         {
-            if (this.peek().type == t)
+            if (this.peekType() == t)
             {
                 this.advance();
                 return true;
@@ -161,7 +176,7 @@ export class Parser
 
     eof() : boolean
     {
-        return this.peek().type == TokenType.EOF;
+        return this.peekType() == TokenType.EOF;
     }
 
     error( token : Token, message : string ) : ParseError
@@ -175,11 +190,11 @@ export class Parser
     {
         let prev = this.advance();
 
-        while (this.peek().type != TokenType.EOF)
+        while (this.peekType() != TokenType.EOF)
         {
             //if (prev.type == TokenType.SEMICOLON) return;
 
-           switch (this.peek().type)
+           switch (this.peekType())
             {
                 case TokenType.NAMESPACE:
                 case TokenType.EXPORT:
@@ -197,12 +212,11 @@ export class Parser
     {
         let stmts : IStmt[] = [];
         let imports : ImportStmt[] = [];
-        let hasError = false;
 
         do {
             try
             {
-                if (this.peek().type == TokenType.IMPORT)
+                if (this.peekType() == TokenType.IMPORT)
                 {
                     let result = this.parseImport();
                     stmts.push(result);
@@ -213,16 +227,19 @@ export class Parser
             } catch (error)
             {
                 console.error(error);
-                hasError = true;
+                this.hasError = true;
                 this.synchronize();
             }
-        } while (this.peek().type != TokenType.EOF);
+        } while (this.peekType() != TokenType.EOF);
 
-        if (hasError) throw this.error(null, 'The code has one or more errors');
-
-        this.unit.imports = imports;
-        this.unit.stmts = stmts;
-        return this.unit;
+        if (!this.hasError)
+        {
+            this.unit.imports = imports;
+            this.unit.stmts = stmts;
+            return this.unit;
+        }
+        else
+            return null;
     }
 
     parseImport() : ImportStmt
@@ -257,7 +274,7 @@ export class Parser
         this.consume(TokenType.COLON);
 
         let stmts : IStmt[] = [];
-        while (this.peek().type != TokenType.RIGHT_BRACE && this.peek().type != TokenType.CASE && this.peek().type != TokenType.DEFAULT)
+        while (this.peekType() != TokenType.RIGHT_BRACE && this.peekType() != TokenType.CASE && this.peekType() != TokenType.DEFAULT)
         {
             let stmt = this.parseBlockOrStmt();
             stmts.push(stmt);
@@ -276,7 +293,7 @@ export class Parser
 
         this.consume(TokenType.LEFT_BRACE);
         let stmts : IStmt[] = [];
-        while (this.peek().type != TokenType.RIGHT_BRACE)
+        while (this.peekType() != TokenType.RIGHT_BRACE)
             stmts.push(this.parseCaseStmt());
         this.consume(TokenType.RIGHT_BRACE);
 
@@ -287,7 +304,7 @@ export class Parser
     {
         let accessor = this.parseAccessor();
 
-        if (this.peek().type == TokenType.NAMESPACE)
+        if (this.peekType() == TokenType.NAMESPACE)
             return this.parseNamespace(accessor);
         else
             return this.parseDeclationStmt(accessor);
@@ -302,7 +319,14 @@ export class Parser
         this.consume(TokenType.LEFT_BRACE);
 
         do {
-            stmts.push( this.parseNamespaceOrDeclaration() );
+            try {
+                stmts.push( this.parseNamespaceOrDeclaration() );
+            } catch (error)
+            {
+                console.error(error);
+                this.hasError = true;
+                this.synchronize();
+            }
         } while (!this.match(TokenType.RIGHT_BRACE));
 
         this.ctx.namespaceStack.pop();
@@ -317,12 +341,12 @@ export class Parser
         let name = this.consumeEx('Missing argument name', TokenType.NAME);
         let type : TypeRef = null;
         let value : IExpr = null;
-        if (this.peek().type == TokenType.COLON)
+        if (this.peekType() == TokenType.COLON)
         {
             this.advance();
             type = this.parseTypeRef();
         }
-        if (this.peek().type == TokenType.EQUAL)
+        if (this.peekType() == TokenType.EQUAL)
         {
             this.advance();
             value = this.parseExpression();
@@ -352,7 +376,7 @@ export class Parser
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
-        if (this.peek().type != TokenType.RIGHT_PAREN)
+        if (this.peekType() != TokenType.RIGHT_PAREN)
         {
             do {
                 args.push( this.parseArgument() );
@@ -361,7 +385,7 @@ export class Parser
         this.consume(TokenType.RIGHT_PAREN);
 
         let type : TypeRef = null;
-        if (this.peek().type == TokenType.COLON)
+        if (this.peekType() == TokenType.COLON)
         {
             this.advance();
             type = this.parseTypeRef();
@@ -446,7 +470,7 @@ export class Parser
         let expr = this.parseOr();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         switch (operator)
         {
             case TokenType.EQUAL:
@@ -457,7 +481,7 @@ export class Parser
             {
                 this.advance();
                 let right = this.parseAssignment();
-                if (expr instanceof NameLiteral || expr instanceof FieldExpr)
+                if (expr instanceof NameLiteral || expr instanceof FieldExpr || expr instanceof ArrayAccessExpr)
                     return expr = new AssignExpr(expr, operator, right, location);
                 throw this.error(tt, 'Invalid assignment l-value');
             }
@@ -471,7 +495,7 @@ export class Parser
         let expr = this.parseAnd();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.OR))
         {
             let right = this.parseAnd();
@@ -486,7 +510,7 @@ export class Parser
         let expr = this.parseEquality();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.AND))
         {
             let right = this.parseEquality();
@@ -501,7 +525,7 @@ export class Parser
         let expr = this.parseComparison();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
         {
             let right = this.parseComparison();
@@ -516,7 +540,7 @@ export class Parser
         let expr = this.parseAddition();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
             TokenType.LESS_EQUAL, TokenType.IN, TokenType.INSTANCEOF))
         {
@@ -532,7 +556,7 @@ export class Parser
         let expr = this.parseMultiplication();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.PLUS, TokenType.MINUS))
         {
             let right = this.parseMultiplication();
@@ -547,7 +571,7 @@ export class Parser
         let expr = this.parsePreUnary();
 
         let location = this.peek().location;
-        let operator = this.peek().type;
+        let operator = this.peekType();
         while (this.match(TokenType.STAR, TokenType.SLASH))
         {
             let right = this.parsePreUnary();
@@ -559,7 +583,7 @@ export class Parser
 
     parsePreUnary() : IExpr
     {
-        let operator = this.peek().type;
+        let operator = this.peekType();
         if (this.match(TokenType.BANG, TokenType.MINUS, TokenType.MINUS_MINUS, TokenType.PLUS_PLUS))
         {
             let expr = this.parsePreUnary();
@@ -573,7 +597,7 @@ export class Parser
     {
         let expr = this.parseCall();
 
-        let operator = this.peek().type;
+        let operator = this.peekType();
         if (this.match(TokenType.MINUS_MINUS, TokenType.PLUS_PLUS))
             return new UnaryExpr(operator, expr, true);
 
@@ -589,7 +613,7 @@ export class Parser
             if (this.match(TokenType.LEFT_PAREN))
             {
                 let args : IExpr[] = [];
-                if (this.peek().type != TokenType.RIGHT_PAREN)
+                if (this.peekType() != TokenType.RIGHT_PAREN)
                 {
                     do {
                         args.push(this.parseExpression());
@@ -626,7 +650,7 @@ export class Parser
         if (this.match(TokenType.FALSE)) return new BoolLiteral(false, location);
         if (this.match(TokenType.TRUE)) return new BoolLiteral(true, location);
         if (this.match(TokenType.NIL)) return new NullLiteral(location);
-        if (this.peek().type == TokenType.NAME)
+        if (this.peekType() == TokenType.NAME)
             return new NameLiteral(this.advance().lexeme, location);
 
         if (this.match(TokenType.NUMBER))
@@ -644,7 +668,7 @@ export class Parser
         if (this.match(TokenType.LEFT_BRACKET))
         {
             let values : IExpr[] = [];
-            if (this.peek().type != TokenType.RIGHT_BRACKET)
+            if (this.peekType() != TokenType.RIGHT_BRACKET)
             {
                 do {
                     values.push(this.parseExpression());
@@ -659,12 +683,12 @@ export class Parser
             return new ExpandExpr( this.parseName(), location );
         }
 
-        if (this.peek().type == TokenType.NEW)
+        if (this.peekType() == TokenType.NEW)
         {
             return this.parseNewExpr();
         }
 
-        throw this.error(this.peek(), 'Invalid expression with ' + this.peek().type.lexeme);
+        throw this.error(this.peek(), 'Invalid expression with ' + this.peekType().lexeme);
     }
 
     parseNewExpr() : IExpr
@@ -675,7 +699,7 @@ export class Parser
         this.consume(TokenType.LEFT_PAREN);
 
         let args : IExpr[] = [];
-        if (this.peek().type != TokenType.RIGHT_PAREN)
+        if (this.peekType() != TokenType.RIGHT_PAREN)
         {
             do {
                 args.push(this.parseExpression());
@@ -691,9 +715,9 @@ export class Parser
         let stmts : IStmt[] = [];
 
         this.consume(TokenType.LEFT_BRACE);
-        while(this.peek().type != TokenType.RIGHT_BRACE)
+        while(this.peekType() != TokenType.RIGHT_BRACE)
         {
-            stmts.push( this.parseVariableOrStatement() );
+            stmts.push( this.parseVariableStmtOrStatement() );
         }
         this.consume(TokenType.RIGHT_BRACE);
 
@@ -702,7 +726,7 @@ export class Parser
 
     parseBlockOrStmt() : IStmt
     {
-        if (this.peek().type == TokenType.LEFT_BRACE)
+        if (this.peekType() == TokenType.LEFT_BRACE)
             return this.parseBlock();
         else
             return this.parseStatement();
@@ -718,13 +742,13 @@ export class Parser
     // used by top-level and namespaces
     parseDeclationStmt( accessor : Accessor ) : IStmt
     {
-        let cur = this.peek().type;
+        let cur = this.peekType();
         switch (cur)
         {
             case TokenType.LET:
             case TokenType.CONST:
             {
-                let stmt = this.parseVariable(accessor);
+                let stmt = this.parseVariableStmt(accessor);
                 let qname = this.qualifyName(stmt.name);
                 this.unit.variables.set(qname, stmt);
                 return stmt;
@@ -798,15 +822,15 @@ export class Parser
         this.consume(TokenType.LEFT_BRACE);
 
         let stmts : IStmt[] = [];
-        while (!this.eof() && this.peek().type != TokenType.RIGHT_BRACE)
+        while (!this.eof() && this.peekType() != TokenType.RIGHT_BRACE)
         {
             let accessor = this.parseAccessor();
             let property = this.parsePropertyPrefix();
 
-            if (this.peek().type == TokenType.NAME)
+            if (this.peekType() == TokenType.NAME)
             {
                 let name = this.advance();
-                if (this.peek().type == TokenType.LEFT_PAREN || this.peek().type == TokenType.LESS)
+                if (this.peekType() == TokenType.LEFT_PAREN || this.peekType() == TokenType.LESS)
                 {
                     let func = this.parseMethod(name);
                     func.accessor = accessor;
@@ -822,7 +846,7 @@ export class Parser
                 }
             }
             else
-                throw this.error(this.peek(), 'Invalid token ' + this.peek().type.name);
+                throw this.error(this.peek(), 'Invalid token ' + this.peekType().name);
         }
         this.consume(TokenType.RIGHT_BRACE);
 
@@ -845,7 +869,7 @@ export class Parser
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
-        if (this.peek().type != TokenType.RIGHT_PAREN)
+        if (this.peekType() != TokenType.RIGHT_PAREN)
         {
             do {
                 args.push( this.parseArgument() );
@@ -854,7 +878,7 @@ export class Parser
         this.consume(TokenType.RIGHT_PAREN);
 
         let type : TypeRef = null;
-        if (this.peek().type == TokenType.COLON)
+        if (this.peekType() == TokenType.COLON)
         {
             this.advance();
             type = this.parseTypeRef();
@@ -863,7 +887,7 @@ export class Parser
             type = new TypeRef(new Name(['void']), [], 0, false, null);
 
         let block : BlockStmt = null;
-        if (this.peek().type == TokenType.LEFT_BRACE)
+        if (this.peekType() == TokenType.LEFT_BRACE)
             block = this.parseBlock();
         else
             this.consume(TokenType.SEMICOLON);
@@ -876,7 +900,7 @@ export class Parser
         let values : TokenType[] = [];
         while (true)
         {
-            let cur = this.peek().type;
+            let cur = this.peekType();
             if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED,
                 TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC, TokenType.DECLARE))
                 break;
@@ -886,16 +910,16 @@ export class Parser
         return new Accessor(values);
     }
 
-    parseVariableOrStatement() : IStmt
+    parseVariableStmtOrStatement() : IStmt
     {
-        if (this.peek().type == TokenType.LET || this.peek().type == TokenType.CONST)
-            return this.parseVariable(null);
+        if (this.peekType() == TokenType.LET || this.peekType() == TokenType.CONST)
+            return this.parseVariableStmt(null);
         return this.parseStatement();
     }
 
     parseStatement() : IStmt
     {
-        let cur = this.peek().type;
+        let cur = this.peekType();
         // parse language statements
         switch (cur)
         {
@@ -911,7 +935,7 @@ export class Parser
             case TokenType.WHILE:
                 return this.parseWhileStmt();
             case TokenType.FOR:
-                return this.parseForOfStmt();
+                return this.parseFor();
             case TokenType.THROW:
                 return this.parseThrow();
             case TokenType.TRY:
@@ -939,7 +963,7 @@ export class Parser
     {
         this.consume(TokenType.RETURN);
         let expr : IExpr = null;
-        if (this.peek().type != TokenType.SEMICOLON)
+        if (this.peekType() != TokenType.SEMICOLON)
             expr = this.parseExpression();
         this.consume(TokenType.SEMICOLON);
         return new ReturnStmt(expr);
@@ -984,19 +1008,62 @@ export class Parser
         return new WhileStmt(cond, stmt);
     }
 
-    parseForOfStmt() : IStmt
+    parseFor() : IStmt
     {
         this.consume(TokenType.FOR);
         this.consume(TokenType.LEFT_PAREN);
-        let type = this.consume(TokenType.CONST, TokenType.LET).type;
-        let name = this.parseName();
-        this.consume(TokenType.OF);
-        let expr = this.parseExpression();
-        this.consume(TokenType.RIGHT_PAREN);
-        let stmt = this.parseBlockOrStmt();
 
-        let variable = new VariableStmt(name, null, null, type == TokenType.CONST);
-        return new ForOfStmt(variable, expr, stmt);
+        let init : IStmt = null;
+        let expr : IExpr = null;
+        let fexpr : IExpr = null;
+        let stmt : IStmt = null;
+
+        if (this.peekType() != TokenType.SEMICOLON)
+        {
+            // is it a variable declaration?
+            if (this.peekType() == TokenType.LET || this.peekType() == TokenType.CONST)
+            {
+                let cosntant = this.advance().type == TokenType.CONST;
+                let name = this.parseName();
+                let type : TypeRef = null;
+                let value : IStmt = null;
+                if (this.match(TokenType.COLON))
+                    type = this.parseTypeRef();
+                if (this.match(TokenType.EQUAL))
+                    value = this.parseExpression();
+                init = new VariableStmt(name, type, value, cosntant);
+            }
+            else
+                // only accept expression statements
+                init = new ExprStmt( this.parseExpression() );
+        }
+
+        if (this.peekType() == TokenType.SEMICOLON)
+        {
+            // for ([initialization]; [condition]; [final-expression]) statement
+            this.advance(); // ;
+            expr = this.parseExpression();
+            this.consume(TokenType.SEMICOLON);
+            fexpr = this.parseExpression();
+            this.consume(TokenType.RIGHT_PAREN);
+            stmt = this.parseBlockOrStmt();
+            return new ForStmt(init, expr, fexpr, stmt);
+        }
+        else
+        if (this.peekType() == TokenType.OF)
+        {
+            // for (variable of iterable) statement
+            if (!init || !(init instanceof VariableStmt))
+                throw this.error(this.peek(), 'Missing variable declaration');
+            if (init.init) throw this.error(this.peek(), 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
+            this.consume(TokenType.OF);
+            expr = this.parseExpression();
+            this.consume(TokenType.RIGHT_PAREN);
+            stmt = this.parseBlockOrStmt();
+            return new ForOfStmt(<VariableStmt>init, expr, stmt);
+        }
+
+        throw this.error(this.peek(), `Invalid for statement ${this.peek().lexeme}`);
     }
 
     parseProperty( tname : Token, accessor : Accessor ) : VariableStmt
@@ -1004,21 +1071,13 @@ export class Parser
         let name = new Name([tname.lexeme]);
         let type : TypeRef = null;
         let value : IExpr = null;
-        if (this.peek().type == TokenType.COLON)
-        {
-            this.advance();
+        if (this.match(TokenType.COLON))
             type = this.parseTypeRef();
-        }
-        if (this.peek().type == TokenType.EQUAL)
-        {
-            this.advance();
+        if (this.match(TokenType.EQUAL))
             value = this.parseExpression();
-        }
 
         if (type == null && value == null)
-        {
             throw this.error(tname, 'Missing argument type');
-        }
         this.consume(TokenType.SEMICOLON);
 
         let result = new VariableStmt(name, type, value, false, accessor);
@@ -1027,7 +1086,7 @@ export class Parser
         return result;
     }
 
-    parseVariable( accessor : Accessor ) : VariableStmt
+    parseVariableStmt( accessor : Accessor ) : VariableStmt
     {
         let constant : boolean = false;
 
@@ -1037,21 +1096,13 @@ export class Parser
         let name = new Name([tname.lexeme]);
         let type : TypeRef = null;
         let value : IExpr = null;
-        if (this.peek().type == TokenType.COLON)
-        {
-            this.advance();
+        if (this.match(TokenType.COLON))
             type = this.parseTypeRef();
-        }
-        if (this.peek().type == TokenType.EQUAL)
-        {
-            this.advance();
+        if (this.match(TokenType.EQUAL))
             value = this.parseExpression();
-        }
-
         if (type == null && value == null)
-        {
             throw this.error(tname, 'Missing argument type');
-        }
+
         this.consume(TokenType.SEMICOLON);
 
         let result = new VariableStmt(name, type, value, constant, accessor, tname.location);
@@ -1063,7 +1114,7 @@ export class Parser
     {
         this.consume(TokenType.THROW);
         let expr : IExpr = null;
-        if (this.peek().type != TokenType.SEMICOLON)
+        if (this.peekType() != TokenType.SEMICOLON)
             expr = this.parseExpression();
         this.consume(TokenType.SEMICOLON);
         return new ThrowStmt(expr);

@@ -331,6 +331,13 @@ printType('ForOfStmt', [
     {'name' : 'stmt', 'type' : 'IStmt'}
     ], 'IExpr')
 
+printType('ForStmt', [
+    {'name' : 'init', 'type' : 'IStmt'},
+    {'name' : 'condition', 'type' : 'IExpr'},
+    {'name' : 'fexpr', 'type' : 'IExpr'},
+    {'name' : 'stmt', 'type' : 'IStmt'}
+    ], 'IExpr')
+
 printType('DoWhileStmt', [
     {'name' : 'stmt', 'type' : 'IStmt'},
     {'name' : 'condition', 'type' : 'IExpr'},

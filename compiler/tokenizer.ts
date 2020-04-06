@@ -133,7 +133,7 @@ export class TokenType
     static readonly SET = new TokenType('SET', 'set');
 
     // Literals
-    static readonly NAME = new TokenType('NAME', 'identifier');
+    static readonly NAME = new TokenType('NAME');
     static readonly QNAME = new TokenType('QNAME');
     static readonly TSTRING = new TokenType('TSTRING');
     static readonly SSTRING = new TokenType('SSTRING');
@@ -197,7 +197,7 @@ export class TokenType
         let i = TokenType.names.indexOf(name);
         if (i < 0) return TokenType.NAME;
         return TokenType.tokens[i];
-	}
+    }
 }
 
 export class Token

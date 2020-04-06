@@ -104,15 +104,18 @@ export class Compiler
         let parser = new Parser(tok, this.ctx);
         let unit : Unit;
         unit = parser.parse();
-        this.ctx.units.set(fileName, unit);
-
-        if (unit.imports)
+        if (unit)
         {
-            let cdir = dirname(fileName);
-            for (let imp of unit.imports)
+            this.ctx.units.set(fileName, unit);
+
+            if (unit.imports)
             {
-                let path = realpath(cdir + imp.source + '.ts');
-                this.compile(path);
+                let cdir = dirname(fileName);
+                for (let imp of unit.imports)
+                {
+                    let path = realpath(cdir + imp.source + '.ts');
+                    this.compile(path);
+                }
             }
         }
 
