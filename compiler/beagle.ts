@@ -28,6 +28,7 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
+import { Logger } from './utils';
 
 class MyListener implements CompilationListener
 {
@@ -36,14 +37,14 @@ class MyListener implements CompilationListener
 	}
 
 	onError(location: SourceLocation, error : Error): boolean {
-		console.error(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
-		//console.error(error.stack);
+		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
+		//Logger.writeln(error.stack);
 		//process.exit(1);
 		return true;
 	}
 
 	onWarning(location: SourceLocation, message: string): boolean {
-		console.error(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
+		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
 		return true;
 	}
 
@@ -103,24 +104,24 @@ else*/
 			console.log(`Defined type '${type.name}'`);
 		for (let unit of comp.ctx.units.values())
 		{
-			console.error(`Unit ${unit.fileName}`);
+			Logger.writeln(`Unit ${unit.fileName}`);
 			if (unit.functions.size > 0)
 			{
-				console.error(`  Functions`);
+				Logger.writeln(`  Functions`);
 				for (let item of unit.functions.values())
-					console.error(`  -- ${item.toString()}`);
+					Logger.writeln(`  -- ${item.toString()}`);
 			}
 			if (unit.variables.size > 0)
 			{
-				console.error(`  Variables`);
+				Logger.writeln(`  Variables`);
 				for (let item of unit.variables.values())
-					console.error(`  -- ${item.toString()}`);
+					Logger.writeln(`  -- ${item.toString()}`);
 			}
 			if (unit.types.size > 0)
 			{
-				console.error(`  Types`);
+				Logger.writeln(`  Types`);
 				for (let item of unit.types.values())
-					console.error(`  -- ${item.toString()}`);
+					Logger.writeln(`  -- ${item.toString()}`);
 			}
 		}
 	}
@@ -130,4 +131,5 @@ else*/
 		let visitor = new SvgPrinter();
 		visitor.visitUnit(comp.ctx.units.values().next().value);
 	}
+	console.error(Logger.toString());
 }

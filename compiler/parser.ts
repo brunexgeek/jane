@@ -70,6 +70,8 @@ import {
     SourceLocation,
     CompilationContext } from './compiler';
 
+import { Logger } from './utils';
+
 export class ParseError extends Error
 {
     public location : SourceLocation;
@@ -103,7 +105,7 @@ export class Parser
         {
             this.stack.push(this.tok.next());
             //if (this.stack[0].type == TokenType.NAME)
-            //    console.error('--- ' + this.stack[0].toString());
+            //    Logger.writeln('--- ' + this.stack[0].toString());
         }
         return this.stack[0];
     }
@@ -227,7 +229,7 @@ export class Parser
                     stmts.push( this.parseNamespaceOrDeclaration() );
             } catch (error)
             {
-                console.error(error);
+                Logger.writeln(error);
                 this.hasError = true;
                 this.synchronize();
             }
@@ -324,7 +326,7 @@ export class Parser
                 stmts.push( this.parseNamespaceOrDeclaration() );
             } catch (error)
             {
-                console.error(error);
+                Logger.writeln(error);
                 this.hasError = true;
                 this.synchronize();
             }
@@ -748,7 +750,7 @@ export class Parser
             case TokenType.FUNCTION:
             {
                 let stmt = this.parseFunction(accessor);
-                console.error(`Adding function ${stmt.name.qualified}`);
+                Logger.writeln(`Adding function ${stmt.name.qualified}`);
                 this.unit.functions.set(stmt.name.qualified, stmt);
                 return stmt;
             }
@@ -1145,7 +1147,7 @@ export class NodePromoter
     protected promote( target : FunctionStmt ) : ClassStmt
     {
         // TODO: remove 'static' accessor from 'target.accessor'
-        console.error(`Promoting function ${target.name.qualified}`);
+        Logger.writeln(`Promoting function ${target.name.qualified}`);
         let name = new NameAndGenerics(new Name([`__fn_${target.name.canonical}__`]), null, target.location);
         target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
         let clazz = new ClassStmt(name, NodePromoter.parent, null, [target], target.accessor, target.location);
@@ -1160,7 +1162,7 @@ export class NodePromoter
             {
                 let fun = <FunctionStmt> stmts[i];
                 let name = fun.name.clone();
-                console.error(`Deleting ${name}`);
+                Logger.writeln(`Deleting ${name}`);
                 stmts[i] = this.promote(fun);
                 let clazz = <ClassStmt> stmts[i];
                 unit.types.set(clazz.name.qualified, clazz);

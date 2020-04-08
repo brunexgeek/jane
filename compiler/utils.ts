@@ -16,27 +16,24 @@ export function dirname( fileName : string ) : string
     let path = realpath(fileName);
     return path.substr(0, path.lastIndexOf('/') + 1 );
 }
-/*
-export class Map<K, V>
+
+export class Logger
 {
-    private keys : K[] = [];
-    public values : V[] = [];
+    static content : string[] = [];
 
-    find( key : K ) : V
+    static write( text : string )
     {
-        let idx = this.keys.indexOf(key);
-        if (idx == -1) return null;
-        return this.values[idx];
+        if (this.content.length == 0) return Logger.writeln(text);
+        this.content[ this.content.length - 1 ] += text;
     }
 
-    insert( key : K, value : V )
+    static writeln( text : string )
     {
-        this.keys.push(key);
-        this.values.push(value);
+        this.content.push(text);
     }
 
-    contains( key : K ) : boolean
+    static toString() : string
     {
-        return this.keys.indexOf(key) >= 0;
+        return this.content.join('\n');
     }
-}*/
+}
