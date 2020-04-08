@@ -180,6 +180,7 @@ export class TokenType
     static readonly IMPORT = new TokenType('IMPORT', 'import', true);
     static readonly FROM = new TokenType('FROM', 'from', true);
     static readonly DECLARE = new TokenType('DECLARE', 'declare', true);
+    static readonly ABSTRACT = new TokenType('ABSTRACT', 'abstract', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {

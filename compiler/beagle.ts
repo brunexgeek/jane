@@ -38,7 +38,7 @@ class MyListener implements CompilationListener
 
 	onError(location: SourceLocation, error : Error): boolean {
 		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
-		//Logger.writeln(error.stack);
+		Logger.writeln(error.stack);
 		//process.exit(1);
 		return true;
 	}
@@ -98,33 +98,31 @@ else*/
 	let comp = new Compiler(new MyListener());
 	let units = comp.compile(inputFileName);
 
-	if (mode == 'types')
+	for (let type of comp.ctx.types.values())
+		Logger.writeln(`Defined type '${type.name}'`);
+	for (let unit of comp.ctx.units.values())
 	{
-		for (let type of comp.ctx.types.values())
-			console.log(`Defined type '${type.name}'`);
-		for (let unit of comp.ctx.units.values())
+		Logger.writeln(`Unit ${unit.fileName}`);
+		if (unit.functions.size > 0)
 		{
-			Logger.writeln(`Unit ${unit.fileName}`);
-			if (unit.functions.size > 0)
-			{
-				Logger.writeln(`  Functions`);
-				for (let item of unit.functions.values())
-					Logger.writeln(`  -- ${item.toString()}`);
-			}
-			if (unit.variables.size > 0)
-			{
-				Logger.writeln(`  Variables`);
-				for (let item of unit.variables.values())
-					Logger.writeln(`  -- ${item.toString()}`);
-			}
-			if (unit.types.size > 0)
-			{
-				Logger.writeln(`  Types`);
-				for (let item of unit.types.values())
-					Logger.writeln(`  -- ${item.toString()}`);
-			}
+			Logger.writeln(`  Functions`);
+			for (let item of unit.functions.values())
+				Logger.writeln(`  -- ${item.toString()}`);
+		}
+		if (unit.variables.size > 0)
+		{
+			Logger.writeln(`  Variables`);
+			for (let item of unit.variables.values())
+				Logger.writeln(`  -- ${item.toString()}`);
+		}
+		if (unit.types.size > 0)
+		{
+			Logger.writeln(`  Types`);
+			for (let item of unit.types.values())
+				Logger.writeln(`  -- ${item.toString()}`);
 		}
 	}
+
 	if (mode == 'ast' && comp.ctx.units.size > 0)
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))

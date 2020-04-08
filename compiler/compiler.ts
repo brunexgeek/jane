@@ -1,7 +1,7 @@
 import { IStmt, Unit, Name, ClassStmt } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
-import { Parser, NodePromoter } from './parser';
+import { Parser, NodePromoter, injectObject, injectCallable } from './parser';
 
 export class SourceLocation
 {
@@ -47,12 +47,12 @@ export class CompilationContext
 
 	constructor( listener : CompilationListener )
 	{
-		this.listener = listener;
+        this.listener = listener;
     }
 
     get currentNamespace() : Name
     {
-        if (this.namespaceStack.length == 0) return null;
+        if (this.namespaceStack.length == 0) return new Name([]);
 
         let result : string[] = [];
         for (let name of this.namespaceStack)
@@ -77,6 +77,8 @@ export class Compiler
     constructor( listener : CompilationListener )
     {
         this.ctx = new CompilationContext(listener);
+        injectObject(this.ctx);
+        injectCallable(this.ctx);
     }
 
     compile( fileName : string )
@@ -102,10 +104,10 @@ export class Compiler
                     this.compile(path);
                 }
             }
-        }
 
-        let prom = new NodePromoter();
-        prom.process(unit);
+            let prom = new NodePromoter();
+            prom.process(unit);
+        }
     }
 
 }

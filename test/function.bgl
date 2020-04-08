@@ -24,7 +24,7 @@ function identity(n : number) {
       return idMatrix;
 }
 
-
+}
 
 function func3( x : number, y : string ) : number {
     let z = x * 235;
@@ -64,4 +64,4 @@ function pickCard(x:number): number
 let fileName : string;
 let size = 0;
 
-}
+

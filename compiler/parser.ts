@@ -229,7 +229,8 @@ export class Parser
                     stmts.push( this.parseNamespaceOrDeclaration() );
             } catch (error)
             {
-                Logger.writeln(error);
+                Logger.writeln(error.toString());
+                Logger.writeln(error.stack);
                 this.hasError = true;
                 this.synchronize();
             }
@@ -326,7 +327,8 @@ export class Parser
                 stmts.push( this.parseNamespaceOrDeclaration() );
             } catch (error)
             {
-                Logger.writeln(error);
+                Logger.writeln(error.toString());
+                Logger.writeln(error.stack);
                 this.hasError = true;
                 this.synchronize();
             }
@@ -754,7 +756,7 @@ export class Parser
                 this.unit.functions.set(stmt.name.qualified, stmt);
                 return stmt;
             }
-            /*case TokenType.CLASS:
+            case TokenType.CLASS:
             case TokenType.INTERFACE:
                 {
                 let stmt = this.parseClass(accessor);
@@ -762,7 +764,7 @@ export class Parser
                 this.unit.types.set(qname, stmt);
                 this.ctx.types.set(qname, stmt);
                 return stmt;
-            }*/
+            }
         }
 
         throw this.error(this.peek(), 'Unexpected token');
@@ -801,9 +803,9 @@ export class Parser
         let implemented : NameAndGenerics[] = null;
 
         if (this.match(TokenType.EXTENDS))
-        {
             extended = this.parseNameAndGenerics();
-        }
+        else
+            extended = objectName;
 
         if (this.match(TokenType.IMPLEMENTS))
         {
@@ -893,7 +895,8 @@ export class Parser
         {
             let cur = this.peekType();
             if (!this.match(TokenType.PUBLIC, TokenType.PRIVATE, TokenType.PROTECTED,
-                TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC, TokenType.DECLARE))
+                TokenType.READONLY, TokenType.EXPORT, TokenType.STATIC, TokenType.DECLARE,
+                TokenType.ABSTRACT))
                 break;
             values.push(cur);
         }
@@ -1181,4 +1184,21 @@ export class NodePromoter
     {
         this.processStatements(unit, unit.stmts);
     }
+}
+
+export function injectObject( ctx : CompilationContext) : void
+{
+    let name = new NameAndGenerics(new Name(['Object']), null);
+    let clazz = new ClassStmt(name, null, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(name.qualified, clazz);
+}
+
+let objectName = new NameAndGenerics(new Name(['Object']), null);
+let objectRef = new TypeRef(new Name(['Object']), null, 0, true);
+
+export function injectCallable( ctx : CompilationContext) : void
+{
+    let name = new NameAndGenerics(new Name(['Callable']), null);
+    let clazz = new ClassStmt(name, objectName, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(name.qualified, clazz);
 }
