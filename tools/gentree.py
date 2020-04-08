@@ -322,7 +322,7 @@ sys.stdout.write('''\ttoString( qualified : boolean = true) : string
             while (i-- > 0) result += '[]';
             return result;
         }
-        if (this.nullable) result += '| null';
+        if (this.nullable) result += ' | null';
         return result;
     }
     get canonical() : string { return this.toString(false); }
@@ -467,7 +467,7 @@ sys.stdout.write('''
         let result : string;
         if (this.constant) result = 'const '; else result = 'let ';
         result += this.name.toString();
-        if (this.type) result += ` = ${this.type.toString()}`;
+        if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
 }

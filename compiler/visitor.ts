@@ -329,7 +329,7 @@ export class SvgPrinter implements IVisitor<void>
     {
         let content = this.field('name', this.namegenericToString(target.name));
         if (target.extended)
-            content += this.field('extends', this.namegenericToString(target.name));
+            content += this.field('extends', this.namegenericToString(target.extended));
         if (target.implemented)
         {
             let names = '';
