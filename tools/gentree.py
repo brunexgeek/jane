@@ -222,6 +222,11 @@ printType('UnaryExpr', [
     {'name' : 'post', 'type' : 'boolean'}
     ], 'IExpr')
 
+printType('TypeCastExpr', [
+    {'name' : 'type', 'type' : 'TypeRef'},
+    {'name' : 'expr', 'type' : 'IExpr'}
+    ], 'IExpr')
+
 printType('CallExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'args', 'type' : 'IExpr[]'}

@@ -217,6 +217,21 @@ export class UnaryExpr implements IExpr
 	className() : string { return 'UnaryExpr'; }
 }
 
+export class TypeCastExpr implements IExpr
+{
+	type : TypeRef;
+	expr : IExpr;
+	location : SourceLocation;
+	constructor( type : TypeRef, expr : IExpr, location : SourceLocation = null )
+	{
+		this.type = type;
+		this.expr = expr;
+		this.location = location;
+	}
+	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTypeCastExpr(this); }
+	className() : string { return 'TypeCastExpr'; }
+}
+
 export class CallExpr implements IExpr
 {
 	callee : IExpr;
@@ -795,6 +810,7 @@ export interface IVisitor<T>{
 	visitBinaryExpr( target : BinaryExpr) : T;
 	visitAssignExpr( target : AssignExpr) : T;
 	visitUnaryExpr( target : UnaryExpr) : T;
+	visitTypeCastExpr( target : TypeCastExpr) : T;
 	visitCallExpr( target : CallExpr) : T;
 	visitArrayExpr( target : ArrayExpr) : T;
 	visitArrayAccessExpr( target : ArrayAccessExpr) : T;
@@ -839,6 +855,7 @@ export class Visitor implements IVisitor<void> {
 	visitBinaryExpr( target : BinaryExpr) : void {}
 	visitAssignExpr( target : AssignExpr) : void {}
 	visitUnaryExpr( target : UnaryExpr) : void {}
+	visitTypeCastExpr( target : TypeCastExpr) : void {}
 	visitCallExpr( target : CallExpr) : void {}
 	visitArrayExpr( target : ArrayExpr) : void {}
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void {}
@@ -883,6 +900,7 @@ export abstract class Dispatcher<T> {
 	protected abstract visitBinaryExpr( target : BinaryExpr) : T;
 	protected abstract visitAssignExpr( target : AssignExpr) : T;
 	protected abstract visitUnaryExpr( target : UnaryExpr) : T;
+	protected abstract visitTypeCastExpr( target : TypeCastExpr) : T;
 	protected abstract visitCallExpr( target : CallExpr) : T;
 	protected abstract visitArrayExpr( target : ArrayExpr) : T;
 	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : T;
@@ -926,6 +944,7 @@ export abstract class Dispatcher<T> {
 			case 'BinaryExpr': return this.visitBinaryExpr(<BinaryExpr>node);
 			case 'AssignExpr': return this.visitAssignExpr(<AssignExpr>node);
 			case 'UnaryExpr': return this.visitUnaryExpr(<UnaryExpr>node);
+			case 'TypeCastExpr': return this.visitTypeCastExpr(<TypeCastExpr>node);
 			case 'CallExpr': return this.visitCallExpr(<CallExpr>node);
 			case 'ArrayExpr': return this.visitArrayExpr(<ArrayExpr>node);
 			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);

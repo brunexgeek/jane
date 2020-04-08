@@ -57,7 +57,8 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    NameAndGenerics } from './types';
+    NameAndGenerics,
+    TypeCastExpr} from './types';
 
 declare let require: any;
 let process = require("process");
@@ -69,6 +70,16 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor<void>
 {
+    visitTypeCastExpr(target: TypeCastExpr): void
+    {
+        let content = this.field('type', target.type.toString());
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
+
+        this.label = `expr`;
+        this.parent = id;
+        target.expr.accept(this);
+    }
+
     visitImportStmt(target: ImportStmt): void {
         let content = this.field('from', target.source);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);

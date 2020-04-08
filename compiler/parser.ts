@@ -59,7 +59,8 @@ import {
     ImportStmt,
     NameAndGenerics,
     ForStmt,
-    Dispatcher} from './types';
+    Dispatcher,
+    TypeCastExpr} from './types';
 
 import {
     TokenType,
@@ -588,10 +589,23 @@ export class Parser
     parsePreUnary() : IExpr
     {
         let operator = this.peekType();
-        if (this.match(TokenType.BANG, TokenType.MINUS, TokenType.MINUS_MINUS, TokenType.PLUS_PLUS))
+        if (this.match(TokenType.BANG,
+            TokenType.MINUS,
+            TokenType.MINUS_MINUS,
+            TokenType.PLUS,
+            TokenType.PLUS_PLUS
+            ))
         {
             let expr = this.parsePreUnary();
             return new UnaryExpr(operator, expr, false);
+        }
+        else
+        if (this.match(TokenType.LESS))
+        {
+            let type = this.parseTypeRef();
+            this.consume(TokenType.GREATER);
+            let expr = this.parsePreUnary();
+            return new TypeCastExpr(type, expr);
         }
 
         return this.parsePostUnary();
@@ -651,24 +665,6 @@ export class Parser
         let tt = this.peek();
         let location = tt.location;
 
-        if (this.match(TokenType.FALSE)) return new BoolLiteral(false, location);
-        if (this.match(TokenType.TRUE)) return new BoolLiteral(true, location);
-        if (this.match(TokenType.NIL)) return new NullLiteral(location);
-        if (this.peekType() == TokenType.NAME)
-            return new NameLiteral(this.advance().lexeme, location);
-
-        if (this.match(TokenType.NUMBER))
-            return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme), location );
-        if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
-            return new StringLiteral(tt.lexeme, tt.type, location);
-
-        if (this.match(TokenType.LEFT_PAREN))
-        {
-            let expr = this.parseExpression();
-            this.consumeEx(`Expect \')\' after expression`, TokenType.RIGHT_PAREN);
-            return new Group(expr, location);
-        }
-
         if (this.match(TokenType.LEFT_BRACKET))
         {
             let values : IExpr[] = [];
@@ -681,16 +677,31 @@ export class Parser
             this.consume(TokenType.RIGHT_BRACKET);
             return new ArrayExpr(values, location);
         }
-
         if (this.match(TokenType.DOT_DOT_DOT))
         {
             return new ExpandExpr( this.parseName(), location );
         }
-
         if (this.peekType() == TokenType.NEW)
         {
             return this.parseNewExpr();
         }
+
+        if (this.match(TokenType.LEFT_PAREN))
+        {
+            let expr = this.parseExpression();
+            this.consumeEx(`Expect \')\' after expression`, TokenType.RIGHT_PAREN);
+            return new Group(expr, location);
+        }
+
+        if (this.match(TokenType.FALSE)) return new BoolLiteral(false, location);
+        if (this.match(TokenType.TRUE)) return new BoolLiteral(true, location);
+        if (this.match(TokenType.NIL)) return new NullLiteral(location);
+        if (this.peekType() == TokenType.NAME)
+            return new NameLiteral(this.advance().lexeme, location);
+        if (this.match(TokenType.NUMBER))
+            return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme), location );
+        if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
+            return new StringLiteral(tt.lexeme, tt.type, location);
 
         throw this.error(this.peek(), 'Invalid expression with ' + this.peekType().lexeme);
     }
@@ -767,7 +778,7 @@ export class Parser
             }
         }
 
-        throw this.error(this.peek(), 'Unexpected token');
+        throw this.error(this.peek(), `Unexpected token ${this.peek().type.name}`);
 
 
         //return this.parseStatement();
