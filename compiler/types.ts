@@ -23,17 +23,15 @@
 import { TokenType } from './tokenizer';
 import { SourceLocation } from './compiler';
 
-export interface IStmt
+export interface INode
 {
     accept<T>( visitor : IVisitor<T> ) : T;
     className(): string;
 }
 
-export interface IExpr
-{
-    accept<T>( visitor : IVisitor<T> ) : T;
-    className(): string;
-}
+export interface IStmt extends INode { }
+
+export interface IExpr extends INode { }
 
 export class Name implements IExpr
 {
@@ -58,8 +56,18 @@ export class Name implements IExpr
         }
         return result;
     }
-    get canonical() : string { if (this.lexemes.length > 0) return this.lexemes[0]; else return ''; }
+    get canonical() : string {
+        if (this.lexemes.length > 0)
+            return this.lexemes[ this.lexemes.length - 1 ];
+        else
+            return '';
+    }
     get qualified() : string { return this.toString(); }
+    append( name : Name ) {
+        for (let s of name.lexemes) this.lexemes.push(s);
+    }
+    push( name : string ) { this.lexemes.push(name); }
+    clone() : Name { return new Name([...this.lexemes], this.location); }
 }
 export class StringLiteral implements IExpr
 {
@@ -282,7 +290,7 @@ export class NewExpr implements IExpr
 	className() : string { return 'NewExpr'; }
 }
 
-export class Accessor
+export class Accessor implements INode
 {
 	values : TokenType[];
 	location : SourceLocation;
@@ -338,7 +346,7 @@ export class NamespaceStmt implements IStmt
 	className() : string { return 'NamespaceStmt'; }
 }
 
-export class NameAndGenerics
+export class NameAndGenerics implements INode
 {
 	name : Name;
 	generics : NameAndGenerics[];
@@ -375,7 +383,7 @@ export class NameAndGenerics
     get canonical() : string { return this.toString(false); }
     get qualified() : string { return this.toString(); }
 }
-export class TypeRef
+export class TypeRef implements INode
 {
 	name : Name;
 	generics : TypeRef[];
@@ -533,7 +541,7 @@ export class WhileStmt implements IStmt
 	className() : string { return 'WhileStmt'; }
 }
 
-export class Parameter
+export class Parameter implements INode
 {
 	name : Name;
 	type : TypeRef;
@@ -574,7 +582,6 @@ export class FunctionStmt implements IStmt
 	body : BlockStmt;
 	accessor : Accessor;
 	property : TokenType = null;
-	nspace : Name = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, accessor : Accessor = null, location : SourceLocation = null )
 	{
@@ -617,7 +624,6 @@ export class ClassStmt implements IStmt
 	implemented : NameAndGenerics[];
 	stmts : IStmt[];
 	accessor : Accessor;
-	nspace : Name = null;
 	location : SourceLocation;
 	constructor( name : NameAndGenerics, extended : NameAndGenerics, implemented : NameAndGenerics[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
@@ -704,7 +710,6 @@ export class VariableStmt implements IStmt
 	init : IExpr;
 	constant : boolean;
 	accessor : Accessor;
-	nspace : Name = null;
 	location : SourceLocation;
 	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, accessor : Accessor = null, location : SourceLocation = null )
 	{
@@ -759,7 +764,7 @@ export class ThrowStmt implements IStmt
 	className() : string { return 'ThrowStmt'; }
 }
 
-export class Unit
+export class Unit implements INode
 {
 	fileName : string = '';
 	stmts : IStmt[];
@@ -864,5 +869,95 @@ export class Visitor implements IVisitor<void> {
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}
 	visitUnit( target : Unit) : void {}
+}
+
+export abstract class Dispatcher<T> {
+	protected abstract visitName( target : Name) : T;
+	protected abstract visitStringLiteral( target : StringLiteral) : T;
+	protected abstract visitNumberLiteral( target : NumberLiteral) : T;
+	protected abstract visitBoolLiteral( target : BoolLiteral) : T;
+	protected abstract visitNameLiteral( target : NameLiteral) : T;
+	protected abstract visitGroup( target : Group) : T;
+	protected abstract visitNullLiteral( target : NullLiteral) : T;
+	protected abstract visitLogicalExpr( target : LogicalExpr) : T;
+	protected abstract visitBinaryExpr( target : BinaryExpr) : T;
+	protected abstract visitAssignExpr( target : AssignExpr) : T;
+	protected abstract visitUnaryExpr( target : UnaryExpr) : T;
+	protected abstract visitCallExpr( target : CallExpr) : T;
+	protected abstract visitArrayExpr( target : ArrayExpr) : T;
+	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : T;
+	protected abstract visitFieldExpr( target : FieldExpr) : T;
+	protected abstract visitNewExpr( target : NewExpr) : T;
+	protected abstract visitAccessor( target : Accessor) : T;
+	protected abstract visitBlockStmt( target : BlockStmt) : T;
+	protected abstract visitReturnStmt( target : ReturnStmt) : T;
+	protected abstract visitNamespaceStmt( target : NamespaceStmt) : T;
+	protected abstract visitNameAndGenerics( target : NameAndGenerics) : T;
+	protected abstract visitTypeRef( target : TypeRef) : T;
+	protected abstract visitCaseStmt( target : CaseStmt) : T;
+	protected abstract visitSwitchStmt( target : SwitchStmt) : T;
+	protected abstract visitIfStmt( target : IfStmt) : T;
+	protected abstract visitForOfStmt( target : ForOfStmt) : T;
+	protected abstract visitForStmt( target : ForStmt) : T;
+	protected abstract visitDoWhileStmt( target : DoWhileStmt) : T;
+	protected abstract visitWhileStmt( target : WhileStmt) : T;
+	protected abstract visitParameter( target : Parameter) : T;
+	protected abstract visitExpandExpr( target : ExpandExpr) : T;
+	protected abstract visitFunctionStmt( target : FunctionStmt) : T;
+	protected abstract visitClassStmt( target : ClassStmt) : T;
+	protected abstract visitExprStmt( target : ExprStmt) : T;
+	protected abstract visitBreakStmt( target : BreakStmt) : T;
+	protected abstract visitContinueStmt( target : ContinueStmt) : T;
+	protected abstract visitImportStmt( target : ImportStmt) : T;
+	protected abstract visitVariableStmt( target : VariableStmt) : T;
+	protected abstract visitTryCatchStmt( target : TryCatchStmt) : T;
+	protected abstract visitThrowStmt( target : ThrowStmt) : T;
+	protected abstract visitUnit( target : Unit) : T;
+	protected dispatch( node : INode ) : T {
+		switch (node.className()) {
+			case 'Name': return this.visitName(<Name>node);
+			case 'StringLiteral': return this.visitStringLiteral(<StringLiteral>node);
+			case 'NumberLiteral': return this.visitNumberLiteral(<NumberLiteral>node);
+			case 'BoolLiteral': return this.visitBoolLiteral(<BoolLiteral>node);
+			case 'NameLiteral': return this.visitNameLiteral(<NameLiteral>node);
+			case 'Group': return this.visitGroup(<Group>node);
+			case 'NullLiteral': return this.visitNullLiteral(<NullLiteral>node);
+			case 'LogicalExpr': return this.visitLogicalExpr(<LogicalExpr>node);
+			case 'BinaryExpr': return this.visitBinaryExpr(<BinaryExpr>node);
+			case 'AssignExpr': return this.visitAssignExpr(<AssignExpr>node);
+			case 'UnaryExpr': return this.visitUnaryExpr(<UnaryExpr>node);
+			case 'CallExpr': return this.visitCallExpr(<CallExpr>node);
+			case 'ArrayExpr': return this.visitArrayExpr(<ArrayExpr>node);
+			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
+			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
+			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
+			case 'Accessor': return this.visitAccessor(<Accessor>node);
+			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
+			case 'ReturnStmt': return this.visitReturnStmt(<ReturnStmt>node);
+			case 'NamespaceStmt': return this.visitNamespaceStmt(<NamespaceStmt>node);
+			case 'NameAndGenerics': return this.visitNameAndGenerics(<NameAndGenerics>node);
+			case 'TypeRef': return this.visitTypeRef(<TypeRef>node);
+			case 'CaseStmt': return this.visitCaseStmt(<CaseStmt>node);
+			case 'SwitchStmt': return this.visitSwitchStmt(<SwitchStmt>node);
+			case 'IfStmt': return this.visitIfStmt(<IfStmt>node);
+			case 'ForOfStmt': return this.visitForOfStmt(<ForOfStmt>node);
+			case 'ForStmt': return this.visitForStmt(<ForStmt>node);
+			case 'DoWhileStmt': return this.visitDoWhileStmt(<DoWhileStmt>node);
+			case 'WhileStmt': return this.visitWhileStmt(<WhileStmt>node);
+			case 'Parameter': return this.visitParameter(<Parameter>node);
+			case 'ExpandExpr': return this.visitExpandExpr(<ExpandExpr>node);
+			case 'FunctionStmt': return this.visitFunctionStmt(<FunctionStmt>node);
+			case 'ClassStmt': return this.visitClassStmt(<ClassStmt>node);
+			case 'ExprStmt': return this.visitExprStmt(<ExprStmt>node);
+			case 'BreakStmt': return this.visitBreakStmt(<BreakStmt>node);
+			case 'ContinueStmt': return this.visitContinueStmt(<ContinueStmt>node);
+			case 'ImportStmt': return this.visitImportStmt(<ImportStmt>node);
+			case 'VariableStmt': return this.visitVariableStmt(<VariableStmt>node);
+			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
+			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'Unit': return this.visitUnit(<Unit>node);
+		}
+		throw Error("Invalid node type");
+	}
 }
 

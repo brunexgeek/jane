@@ -1,7 +1,7 @@
 import { IStmt, Unit, Name, ClassStmt } from './types';
 import { readfile, dirname, realpath } from './io';
 import { Scanner, Tokenizer } from './tokenizer';
-import { Parser } from './parser';
+import { Parser, NodePromoter } from './parser';
 
 export class SourceLocation
 {
@@ -56,24 +56,9 @@ export class CompilationContext
 
         let result : string[] = [];
         for (let name of this.namespaceStack)
-            result.concat(name.lexemes);
+            result = result.concat(name.lexemes);
 
         return new Name(result);
-    }
-
-    get currentNamespaceString() : string
-    {
-        if (this.namespaceStack.length == 0) return '';
-
-        let result : string = '';
-        let first = true;
-        for (let name of this.namespaceStack)
-        {
-            if (!first) result += '.';
-            first = false;
-            result += name.lexemes;
-        }
-        return result;
     }
 }
 
@@ -119,8 +104,8 @@ export class Compiler
             }
         }
 
-        //let typeuid = new TypeUID(this.ctx);
-        //typeuid.process(unit);
+        let prom = new NodePromoter();
+        prom.process(unit);
     }
 
 }

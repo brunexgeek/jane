@@ -58,7 +58,8 @@ import {
     Unit,
     ImportStmt,
     NameAndGenerics,
-    ForStmt} from './types';
+    ForStmt,
+    Dispatcher} from './types';
 
 import {
     TokenType,
@@ -363,7 +364,8 @@ export class Parser
     parseFunction( accessor : Accessor ) : FunctionStmt
     {
         this.consumeEx('Missing function keyword', TokenType.FUNCTION);
-        let name = this.consumeEx('Missing function name', TokenType.NAME);
+        let name = this.ctx.currentNamespace;
+        name.push( this.consumeEx('Missing function name', TokenType.NAME).lexeme );
 
         let generics : Name[] = [];
         if (this.match(TokenType.LESS))
@@ -395,9 +397,7 @@ export class Parser
 
         let block = this.parseBlock();
 
-        let result = new FunctionStmt(new Name([name.lexeme]), generics, args, type, block, accessor, name.location);
-        result.nspace = this.ctx.currentNamespace;
-        return result;
+        return new FunctionStmt(name, generics, args, type, block, accessor, name.location);
     }
 
     parseName( qualified : boolean = false ) : Name
@@ -732,13 +732,6 @@ export class Parser
             return this.parseStatement();
     }
 
-    qualifyName( name : Name ) : string
-    {
-        let qname = this.ctx.currentNamespaceString;
-        if (qname.length > 0) qname += '.';
-        return qname += name.toString();
-    }
-
     // used by top-level and namespaces
     parseDeclationStmt( accessor : Accessor ) : IStmt
     {
@@ -749,15 +742,14 @@ export class Parser
             case TokenType.CONST:
             {
                 let stmt = this.parseVariableStmt(accessor);
-                let qname = this.qualifyName(stmt.name);
-                this.unit.variables.set(qname, stmt);
+                this.unit.variables.set(stmt.name.qualified, stmt);
                 return stmt;
             }
             case TokenType.FUNCTION:
             {
                 let stmt = this.parseFunction(accessor);
-                let qname = this.qualifyName(stmt.name);
-                this.unit.functions.set(qname, stmt);
+                console.error(`Adding function ${stmt.name.qualified}`);
+                this.unit.functions.set(stmt.name.qualified, stmt);
                 return stmt;
             }
             /*case TokenType.CLASS:
@@ -850,10 +842,7 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        let result = new ClassStmt(name, extended, implemented, stmts, accessor);
-        result.nspace = this.ctx.currentNamespace;
-
-        return result;
+        return new ClassStmt(name, extended, implemented, stmts, accessor);
     }
 
     parseMethod( name : Token ) : FunctionStmt
@@ -1068,7 +1057,8 @@ export class Parser
 
     parseProperty( tname : Token, accessor : Accessor ) : VariableStmt
     {
-        let name = new Name([tname.lexeme]);
+        let name = this.ctx.currentNamespace;
+        name.push(tname.lexeme);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.match(TokenType.COLON))
@@ -1081,7 +1071,6 @@ export class Parser
         this.consume(TokenType.SEMICOLON);
 
         let result = new VariableStmt(name, type, value, false, accessor);
-        result.nspace = this.ctx.currentNamespace;
         result.location = tname.location;
         return result;
     }
@@ -1093,7 +1082,8 @@ export class Parser
         constant = this.advance().type == TokenType.CONST;
         let tname = this.consumeEx('Missing variable name', TokenType.NAME);
 
-        let name = new Name([tname.lexeme]);
+        let name = this.ctx.currentNamespace;
+        name.push(tname.lexeme);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.match(TokenType.COLON))
@@ -1105,9 +1095,7 @@ export class Parser
 
         this.consume(TokenType.SEMICOLON);
 
-        let result = new VariableStmt(name, type, value, constant, accessor, tname.location);
-        result.nspace = this.ctx.currentNamespace;
-        return result;
+        return new VariableStmt(name, type, value, constant, accessor, tname.location);
     }
 
     parseThrow() : IStmt
@@ -1143,5 +1131,52 @@ export class Parser
             this.error(tt, 'Either catch or finally is required');
 
         return new TryCatchStmt(block, variable, cblock, fblock);
+    }
+}
+
+export class NodePromoter
+{
+    protected visitNamespaceStmt(target: NamespaceStmt): void {
+        throw new Error("Method not implemented.");
+    }
+
+    static readonly parent = new NameAndGenerics(new Name(['Callable'], null), null, null);
+
+    protected promote( target : FunctionStmt ) : ClassStmt
+    {
+        // TODO: remove 'static' accessor from 'target.accessor'
+        console.error(`Promoting function ${target.name.qualified}`);
+        let name = new NameAndGenerics(new Name([`__fn_${target.name.canonical}__`]), null, target.location);
+        target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
+        let clazz = new ClassStmt(name, NodePromoter.parent, null, [target], target.accessor, target.location);
+        target.accessor = new Accessor([TokenType.STATIC]);
+        return clazz;
+    }
+
+    protected processStatements( unit : Unit, stmts : IStmt[] ): void {
+        for (let i = 0; i < stmts.length; ++i)
+        {
+            if (stmts[i] instanceof FunctionStmt)
+            {
+                let fun = <FunctionStmt> stmts[i];
+                let name = fun.name.clone();
+                console.error(`Deleting ${name}`);
+                stmts[i] = this.promote(fun);
+                let clazz = <ClassStmt> stmts[i];
+                unit.types.set(clazz.name.qualified, clazz);
+                unit.functions.delete(name.qualified);
+                unit.variables.set( name.qualified,
+                    new VariableStmt(name, new TypeRef(clazz.name.name, null, 0, true, null),
+                        new CallExpr( new FieldExpr( new NameLiteral(clazz.name.qualified), new Name(['call'])), []), false) );
+            }
+            else
+            if (stmts[i] instanceof NamespaceStmt)
+                this.processStatements(unit, (<NamespaceStmt>stmts[i]).stmts);
+        }
+    }
+
+    process( unit : Unit )
+    {
+        this.processStatements(unit, unit.stmts);
     }
 }

@@ -24,11 +24,11 @@ types = []
 def printType(name, fields, parent = None, keep_open = False ):
     types.append(name)
     sys.stdout.write('export class ' + name)
-    if parent != None:
-        if parent.startswith('I'):
-            sys.stdout.write(' implements ' + parent)
-        else:
-            sys.stdout.write(' extends ' + parent)
+    if parent == None: parent = 'INode';
+    if parent.startswith('I'):
+        sys.stdout.write(' implements ' + parent)
+    else:
+        sys.stdout.write(' extends ' + parent)
     sys.stdout.write('\n{\n')
 
     fields.append( {'name' : 'location', 'type' : 'SourceLocation', 'ctor' : True, 'init' : 'null'} )
@@ -100,6 +100,17 @@ def printVisitor():
         sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void {}\n')
     sys.stdout.write('}\n\n')
 
+def printDispatcher():
+    # class
+    sys.stdout.write('''export abstract class Dispatcher<T> {\n''')
+    for t in types:
+        sys.stdout.write('\tprotected abstract visit' + t + '( target : ' + t + ') : T;\n')
+    sys.stdout.write('\tprotected dispatch( node : INode ) : T {\n\t\tswitch (node.className()) {\n')
+    for t in types:
+        sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
+    sys.stdout.write('\t\t}\n\t\tthrow Error("Invalid node type");\n\t}\n}\n\n')
+
+
 sys.stdout.write('''
 /*
  *   Copyright 2020 Bruno Ribeiro
@@ -125,21 +136,21 @@ sys.stdout.write('''
 import { TokenType } from './tokenizer';
 import { SourceLocation } from './compiler';
 
-export interface IStmt
+export interface INode
 {
     accept<T>( visitor : IVisitor<T> ) : T;
     className(): string;
 }
 
-export interface IExpr
-{
-    accept<T>( visitor : IVisitor<T> ) : T;
-    className(): string;
-}
+export interface IStmt extends INode { }
+
+export interface IExpr extends INode { }
 
 ''')
 
-printType('Name', [{'name' : 'lexemes', 'type' : 'string[]'}], 'IExpr', True)
+printType('Name', [
+    {'name' : 'lexemes', 'type' : 'string[]'}
+    ], 'IExpr', True)
 sys.stdout.write('''\ttoString() : string
     {
         let result = '';
@@ -152,8 +163,18 @@ sys.stdout.write('''\ttoString() : string
         }
         return result;
     }
-    get canonical() : string { if (this.lexemes.length > 0) return this.lexemes[0]; else return ''; }
+    get canonical() : string {
+        if (this.lexemes.length > 0)
+            return this.lexemes[ this.lexemes.length - 1 ];
+        else
+            return '';
+    }
     get qualified() : string { return this.toString(); }
+    append( name : Name ) {
+        for (let s of name.lexemes) this.lexemes.push(s);
+    }
+    push( name : string ) { this.lexemes.push(name); }
+    clone() : Name { return new Name([...this.lexemes], this.location); }
 }
 ''')
 
@@ -369,7 +390,6 @@ printType('FunctionStmt', [
     {'name' : 'body', 'type' : 'BlockStmt'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
-    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''
     toString(): string
@@ -401,7 +421,6 @@ printType('ClassStmt', [
     {'name' : 'implemented', 'type' : 'NameAndGenerics[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
-    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''toString() : string
     {
@@ -441,7 +460,6 @@ printType('VariableStmt', [
     {'name' : 'init', 'type' : 'IExpr'},
     {'name' : 'constant', 'type' : 'boolean'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
-    {'name' : 'nspace', 'type' : 'Name', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''
     toString() : string
@@ -476,3 +494,5 @@ printType('Unit', [
     ])
 
 printVisitor()
+
+printDispatcher()
