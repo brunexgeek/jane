@@ -70,6 +70,7 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor<void>
 {
+
     visitTypeCastExpr(target: TypeCastExpr): void
     {
         let content = this.field('type', target.type.toString());
@@ -631,6 +632,24 @@ export class SvgPrinter implements IVisitor<void>
     visitVariableStmt(target: VariableStmt): void {
         let content = this.field('name', this.nameToString(target.name));
         content += this.field('constant', target.constant.toString());
+        content += this.field('type', this.typerefToString(target.type));
+        if (target.accessor)
+            content += this.field('accessor', this.accessorToString(target.accessor), true);
+        let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
+
+        if (target.init)
+        {
+            this.label = 'init';
+            this.parent = id;
+            target.init.accept(this);
+        }
+
+        this.label = '<next>';
+        this.parent = id;
+    }
+
+    visitPropertyStmt(target: import("./types").PropertyStmt): void {
+        let content = this.field('name', this.nameToString(target.name));
         content += this.field('type', this.typerefToString(target.type));
         if (target.accessor)
             content += this.field('accessor', this.accessorToString(target.accessor), true);

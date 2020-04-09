@@ -68,6 +68,11 @@ export class Name implements IExpr
     }
     push( name : string ) { this.lexemes.push(name); }
     clone() : Name { return new Name([...this.lexemes], this.location); }
+    get parent() : Name {
+        let name = this.clone();
+        name.lexemes.pop();
+        return name;
+    }
 }
 export class StringLiteral implements IExpr
 {
@@ -316,9 +321,8 @@ export class Accessor implements INode
 	}
 	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitAccessor(this); }
 	className() : string { return 'Accessor'; }
-}
-
-export class BlockStmt implements IStmt
+isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+}export class BlockStmt implements IStmt
 {
 	stmts : IStmt[];
 	location : SourceLocation;
@@ -747,6 +751,31 @@ export class VariableStmt implements IStmt
         return result;
     }
 }
+export class PropertyStmt implements IStmt
+{
+	name : Name;
+	type : TypeRef;
+	init : IExpr;
+	accessor : Accessor;
+	location : SourceLocation;
+	constructor( name : Name, type : TypeRef, init : IExpr, accessor : Accessor = null, location : SourceLocation = null )
+	{
+		this.name = name;
+		this.type = type;
+		this.init = init;
+		this.accessor = accessor;
+		this.location = location;
+	}
+	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitPropertyStmt(this); }
+	className() : string { return 'PropertyStmt'; }
+
+    toString() : string
+    {
+        let result = this.name.toString();
+        if (this.type) result += ` : ${this.type.toString()}`;
+        return result;
+    }
+}
 export class TryCatchStmt implements IStmt
 {
 	block : IStmt;
@@ -838,6 +867,7 @@ export interface IVisitor<T>{
 	visitContinueStmt( target : ContinueStmt) : T;
 	visitImportStmt( target : ImportStmt) : T;
 	visitVariableStmt( target : VariableStmt) : T;
+	visitPropertyStmt( target : PropertyStmt) : T;
 	visitTryCatchStmt( target : TryCatchStmt) : T;
 	visitThrowStmt( target : ThrowStmt) : T;
 	visitUnit( target : Unit) : T;
@@ -883,6 +913,7 @@ export class Visitor implements IVisitor<void> {
 	visitContinueStmt( target : ContinueStmt) : void {}
 	visitImportStmt( target : ImportStmt) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
+	visitPropertyStmt( target : PropertyStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}
 	visitUnit( target : Unit) : void {}
@@ -928,10 +959,12 @@ export abstract class Dispatcher<T> {
 	protected abstract visitContinueStmt( target : ContinueStmt) : T;
 	protected abstract visitImportStmt( target : ImportStmt) : T;
 	protected abstract visitVariableStmt( target : VariableStmt) : T;
+	protected abstract visitPropertyStmt( target : PropertyStmt) : T;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : T;
 	protected abstract visitThrowStmt( target : ThrowStmt) : T;
 	protected abstract visitUnit( target : Unit) : T;
 	protected dispatch( node : INode ) : T {
+		if (!node) return;
 		switch (node.className()) {
 			case 'Name': return this.visitName(<Name>node);
 			case 'StringLiteral': return this.visitStringLiteral(<StringLiteral>node);
@@ -972,6 +1005,7 @@ export abstract class Dispatcher<T> {
 			case 'ContinueStmt': return this.visitContinueStmt(<ContinueStmt>node);
 			case 'ImportStmt': return this.visitImportStmt(<ImportStmt>node);
 			case 'VariableStmt': return this.visitVariableStmt(<VariableStmt>node);
+			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);

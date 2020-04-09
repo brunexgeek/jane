@@ -60,7 +60,8 @@ import {
     NameAndGenerics,
     ForStmt,
     Dispatcher,
-    TypeCastExpr} from './types';
+    TypeCastExpr,
+    PropertyStmt} from './types';
 
 import {
     TokenType,
@@ -152,7 +153,7 @@ export class Parser
         if (this.peekType() == TokenType.NAME) found = this.peek().lexeme;
 
         if (message && message.length > 0)
-            throw this.error(this.peek(), message);
+            throw this.error(this.peek().location, message);
 
         let names = '';
         let first = true;
@@ -162,7 +163,7 @@ export class Parser
             first = false;
             names += `'${tt.lexeme}'`;
         }
-        throw this.error(this.peek(), `Expected ${names}, but found '${found}'`);
+        throw this.error(this.peek().location, `Expected ${names}, but found '${found}'`);
     }
 
     match( ...type : TokenType[] ) : boolean
@@ -183,10 +184,10 @@ export class Parser
         return this.peekType() == TokenType.EOF;
     }
 
-    error( token : Token, message : string ) : ParseError
+    error( location : SourceLocation, message : string ) : ParseError
     {
-        let result = new ParseError(message, token.location);
-        this.ctx.listener.onError(token.location, result);
+        let result = new ParseError(message, location);
+        this.ctx.listener.onError(location, result);
         return result;
     }
 
@@ -262,7 +263,7 @@ export class Parser
 
         let tt = this.peek();
         if (tt.type != TokenType.SSTRING && tt.type != TokenType.DSTRING && tt.type != TokenType.TSTRING)
-            throw this.error(tt, 'String literal expected');
+            throw this.error(tt.location, 'String literal expected');
         this.advance();
         this.consume(TokenType.SEMICOLON);
 
@@ -360,7 +361,7 @@ export class Parser
 
         if (type == null && value == null)
         {
-            throw this.error(name, 'Missing argument type');
+            throw this.error(name.location, 'Missing argument type');
         }
 
         return new Parameter( new Name([name.lexeme]), type, value, vararg, name.location);
@@ -488,7 +489,7 @@ export class Parser
                 let right = this.parseAssignment();
                 if (expr instanceof NameLiteral || expr instanceof FieldExpr || expr instanceof ArrayAccessExpr)
                     return expr = new AssignExpr(expr, operator, right, location);
-                throw this.error(tt, 'Invalid assignment l-value');
+                throw this.error(tt.location, 'Invalid assignment l-value');
             }
         }
 
@@ -703,7 +704,7 @@ export class Parser
         if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
             return new StringLiteral(tt.lexeme, tt.type, location);
 
-        throw this.error(this.peek(), 'Invalid expression with ' + this.peekType().lexeme);
+        throw this.error(this.peek().location, 'Invalid expression with ' + this.peekType().lexeme);
     }
 
     parseNewExpr() : IExpr
@@ -778,7 +779,7 @@ export class Parser
             }
         }
 
-        throw this.error(this.peek(), `Unexpected token ${this.peek().type.name}`);
+        throw this.error(this.peek().location, `Unexpected token ${this.peek().type.name}`);
 
 
         //return this.parseStatement();
@@ -836,31 +837,34 @@ export class Parser
 
             if (this.peekType() == TokenType.NAME)
             {
-                let name = this.advance();
+                let tname = this.advance();
+                let temp = name.name.clone();
+                temp.lexemes.push(tname.lexeme);
+                temp.location = tname.location;
                 if (this.peekType() == TokenType.LEFT_PAREN || this.peekType() == TokenType.LESS)
                 {
-                    let func = this.parseMethod(name);
+                    let func = this.parseMethod(temp);
                     func.accessor = accessor;
                     if (property) func.property = property.type;
                     stmts.push(func);
                 }
                 else
                 {
-                    if (property) this.error(property, 'Property or signature expected');
-                    let vari = this.parseProperty(name, accessor);
+                    if (property) this.error(property.location, 'Property or signature expected');
+                    let vari = this.parseProperty(temp, accessor);
                     vari.accessor = accessor;
                     stmts.push(vari);
                 }
             }
             else
-                throw this.error(this.peek(), 'Invalid token ' + this.peekType().name);
+                throw this.error(this.peek().location, 'Invalid token ' + this.peekType().name);
         }
         this.consume(TokenType.RIGHT_BRACE);
 
         return new ClassStmt(name, extended, implemented, stmts, accessor);
     }
 
-    parseMethod( name : Token ) : FunctionStmt
+    parseMethod( name : Name ) : FunctionStmt
     {
         let generics : Name[] = [];
         if (this.match(TokenType.LESS))
@@ -896,7 +900,7 @@ export class Parser
         else
             this.consume(TokenType.SEMICOLON);
 
-        return new FunctionStmt(new Name([name.lexeme]), generics, args, type, block);
+        return new FunctionStmt(name, generics, args, type, block);
     }
 
     parseAccessor() : Accessor
@@ -930,7 +934,7 @@ export class Parser
         {
             case TokenType.LET:
             case TokenType.CONST:
-                throw this.error(this.peek(), `'${cur.lexeme}' declarations can only be declared inside a block.`);
+                throw this.error(this.peek().location, `'${cur.lexeme}' declarations can only be declared inside a block.`);
             case TokenType.IF:
                 return this.parseIfThenElse();
             case TokenType.RETURN:
@@ -1059,8 +1063,8 @@ export class Parser
         {
             // for (variable of iterable) statement
             if (!init || !(init instanceof VariableStmt))
-                throw this.error(this.peek(), 'Missing variable declaration');
-            if (init.init) throw this.error(this.peek(), 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
+                throw this.error(this.peek().location, 'Missing variable declaration');
+            if (init.init) throw this.error(this.peek().location, 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
             this.consume(TokenType.OF);
             expr = this.parseExpression();
             this.consume(TokenType.RIGHT_PAREN);
@@ -1068,13 +1072,11 @@ export class Parser
             return new ForOfStmt(<VariableStmt>init, expr, stmt);
         }
 
-        throw this.error(this.peek(), `Invalid for statement ${this.peek().lexeme}`);
+        throw this.error(this.peek().location, `Invalid for statement ${this.peek().lexeme}`);
     }
 
-    parseProperty( tname : Token, accessor : Accessor ) : VariableStmt
+    parseProperty( name : Name, accessor : Accessor ) : PropertyStmt
     {
-        let name = this.ctx.currentNamespace;
-        name.push(tname.lexeme);
         let type : TypeRef = null;
         let value : IExpr = null;
         if (this.match(TokenType.COLON))
@@ -1083,12 +1085,10 @@ export class Parser
             value = this.parseExpression();
 
         if (type == null && value == null)
-            throw this.error(tname, 'Missing argument type');
+            throw this.error(name.location, 'Missing argument type');
         this.consume(TokenType.SEMICOLON);
 
-        let result = new VariableStmt(name, type, value, false, accessor);
-        result.location = tname.location;
-        return result;
+        return new PropertyStmt(name, type, value, accessor, name.location);
     }
 
     parseVariableStmt( accessor : Accessor ) : VariableStmt
@@ -1107,7 +1107,7 @@ export class Parser
         if (this.match(TokenType.EQUAL))
             value = this.parseExpression();
         if (type == null && value == null)
-            throw this.error(tname, 'Missing argument type');
+            throw this.error(tname.location, 'Missing argument type');
 
         this.consume(TokenType.SEMICOLON);
 
@@ -1144,7 +1144,7 @@ export class Parser
             fblock = this.parseBlock();
 
         if (!cblock && !fblock)
-            this.error(tt, 'Either catch or finally is required');
+            this.error(tt.location, 'Either catch or finally is required');
 
         return new TryCatchStmt(block, variable, cblock, fblock);
     }
@@ -1162,7 +1162,10 @@ export class NodePromoter
     {
         // TODO: remove 'static' accessor from 'target.accessor'
         Logger.writeln(`Promoting function ${target.name.qualified}`);
-        let name = new NameAndGenerics(new Name([`__fn_${target.name.canonical}__`]), null, target.location);
+
+        let temp = target.name.clone();
+        temp.lexemes[ temp.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
+        let name = new NameAndGenerics(temp, null, target.location);
         target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
         let clazz = new ClassStmt(name, NodePromoter.parent, null, [target], target.accessor, target.location);
         target.accessor = new Accessor([TokenType.STATIC]);

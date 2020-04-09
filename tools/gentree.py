@@ -105,7 +105,7 @@ def printDispatcher():
     sys.stdout.write('''export abstract class Dispatcher<T> {\n''')
     for t in types:
         sys.stdout.write('\tprotected abstract visit' + t + '( target : ' + t + ') : T;\n')
-    sys.stdout.write('\tprotected dispatch( node : INode ) : T {\n\t\tswitch (node.className()) {\n')
+    sys.stdout.write('\tprotected dispatch( node : INode ) : T {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
     for t in types:
         sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
     sys.stdout.write('\t\t}\n\t\tthrow Error("Invalid node type");\n\t}\n}\n\n')
@@ -175,6 +175,11 @@ sys.stdout.write('''\ttoString() : string
     }
     push( name : string ) { this.lexemes.push(name); }
     clone() : Name { return new Name([...this.lexemes], this.location); }
+    get parent() : Name {
+        let name = this.clone();
+        name.lexemes.pop();
+        return name;
+    }
 }
 ''')
 
@@ -253,7 +258,9 @@ printType('NewExpr', [
 
 printType('Accessor', [
     {'name' : 'values', 'type' : 'TokenType[]'}
-    ])
+    ], None, True)
+sys.stdout.write('''isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+}''')
 
 printType('BlockStmt', [
     {'name' : 'stmts', 'type' : 'IStmt[]'}
@@ -472,6 +479,22 @@ sys.stdout.write('''
         let result : string;
         if (this.constant) result = 'const '; else result = 'let ';
         result += this.name.toString();
+        if (this.type) result += ` : ${this.type.toString()}`;
+        return result;
+    }
+}
+''')
+
+printType('PropertyStmt', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'type', 'type' : 'TypeRef'},
+    {'name' : 'init', 'type' : 'IExpr'},
+    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    ], 'IStmt', True)
+sys.stdout.write('''
+    toString() : string
+    {
+        let result = this.name.toString();
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
