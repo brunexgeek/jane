@@ -37,3 +37,24 @@ export class Logger
         return this.content.join('\n');
     }
 }
+
+export class StringBuffer
+{
+    content : string[] = [''];
+
+    write( text : string, lbreak : boolean = false )
+    {
+        this.content[ this.content.length - 1 ] += text;
+        if (lbreak) this.content.push('');
+    }
+
+    writeln( text : string )
+    {
+        this.write(text, true);
+    }
+
+    toString() : string
+    {
+        return this.content.join('\n');
+    }
+}

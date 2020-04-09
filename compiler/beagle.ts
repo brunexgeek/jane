@@ -29,6 +29,7 @@ import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
 import { Logger } from './utils';
+import { PortableGenerator } from './codegen';
 
 class MyListener implements CompilationListener
 {
@@ -128,6 +129,13 @@ else*/
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();
 		visitor.visitUnit(comp.ctx.units.values().next().value);
+	}
+	else
+	if (mode == 'generate' && comp.ctx.units.size > 0)
+	{
+		let codegen = new PortableGenerator(comp.ctx);
+		let code = codegen.generate(comp.ctx.units.values().next().value);
+		console.log(code);
 	}
 	console.error(Logger.toString());
 }
