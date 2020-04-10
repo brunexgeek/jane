@@ -92,6 +92,7 @@ export class Parser
     private stack : Token[] = [];
     private unit : Unit = null;
     private hasError = false;
+    private hasAborted = false;
 
     constructor( tok : Tokenizer, ctx : CompilationContext )
     {
@@ -187,7 +188,8 @@ export class Parser
     error( location : SourceLocation, message : string ) : ParseError
     {
         let result = new ParseError(message, location);
-        this.ctx.listener.onError(location, result);
+        this.hasAborted = !this.ctx.listener.onError(location, result);
+        if (this.hasAborted) throw result;
         return result;
     }
 
@@ -234,6 +236,7 @@ export class Parser
                 Logger.writeln(error.toString());
                 Logger.writeln(error.stack);
                 this.hasError = true;
+                if (this.hasAborted) return null;
                 this.synchronize();
             }
         } while (this.peekType() != TokenType.EOF);
@@ -332,6 +335,7 @@ export class Parser
                 Logger.writeln(error.toString());
                 Logger.writeln(error.stack);
                 this.hasError = true;
+                if (this.hasAborted) throw error;
                 this.synchronize();
             }
         } while (!this.match(TokenType.RIGHT_BRACE));

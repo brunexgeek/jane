@@ -298,6 +298,7 @@ export class Tokenizer
                 case '`':
                     return this.string();
                 case '|':
+                    if (this.scanner.match('|')) return this.token(TokenType.OR);
                     return this.token(TokenType.PIPE);
                 case '?':
                     return this.token(TokenType.QUESTION);
@@ -311,9 +312,6 @@ export class Tokenizer
                     return this.token(TokenType.GREATER);
                 case '&':
                     if (this.scanner.match('&')) return this.token(TokenType.AND);
-                    break;
-                case '|':
-                    if (this.scanner.match('|')) return this.token(TokenType.OR);
                     break;
                 case '0':
                 case '1':
