@@ -40,11 +40,31 @@ export class Logger
 
 export class StringBuffer
 {
-    content : string[] = [''];
+    private content : string[] = [''];
+    private indentation : number = 0;
 
     write( text : string, lbreak : boolean = false )
     {
-        this.content[ this.content.length - 1 ] += text;
+        let index = this.content.length - 1;
+
+        if (this.indentation > 0)
+        {
+            let temp = '    '.repeat(this.indentation);
+            if (this.content[index].length == 0)
+                this.content[index] += temp;
+            for (let c of text)
+            {
+                if (c == '\n')
+                {
+                    this.content[index] += '\n';
+                    this.content[index] += temp;
+                }
+                else
+                this.content[index] += c;
+            }
+        }
+        else
+            this.content[index] += text;
         if (lbreak) this.content.push('');
     }
 
@@ -56,5 +76,16 @@ export class StringBuffer
     toString() : string
     {
         return this.content.join('\n');
+    }
+
+    indent() : void
+    {
+        this.indentation++;
+    }
+
+    dedent() : void
+    {
+        this.indentation--;
+        if (this.indentation < 0) this.indentation = 0;
     }
 }

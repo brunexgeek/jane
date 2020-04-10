@@ -41,7 +41,7 @@ class MyListener implements CompilationListener
 		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
 		Logger.writeln(error.stack);
 		//process.exit(1);
-		return true;
+		return false;
 	}
 
 	onWarning(location: SourceLocation, message: string): boolean {

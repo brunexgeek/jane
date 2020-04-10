@@ -19,105 +19,236 @@ export class PortableGenerator extends Dispatcher<void>
         this.writeln(`${this.nativeType(target.type)} ${target.name.canonical};`);
     }
 
-    protected visitName(target: Name): void {
-        throw new Error("Method not implemented.");
+    protected visitName(target: Name): void
+    {
     }
-    protected visitStringLiteral(target: StringLiteral): void {
-        throw new Error("Method not implemented.");
+
+    protected visitStringLiteral(target: StringLiteral): void
+    {
+        this.write(`"${target.value}"`);
     }
-    protected visitNumberLiteral(target: NumberLiteral): void {
-        throw new Error("Method not implemented.");
+
+    protected visitNumberLiteral(target: NumberLiteral): void
+    {
+        this.write(target.value);
     }
-    protected visitBoolLiteral(target: BoolLiteral): void {
-        throw new Error("Method not implemented.");
+
+    protected visitBoolLiteral(target: BoolLiteral): void
+    {
+        if (target.converted)
+            this.write('BGL_TRUE');
+        else
+            this.write('BGL_FALSE');
     }
-    protected visitNameLiteral(target: NameLiteral): void {
-        throw new Error("Method not implemented.");
+
+    protected visitNameLiteral(target: NameLiteral): void
+    {
+        if (target.value == 'this')
+            this.write('thisptr__');
+        else
+            this.write(target.value);
     }
-    protected visitGroup(target: Group): void {
-        throw new Error("Method not implemented.");
+    protected visitGroup(target: Group): void
+    {
+        this.write('(');
+        this.dispatch(target.expr);
+        this.write(')');
     }
-    protected visitNullLiteral(target: NullLiteral): void {
-        throw new Error("Method not implemented.");
+
+    protected visitNullLiteral(target: NullLiteral): void
+    {
+        this.write('NULL');
     }
-    protected visitLogicalExpr(target: LogicalExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitLogicalExpr(target: LogicalExpr): void
+    {
+        this.dispatch(target.left);
+        this.write(target.oper.lexeme);
+        this.dispatch(target.right);
     }
-    protected visitBinaryExpr(target: BinaryExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitBinaryExpr(target: BinaryExpr): void
+    {
+        this.dispatch(target.left);
+        this.write(target.oper.lexeme);
+        this.dispatch(target.right);
     }
-    protected visitAssignExpr(target: AssignExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitAssignExpr(target: AssignExpr): void
+    {
+        this.dispatch(target.left);
+        this.write(target.oper.lexeme);
+        this.dispatch(target.right);
     }
-    protected visitUnaryExpr(target: UnaryExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitUnaryExpr(target: UnaryExpr): void
+    {
+        if (!target.post)
+        {
+            this.write(target.oper.lexeme);
+            this.dispatch(target.expr);
+        }
+        else
+        {
+            this.dispatch(target.expr);
+            this.write(target.oper.lexeme);
+        }
     }
-    protected visitTypeCastExpr(target: TypeCastExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitTypeCastExpr(target: TypeCastExpr): void
+    {
+        this.write(`${this.nativeType(target.type)} `);
+        this.dispatch(target.expr);
     }
-    protected visitCallExpr(target: CallExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitCallExpr(target: CallExpr): void
+    {
+        this.dispatch(target.callee);
+        this.write('(');
+        let first = true;
+        for (let arg of target.args)
+        {
+            if (!first) this.write(', ');
+            first = false;
+            this.dispatch(arg);
+        }
+        this.write(')');
+
     }
-    protected visitArrayExpr(target: ArrayExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitArrayExpr(target: ArrayExpr): void
+    {
+        this.write('[');
+        let first = true;
+        for (let arg of target.values)
+        {
+            if (!first) this.write(', ');
+            first = false;
+            this.dispatch(arg);
+        }
+        this.write(']');
     }
-    protected visitArrayAccessExpr(target: ArrayAccessExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitArrayAccessExpr(target: ArrayAccessExpr): void
+    {
+        this.dispatch(target.callee);
+        this.write('[');
+        this.dispatch(target.index);
+        this.write(']');
     }
-    protected visitFieldExpr(target: FieldExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitFieldExpr(target: FieldExpr): void
+    {
+        this.dispatch(target.callee);
+        this.write(`->${target.name}`)
     }
-    protected visitNewExpr(target: NewExpr): void {
-        throw new Error("Method not implemented.");
+
+    protected visitNewExpr(target: NewExpr): void
+    {
+        this.write(`new ${this.nativeType(target.type)}`)
     }
-    protected visitAccessor(target: Accessor): void {
-        throw new Error("Method not implemented.");
+
+    protected visitAccessor(target: Accessor): void
+    {
     }
-    protected visitBlockStmt(target: BlockStmt): void {
-        this.writeln('{}');
+
+    protected visitBlockStmt(target: BlockStmt): void
+    {
+        this.writeln('{');
+        this.buffer.indent();
+        for (let stmt of target.stmts) this.dispatch(stmt);
+        this.buffer.dedent();
+        this.writeln('}');
     }
-    protected visitReturnStmt(target: ReturnStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitReturnStmt(target: ReturnStmt): void
+    {
+        this.write('return ');
+        this.dispatch(target.expr);
+        this.writeln(';');
     }
     protected visitNamespaceStmt(target: NamespaceStmt): void
     {
-        this.comment(`begin of namespace '${target.name}'`);
+        this.comment(`BEGIN namespace '${target.name}'`);
         for (let stmt of target.stmts) this.dispatch(stmt);
-        this.comment(`end of namespace '${target.name}'`);
+        this.comment(`END namespace '${target.name}'`);
     }
-    protected visitNameAndGenerics(target: NameAndGenerics): void {
-        throw new Error("Method not implemented.");
+
+    protected visitNameAndGenerics(target: NameAndGenerics): void
+    {
+
     }
-    protected visitTypeRef(target: TypeRef): void {
-        throw new Error("Method not implemented.");
+
+    protected visitTypeRef(target: TypeRef): void
+    {
+
     }
-    protected visitCaseStmt(target: CaseStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitCaseStmt(target: CaseStmt): void
+    {
+
     }
-    protected visitSwitchStmt(target: SwitchStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitSwitchStmt(target: SwitchStmt): void
+    {
+
     }
-    protected visitIfStmt(target: IfStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitIfStmt(target: IfStmt): void
+    {
+        this.write('if (');
+        this.dispatch(target.condition);
+        this.write(')');
+        this.dispatch(target.thenSide);
+        if (target.elseSide)
+        {
+            this.writeln('else');
+            this.dispatch(target.elseSide);
+        }
     }
-    protected visitForOfStmt(target: ForOfStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitForOfStmt(target: ForOfStmt): void
+    {
+        this.write('for (');
+        this.dispatch(target.variable);
+        this.write(' of ');
+        this.dispatch(target.expr);
+        this.write(')');
+        this.dispatch(target.stmt);
     }
-    protected visitForStmt(target: ForStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitForStmt(target: ForStmt): void
+    {
+        this.write('for (');
+        this.dispatch(target.init);
+        this.write('; ');
+        this.dispatch(target.condition);
+        this.write('; ');
+        this.dispatch(target.fexpr);
+        this.write(')');
+        this.dispatch(target.stmt);
     }
-    protected visitDoWhileStmt(target: DoWhileStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitDoWhileStmt(target: DoWhileStmt): void
+    {
+        this.writeln('do ');
+        this.dispatch(target.stmt);
+        this.write('while (');
+        this.dispatch(target.condition);
+        this.writeln(';');
     }
-    protected visitWhileStmt(target: WhileStmt): void {
-        throw new Error("Method not implemented.");
+
+    protected visitWhileStmt(target: WhileStmt): void
+    {
+        this.write('while (');
+        this.dispatch(target.condition);
+        this.write(')');
+        this.dispatch(target.stmt);
     }
-    protected visitParameter(target: Parameter): void {
-        throw new Error("Method not implemented.");
-    }
-    protected visitExpandExpr(target: ExpandExpr): void {
-        throw new Error("Method not implemented.");
-    }
+
+    protected visitParameter(target: Parameter): void { }
+
+    protected visitExpandExpr(target: ExpandExpr): void { }
 
     protected visitFunctionStmt(target: FunctionStmt): void
     {
@@ -159,7 +290,7 @@ export class PortableGenerator extends Dispatcher<void>
         switch (name)
         {
             case 'number': return 'beagle_float64';
-            case 'string': return 'struct dynamic_string_';
+            case 'string': return 'struct dynamic_string_*';
             case 'boolean': return 'beagle_bool';
             case 'void': return 'void';
             default:
@@ -169,30 +300,32 @@ export class PortableGenerator extends Dispatcher<void>
 
     protected visitClassStmt(target: ClassStmt): void
     {
+        this.comment(`BEGIN class ${target.name.qualified}`, true);
+
         // static storage
-        this.comment(`${target.name.qualified} static storage`, true);
-        this.writeln(`struct static_${this.nativeName(target.name.name)}_ {
-            void *base__;
-            struct typeinfo_ typeInfo__;`);
+        this.writeln(`struct static_${this.nativeName(target.name.name)}_ {`);
+        this.buffer.indent();
+        this.writeln('void *base__;\nstruct typeinfo_ typeInfo__;');
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof PropertyStmt)) continue;
             if (stmt.accessor && stmt.accessor.values.indexOf(TokenType.STATIC) >= 0)
                 this.dispatch(stmt);
         }
+        this.buffer.dedent();
         this.writeln(`};\n`);
 
         // dynamic storage
-        this.comment(`${target.name.qualified} dynamic storage`, true);
-        this.writeln(`struct dynamic_${this.nativeName(target.name.name)}_ {
-            struct static_${this.nativeName(target.name.name)}_ *type__;
-            uint32_t flags;`);
+        this.writeln(`struct dynamic_${this.nativeName(target.name.name)}_ {`);
+        this.buffer.indent();
+        this.writeln(`struct static_${this.nativeName(target.name.name)}_ *type__;\nuint32_t flags;`);
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof PropertyStmt)) continue;
             if (!stmt.accessor || stmt.accessor.values.indexOf(TokenType.STATIC) < 0)
                 this.dispatch(stmt);
         }
+        this.buffer.dedent();
         this.writeln(`};\n`);
 
         // methods
@@ -201,16 +334,21 @@ export class PortableGenerator extends Dispatcher<void>
             if (!(stmt instanceof FunctionStmt)) continue;
             this.dispatch(stmt);
         }
+
+        this.comment(`END class ${target.name.qualified}`, true);
     }
 
-    protected visitExprStmt(target: ExprStmt): void {
-        throw new Error("Method not implemented.");
+    protected visitExprStmt(target: ExprStmt): void
+    {
+        this.dispatch(target.expr);
+        this.writeln(';');
     }
+
     protected visitBreakStmt(target: BreakStmt): void {
-        throw new Error("Method not implemented.");
+
     }
     protected visitContinueStmt(target: ContinueStmt): void {
-        throw new Error("Method not implemented.");
+
     }
     protected visitImportStmt(target: ImportStmt): void
     {
@@ -225,10 +363,10 @@ export class PortableGenerator extends Dispatcher<void>
     }
 
     protected visitTryCatchStmt(target: TryCatchStmt): void {
-        throw new Error("Method not implemented.");
+
     }
     protected visitThrowStmt(target: ThrowStmt): void {
-        throw new Error("Method not implemented.");
+
     }
     protected visitUnit(target: Unit): void
     {
