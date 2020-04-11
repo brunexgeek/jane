@@ -365,43 +365,6 @@ export class NamespaceStmt implements IStmt
 	className() : string { return 'NamespaceStmt'; }
 }
 
-export class NameAndGenerics implements INode
-{
-	name : Name;
-	generics : NameAndGenerics[];
-	location : SourceLocation;
-	constructor( name : Name, generics : NameAndGenerics[], location : SourceLocation = null )
-	{
-		this.name = name;
-		this.generics = generics;
-		this.location = location;
-	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNameAndGenerics(this); }
-	className() : string { return 'NameAndGenerics'; }
-	toString( qualified : boolean = true) : string
-    {
-        let result = '';
-        if (qualified)
-            result = this.name.qualified;
-        else
-            result = this.name.canonical;
-        if (this.generics && this.generics.length > 0)
-        {
-            result += '<';
-            let first = true;
-            for (let i of this.generics)
-            {
-                if (!first) result += '.';
-                first = false;
-                result += i.toString(qualified);
-            }
-            result += '>';
-        }
-        return result;
-    }
-    get canonical() : string { return this.toString(false); }
-    get qualified() : string { return this.toString(); }
-}
 export class TypeRef implements INode
 {
 	name : Name;
@@ -432,7 +395,7 @@ export class TypeRef implements INode
             let first = true;
             for (let i of this.generics)
             {
-                if (!first) result += '.';
+                if (!first) result += ',';
                 first = false;
                 result += i.toString(qualified);
             }
@@ -646,13 +609,13 @@ export class FunctionStmt implements IStmt
 }
 export class ClassStmt implements IStmt
 {
-	name : NameAndGenerics;
-	extended : NameAndGenerics;
-	implemented : NameAndGenerics[];
+	name : TypeRef;
+	extended : TypeRef;
+	implemented : TypeRef[];
 	stmts : IStmt[];
 	accessor : Accessor;
 	location : SourceLocation;
-	constructor( name : NameAndGenerics, extended : NameAndGenerics, implemented : NameAndGenerics[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : TypeRef, extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.extended = extended;
@@ -858,7 +821,6 @@ export interface IVisitor<T>{
 	visitBlockStmt( target : BlockStmt) : T;
 	visitReturnStmt( target : ReturnStmt) : T;
 	visitNamespaceStmt( target : NamespaceStmt) : T;
-	visitNameAndGenerics( target : NameAndGenerics) : T;
 	visitTypeRef( target : TypeRef) : T;
 	visitCaseStmt( target : CaseStmt) : T;
 	visitSwitchStmt( target : SwitchStmt) : T;
@@ -904,7 +866,6 @@ export class Visitor implements IVisitor<void> {
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
 	visitNamespaceStmt( target : NamespaceStmt) : void {}
-	visitNameAndGenerics( target : NameAndGenerics) : void {}
 	visitTypeRef( target : TypeRef) : void {}
 	visitCaseStmt( target : CaseStmt) : void {}
 	visitSwitchStmt( target : SwitchStmt) : void {}
@@ -950,7 +911,6 @@ export abstract class Dispatcher<T> {
 	protected abstract visitBlockStmt( target : BlockStmt) : T;
 	protected abstract visitReturnStmt( target : ReturnStmt) : T;
 	protected abstract visitNamespaceStmt( target : NamespaceStmt) : T;
-	protected abstract visitNameAndGenerics( target : NameAndGenerics) : T;
 	protected abstract visitTypeRef( target : TypeRef) : T;
 	protected abstract visitCaseStmt( target : CaseStmt) : T;
 	protected abstract visitSwitchStmt( target : SwitchStmt) : T;
@@ -996,7 +956,6 @@ export abstract class Dispatcher<T> {
 			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
 			case 'ReturnStmt': return this.visitReturnStmt(<ReturnStmt>node);
 			case 'NamespaceStmt': return this.visitNamespaceStmt(<NamespaceStmt>node);
-			case 'NameAndGenerics': return this.visitNameAndGenerics(<NameAndGenerics>node);
 			case 'TypeRef': return this.visitTypeRef(<TypeRef>node);
 			case 'CaseStmt': return this.visitCaseStmt(<CaseStmt>node);
 			case 'SwitchStmt': return this.visitSwitchStmt(<SwitchStmt>node);
@@ -1019,7 +978,7 @@ export abstract class Dispatcher<T> {
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
-		throw Error("Invalid node type");
+		throw Error(`Unable to dispatch an object of '${node.className()}'`);
 	}
 }
 

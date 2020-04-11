@@ -57,7 +57,6 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    NameAndGenerics,
     TypeCastExpr} from './types';
 
 declare let require: any;
@@ -331,21 +330,15 @@ export class SvgPrinter implements IVisitor<void>
         this.parent = id;
     }
 
-    namegenericToString( target : NameAndGenerics ) : string
-    {
-        let result = target.name.qualified;
-        return result.replace('<', '&lt;').replace('>', '&gt;');
-    }
-
     visitClassStmt(target: ClassStmt): void
     {
-        let content = this.field('name', this.namegenericToString(target.name));
+        let content = this.field('name', this.typerefToString(target.name));
         if (target.extended)
-            content += this.field('extends', this.namegenericToString(target.extended));
+            content += this.field('extends', this.typerefToString(target.extended));
         if (target.implemented)
         {
             let names = '';
-            for (let i of target.implemented) names +=  ' ' + this.namegenericToString(i);
+            for (let i of target.implemented) names +=  ' ' + this.typerefToString(i);
             content += this.field('implements', names);
         }
         let id = this.connection(this.parent, target.className(),  content, this.label, SvgPrinter.CLASS_COLOR);
@@ -474,9 +467,6 @@ export class SvgPrinter implements IVisitor<void>
     }
 
     visitTypeRef(target: TypeRef): void {
-    }
-
-    visitNameAndGenerics(target: NameAndGenerics): void {
     }
 
     visitIfStmt(target: IfStmt): void {

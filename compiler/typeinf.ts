@@ -60,7 +60,6 @@ import {
     IStmt,
     TypeCastExpr,
     PropertyStmt,
-    NameAndGenerics,
     ForStmt} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
@@ -312,10 +311,6 @@ export class TypeInference implements IVisitor<TypeRef>
         }
     }
 
-    visitNameAndGenerics(target: NameAndGenerics): TypeRef {
-        return null;
-    }
-
     visitForStmt(target: ForStmt): TypeRef {
         return null;
     }
@@ -497,7 +492,7 @@ export class TypeInference implements IVisitor<TypeRef>
 
     resolveType( type : TypeRef ) : TypeRef
     {
-        let name = type.name.toString();
+        let name = type.toString();
 
         if (name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
         if (this.types.indexOf(name) >= 0) return type;

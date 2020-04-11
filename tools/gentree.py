@@ -108,7 +108,7 @@ def printDispatcher():
     sys.stdout.write('\tprotected dispatch( node : INode ) : T {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
     for t in types:
         sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
-    sys.stdout.write('\t\t}\n\t\tthrow Error("Invalid node type");\n\t}\n}\n\n')
+    sys.stdout.write('\t\t}\n\t\tthrow Error(`Unable to dispatch an object of \'${node.className()}\'`);\n\t}\n}\n\n')
 
 
 sys.stdout.write('''
@@ -276,36 +276,6 @@ printType('NamespaceStmt', [
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     ], 'IStmt')
 
-printType('NameAndGenerics', [
-    {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'NameAndGenerics[]'}
-    ], None, True)
-sys.stdout.write('''\ttoString( qualified : boolean = true) : string
-    {
-        let result = '';
-        if (qualified)
-            result = this.name.qualified;
-        else
-            result = this.name.canonical;
-        if (this.generics && this.generics.length > 0)
-        {
-            result += '<';
-            let first = true;
-            for (let i of this.generics)
-            {
-                if (!first) result += '.';
-                first = false;
-                result += i.toString(qualified);
-            }
-            result += '>';
-        }
-        return result;
-    }
-    get canonical() : string { return this.toString(false); }
-    get qualified() : string { return this.toString(); }
-}
-''')
-
 printType('TypeRef', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'generics', 'type' : 'TypeRef[]'},
@@ -325,7 +295,7 @@ sys.stdout.write('''\ttoString( qualified : boolean = true) : string
             let first = true;
             for (let i of this.generics)
             {
-                if (!first) result += '.';
+                if (!first) result += ',';
                 first = false;
                 result += i.toString(qualified);
             }
@@ -436,9 +406,9 @@ sys.stdout.write('''
 ''')
 
 printType('ClassStmt', [
-    {'name' : 'name', 'type' : 'NameAndGenerics'},
-    {'name' : 'extended', 'type' : 'NameAndGenerics'},
-    {'name' : 'implemented', 'type' : 'NameAndGenerics[]'},
+    {'name' : 'name', 'type' : 'TypeRef'},
+    {'name' : 'extended', 'type' : 'TypeRef'},
+    {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     ], 'IStmt', True)

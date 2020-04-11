@@ -1,5 +1,50 @@
 import { CompilationContext } from "./compiler";
-import { Unit, NamespaceStmt, Dispatcher, Name, StringLiteral, NumberLiteral, BoolLiteral, NameLiteral, Group, NullLiteral, LogicalExpr, BinaryExpr, AssignExpr, UnaryExpr, TypeCastExpr, CallExpr, ArrayExpr, ArrayAccessExpr, FieldExpr, NewExpr, Accessor, BlockStmt, ReturnStmt, NameAndGenerics, TypeRef, CaseStmt, SwitchStmt, IfStmt, ForOfStmt, ForStmt, DoWhileStmt, WhileStmt, Parameter, ExpandExpr, FunctionStmt, ClassStmt, ExprStmt, BreakStmt, ContinueStmt, ImportStmt, VariableStmt, TryCatchStmt, ThrowStmt, PropertyStmt } from "./types";
+import {
+    IStmt,
+    IExpr,
+    Name,
+	StringLiteral,
+	NumberLiteral,
+	BoolLiteral,
+	NameLiteral,
+	Group,
+	NullLiteral,
+	LogicalExpr,
+	BinaryExpr,
+	AssignExpr,
+	UnaryExpr,
+	CallExpr,
+	ArrayExpr,
+	ArrayAccessExpr,
+	FieldExpr,
+	NewExpr,
+	Accessor,
+	BlockStmt,
+	ReturnStmt,
+	NamespaceStmt,
+	TypeRef,
+	CaseStmt,
+	SwitchStmt,
+	IfStmt,
+	ForOfStmt,
+	DoWhileStmt,
+	WhileStmt,
+	Parameter,
+	ExpandExpr,
+	FunctionStmt,
+	ClassStmt,
+	ExprStmt,
+	BreakStmt,
+	ContinueStmt,
+	VariableStmt,
+	TryCatchStmt,
+	ThrowStmt,
+    Unit,
+    ImportStmt,
+    ForStmt,
+    Dispatcher,
+    TypeCastExpr,
+    PropertyStmt} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -172,11 +217,6 @@ export class PortableGenerator extends Dispatcher<void>
         this.comment(`BEGIN namespace '${target.name}'`);
         for (let stmt of target.stmts) this.dispatch(stmt);
         this.comment(`END namespace '${target.name}'`);
-    }
-
-    protected visitNameAndGenerics(target: NameAndGenerics): void
-    {
-
     }
 
     protected visitTypeRef(target: TypeRef): void

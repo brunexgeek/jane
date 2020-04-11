@@ -57,7 +57,6 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    NameAndGenerics,
     ForStmt,
     Dispatcher,
     TypeCastExpr,
@@ -420,25 +419,7 @@ export class Parser
         return new Name(lexemes, location);
     }
 
-    parseNameAndGenerics() : NameAndGenerics
-    {
-        let location = this.peek().location;
-        let name = this.parseName(true);
-        let dims = 0;
-
-        let generics : NameAndGenerics[] = [];
-        if (this.match(TokenType.LESS))
-        {
-            do {
-                generics.push( this.parseNameAndGenerics() );
-            } while (this.match(TokenType.COMMA));
-            this.consume(TokenType.GREATER);
-        }
-
-        return new NameAndGenerics(name, generics, location);
-    }
-
-    parseTypeRef() : TypeRef
+    parseTypeRef( allow_array : boolean = true ) : TypeRef
     {
         let location = this.peek().location;
         let name = this.parseName(true);
@@ -454,6 +435,8 @@ export class Parser
             this.consume(TokenType.GREATER);
         }
 
+        if (!allow_array && this.peekType() == TokenType.LEFT_BRACKET)
+            throw this.error(this.peek().location, "Array specified not allowed here");
         while (this.match(TokenType.LEFT_BRACKET))
         {
             dims++;
@@ -814,20 +797,20 @@ export class Parser
     {
         let type = this.advance().type;
         //let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
-        let name = this.parseNameAndGenerics();
-        let extended : NameAndGenerics = null;
-        let implemented : NameAndGenerics[] = null;
+        let name = this.parseTypeRef();
+        let extended : TypeRef = null;
+        let implemented : TypeRef[] = null;
 
         if (this.match(TokenType.EXTENDS))
-            extended = this.parseNameAndGenerics();
+            extended = this.parseTypeRef();
         else
-            extended = objectName;
+            extended = objectRef;
 
         if (this.match(TokenType.IMPLEMENTS))
         {
             implemented = [];
             do {
-                implemented.push(this.parseNameAndGenerics());
+                implemented.push(this.parseTypeRef());
             } while (this.match(TokenType.COMMA));
         }
 
@@ -1160,7 +1143,7 @@ export class NodePromoter
         throw new Error("Method not implemented.");
     }
 
-    static readonly parent = new NameAndGenerics(new Name(['Callable'], null), null, null);
+    static readonly parent = new TypeRef(new Name(['Callable'], null), null, 0, true);
 
     protected promote( target : FunctionStmt ) : ClassStmt
     {
@@ -1169,7 +1152,7 @@ export class NodePromoter
 
         let temp = target.name.clone();
         temp.lexemes[ temp.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
-        let name = new NameAndGenerics(temp, null, target.location);
+        let name = new TypeRef(temp, null, 0, true, target.location);
         target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
         let clazz = new ClassStmt(name, NodePromoter.parent, null, [target], target.accessor, target.location);
         target.accessor = new Accessor([TokenType.STATIC]);
@@ -1204,19 +1187,17 @@ export class NodePromoter
     }
 }
 
+let objectRef = new TypeRef(new Name(['Object']), null, 0, true);
+let callableRef = new TypeRef(new Name(['Object']), null, 0, true);
+
 export function injectObject( ctx : CompilationContext) : void
 {
-    let name = new NameAndGenerics(new Name(['Object']), null);
-    let clazz = new ClassStmt(name, null, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(name.qualified, clazz);
+    let clazz = new ClassStmt(objectRef, null, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(objectRef.qualified, clazz);
 }
-
-let objectName = new NameAndGenerics(new Name(['Object']), null);
-let objectRef = new TypeRef(new Name(['Object']), null, 0, true);
 
 export function injectCallable( ctx : CompilationContext) : void
 {
-    let name = new NameAndGenerics(new Name(['Callable']), null);
-    let clazz = new ClassStmt(name, objectName, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(name.qualified, clazz);
+    let clazz = new ClassStmt(callableRef, objectRef, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(callableRef.qualified, clazz);
 }
