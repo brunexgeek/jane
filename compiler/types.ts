@@ -404,7 +404,7 @@ export class TypeRef implements INode
             while (i-- > 0) result += '[]';
             return result;
         }
-        if (this.nullable) result += ' | null';
+        //if (this.nullable) result += '?';
         return result;
     }
     get canonical() : string { return this.toString(false); }
@@ -787,6 +787,7 @@ export class Unit implements INode
 	imports : ImportStmt[];
 	variables : Map<string,VariableStmt> = new Map();
 	types : Map<string,ClassStmt> = new Map();
+	generics : Map<string,ClassStmt> = new Map();
 	functions : Map<string,FunctionStmt> = new Map();
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )

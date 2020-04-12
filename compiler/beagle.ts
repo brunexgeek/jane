@@ -28,7 +28,7 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
-import { Logger } from './utils';
+import { Logger, realpath } from './utils';
 import { PortableGenerator } from './codegen';
 
 class MyListener implements CompilationListener
@@ -53,6 +53,7 @@ class MyListener implements CompilationListener
 	}
 
 }
+
 
 declare let require: any;
 require('source-map-support').install();
@@ -97,30 +98,36 @@ let outputFileName = process.argv[4];
 else*/
 {
 	let comp = new Compiler(new MyListener());
-	let units = comp.compile(inputFileName);
+	let units = comp.compile(realpath(inputFileName));
 
 	for (let type of comp.ctx.types.values())
 		Logger.writeln(`Defined type '${type.name}'`);
 	for (let unit of comp.ctx.units.values())
 	{
 		Logger.writeln(`Unit ${unit.fileName}`);
-		if (unit.functions.size > 0)
-		{
-			Logger.writeln(`  Functions`);
-			for (let item of unit.functions.values())
-				Logger.writeln(`  -- ${item.toString()}`);
-		}
 		if (unit.variables.size > 0)
 		{
-			Logger.writeln(`  Variables`);
+			Logger.writeln(`   Variables`);
 			for (let item of unit.variables.values())
-				Logger.writeln(`  -- ${item.toString()}`);
+				Logger.writeln(`      ${item.toString()}`);
+		}
+		if (unit.functions.size > 0)
+		{
+			Logger.writeln(`   Functions`);
+			for (let item of unit.functions.values())
+				Logger.writeln(`      ${item.toString()}`);
 		}
 		if (unit.types.size > 0)
 		{
-			Logger.writeln(`  Types`);
+			Logger.writeln(`   Types`);
 			for (let item of unit.types.values())
-				Logger.writeln(`  -- ${item.toString()}`);
+				Logger.writeln(`      ${item.toString()}`);
+		}
+		if (unit.generics.size > 0)
+		{
+			Logger.writeln(`   Generics`);
+			for (let item of unit.generics.values())
+				Logger.writeln(`      ${item.toString()}`);
 		}
 	}
 

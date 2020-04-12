@@ -304,7 +304,7 @@ sys.stdout.write('''\ttoString( qualified : boolean = true) : string
             while (i-- > 0) result += '[]';
             return result;
         }
-        if (this.nullable) result += ' | null';
+        //if (this.nullable) result += '?';
         return result;
     }
     get canonical() : string { return this.toString(false); }
@@ -497,6 +497,7 @@ printType('Unit', [
     {'name' : 'imports', 'type' : 'ImportStmt[]'},
     {'name' : 'variables', 'type' : 'Map<string,VariableStmt>', 'init' : 'new Map()', 'ctor' : False},
     {'name' : 'types', 'type' : 'Map<string,ClassStmt>', 'init' : 'new Map()', 'ctor' : False},
+    {'name' : 'generics', 'type' : 'Map<string,ClassStmt>', 'init' : 'new Map()', 'ctor' : False},
     {'name' : 'functions', 'type' : 'Map<string,FunctionStmt>', 'init' : 'new Map()', 'ctor' : False}
     ])
 

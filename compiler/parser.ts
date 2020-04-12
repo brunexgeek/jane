@@ -760,8 +760,13 @@ export class Parser
                 {
                 let stmt = this.parseClass(accessor);
                 let qname = stmt.name.qualified;
-                this.unit.types.set(qname, stmt);
-                this.ctx.types.set(qname, stmt);
+                if (stmt.isGeneric)
+                    this.unit.generics.set(qname, stmt);
+                else
+                {
+                    this.unit.types.set(qname, stmt);
+                    this.ctx.types.set(qname, stmt);
+                }
                 return stmt;
             }
         }
