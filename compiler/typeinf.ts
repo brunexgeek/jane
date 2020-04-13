@@ -64,137 +64,6 @@ import {
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 
-
-/*
-class SignatureMap
-{
-    keys : string[] = [];
-    values : string[] = [];
-
-    constructor()
-    {
-        this.insert('number', 'N');
-        this.insert('string', 'S');
-        this.insert('boolean', 'B');
-    }
-
-    find( key : string ) : string
-    {
-        let idx = this.keys.indexOf(key);
-        if (idx == -1) return 'L' + key + ';';
-        return this.values[idx];
-    }
-
-    insert( key : string, value : string )
-    {
-        this.keys.push(key);
-        this.values.push(value);
-    }
-}
-
-export class TypeUID
-{
-    signatures : SignatureMap = new SignatureMap();
-    ctx : CompilationContext;
-
-    constructor( ctx : CompilationContext )
-    {
-        this.ctx = ctx;
-    }
-
-    process( unit : Unit )
-    {
-        this.processStmts(unit.stmts);
-    }
-
-    processStmts( stmts : IStmt[] )
-    {
-        for (let stmt of stmts)
-        {
-            if (stmt instanceof NamespaceStmt)
-                this.processStmts(stmt.stmts);
-            else
-            if (stmt instanceof ClassStmt)
-                this.processClass(stmt);
-            else
-            if (stmt instanceof FunctionStmt)
-                this.processFunction(stmt);
-            else
-            if (stmt instanceof VariableStmt)
-                this.processVariable(stmt);
-        }
-    }
-
-    typeUid( target : TypeRef ) : string
-    {
-        return target.name.lexemes[ target.name.lexemes.length - 1 ];
-    }
-
-    typeSignature( target : TypeRef ) : string
-    {
-        if (!target) return '';
-
-        let result = '';
-        let i = 0;
-        while (i++ < target.dims) result += '[';
-        if (!target.uid || target.uid.length == 0)
-            target.uid = this.typeUid(target);
-        result += this.signatures.find(target.uid);
-        return result;
-    }
-
-    processFunction(target: FunctionStmt): string {
-        let sign = '';
-
-        sign += target.name.lexemes[0] + ':';
-        if (target.property) sign += '@';
-        sign += '(';
-        for (let par of target.params)
-        {
-            if (par.vararg) sign += '.';
-            sign += this.typeSignature(par.type);
-        }
-        sign += ')';
-        if (target.type)
-            sign += this.typeSignature(target.type);
-        else
-            sign += 'V';
-        target.uid = sign;
-        console.error('---- signature is ' + sign);
-    }
-
-    processClass(target: ClassStmt): string {
-        let content = '';
-        for (let f of target.stmts)
-        {
-            if (f instanceof FunctionStmt)
-                this.processFunction(f);
-            else
-            if (f instanceof VariableStmt)
-                this.processVariable(f);
-            else
-                continue;
-            content += f.uid;
-        }
-
-        target.uid = target.name.lexemes[0] + '_' + this.sha256(content);
-        console.error('---- signature is ' + target.uid);
-    }
-
-    processVariable(target: VariableStmt): string
-    {
-        let sign = target.name.lexemes[0] + ':';
-        sign += this.typeSignature(target.type);
-        target.uid = sign;
-        console.error('---- signature is ' + sign);
-    }
-
-    sha256( value : string ) : string
-    {
-        return require('crypto').createHash("sha256").update(value).digest('hex');
-    }
-}*/
-
 class ScopeEntry
 {
     target : IStmt;
@@ -213,7 +82,7 @@ class Scope
 
     insert( name : string, target : IStmt, type : TypeRef )
     {
-        console.error(`Adding '${name}' -> ${target.className()}`);
+        Logger.writeln(`Adding '${name}' -> ${target.className()}`);
         let item = new ScopeEntry();
         item.target = target;
         item.type = type;
@@ -232,7 +101,7 @@ export class SemanticError extends Error
 
     constructor( message : string, location : SourceLocation = null )
     {
-        if (location) message += ' at ' + location.toString();
+        //if (location) message += ' at ' + location.toString();
         super(message);
         this.location = location;
     }
@@ -245,6 +114,8 @@ export function findSymbol( unit : Unit, name : string ) : IStmt
     stmt = <IStmt> unit.functions.get(name);
     if (stmt) return stmt;
     stmt = <IStmt> unit.types.get(name);
+    if (stmt) return stmt;
+    stmt = <IStmt> unit.generics.get(name);
     if (stmt) return stmt;
     return null;
 }
@@ -295,18 +166,12 @@ export class TypeInference implements IVisitor<TypeRef>
         {
             let source = realpath(dir + imp.source + '.ts');
             let unit = this.ctx.units.get(source);
+            if (!unit) this.error(imp.location, `Missing symbols for ${source}`); // never should happen
             for (let name of imp.names)
             {
-                if (unit)
-                {
-                    let stmt = findSymbol(unit, name.qualified);
-                    if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
-                    this.imports.set(name.qualified, stmt);
-                }
-                else
-                {
-                    this.error(name.location, `Unable to find symbol ${name.qualified}`);
-                }
+                let stmt = findSymbol(unit, name.qualified);
+                if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
+                this.imports.set(name.qualified, stmt);
             }
         }
     }
@@ -318,7 +183,7 @@ export class TypeInference implements IVisitor<TypeRef>
     push()
     {
         this.stack.push(new Scope());
-        console.error('push scope');
+        //Logger.writeln('push scope');
     }
 
     pop()
@@ -326,7 +191,7 @@ export class TypeInference implements IVisitor<TypeRef>
         if (this.stack.length <= 1)
             throw new SemanticError('Type inference stack underflow');
         this.stack.pop();
-        console.error('pop scope');
+        //Logger.writeln('pop scope');
     }
 
     top() : Scope
@@ -354,9 +219,9 @@ export class TypeInference implements IVisitor<TypeRef>
             --i;
         }
         if (entry)
-            console.error(`Found '${name}' (${this.stack.length} scopes)`);
+            Logger.writeln(`Found '${name}' (${this.stack.length} scopes)`);
         else
-            console.error(`Missing '${name}'  (${this.stack.length} scopes)`);
+            Logger.writeln(`Missing '${name}'  (${this.stack.length} scopes)`);
         return entry;
     }
 
@@ -490,9 +355,91 @@ export class TypeInference implements IVisitor<TypeRef>
         return null;
     }
 
+    /**
+     * Try to find a generic type in the current unit or in the import list.
+     */
+    findGeneric( name : string ) : ClassStmt
+    {
+        let stmt = this.unit.generics.get(name);
+        if (stmt) return stmt;
+        // TODO: validate the type of the imported symbol
+        // TODO: make sure the imported symbol is a generic
+        stmt = <ClassStmt> this.imports.get(name);
+        if (stmt) return stmt;
+        return null;
+    }
+/*
+    applyTypes( type : TypeRef, args : Map<string, TypeRef> ) : TypeRef
+    {
+        let result = type.clone();
+        for (let j = 0; j < result.generics.length; ++j)
+        {
+            let match = args.get(result.generics[j].qualified);
+            if (match) result.generics[j] = match;
+        }
+        return result;
+    }
+
+    hashCode( value : string ) : number
+    {
+        return 0;
+    }
+
+    specializeGeneric( stmt : ClassStmt, params : TypeRef[] ) : TypeRef
+    {
+        if (!stmt.isGeneric) return;
+        if (params.length != stmt.generics.length)
+            throw this.error(stmt.location, `Incorrect number of generic arguments`);
+
+        stmt = stmt.clone();
+
+        // apply generics and resolve types for inherited classes/interfaces
+        let args = new Map<string, TypeRef>();
+        for (let i = 0; i < params.length; ++i)
+            args.set(stmt.generics[i].canonical, params[i]);
+        if (stmt.extended)
+        {
+            if (stmt.extended.isGeneric)
+                stmt.extended = this.applyTypes(stmt.extended, args);
+            stmt.extended = this.resolveType(stmt.extended);
+        }
+        if (stmt.implemented)
+        {
+            for (let i = 0; i < stmt.implemented.length; ++i)
+            {
+                if (stmt.implemented[i].isGeneric)
+                    stmt.implemented[i] = this.applyTypes(stmt.implemented[i], args);
+                stmt.implemented[i] = this.resolveType(stmt.implemented[i]);
+            }
+        }
+        // remove generic types
+        stmt.generics.length = 0;
+        // generate a new name using generic types
+        let hash = 1;
+        for (let param of params)
+        {
+            hash = 37 * hash * this.hashCode(param.qualified);
+        }
+
+
+        // 1. clone class
+        // 2.
+
+        for (let subtype of stmt.
+
+
+    }
+*/
     resolveType( type : TypeRef ) : TypeRef
     {
-        let name = type.toString();
+        /*if (type.isGeneric)
+        {
+            let generic = this.findGeneric(type.name.qualified);
+            if (!generic) throw this.error(type.location, `Unknown generic type '${type.name.qualified}'`);
+            this.specializeGeneric(generic, type.generics);
+        }*/
+
+        let name = type.qualified;
 
         if (name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
         if (this.types.indexOf(name) >= 0) return type;

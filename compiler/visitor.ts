@@ -332,7 +332,7 @@ export class SvgPrinter implements IVisitor<void>
 
     visitClassStmt(target: ClassStmt): void
     {
-        let content = this.field('name', this.typerefToString(target.name));
+        let content = this.field('name', target.name.canonical);
         if (target.extended)
             content += this.field('extends', this.typerefToString(target.extended));
         if (target.implemented)

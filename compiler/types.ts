@@ -609,15 +609,18 @@ export class FunctionStmt implements IStmt
 }
 export class ClassStmt implements IStmt
 {
-	name : TypeRef;
+	name : Name;
+	generics : Name[];
 	extended : TypeRef;
 	implemented : TypeRef[];
 	stmts : IStmt[];
 	accessor : Accessor;
+	unit : Unit = null;
 	location : SourceLocation;
-	constructor( name : TypeRef, extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
 		this.name = name;
+		this.generics = generics;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
@@ -643,7 +646,7 @@ toString() : string
         }
         return result;
     }
-    get isGeneric() : boolean { return this.name.generics && this.name.generics.length > 0; }
+    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
 }export class ExprStmt implements IStmt
 {
 	expr : IExpr;

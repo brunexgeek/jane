@@ -61,7 +61,6 @@ def printType(name, fields, parent = None, keep_open = False ):
             else:
                 sys.stdout.write(f['init'])
     sys.stdout.write(' )\n\t{\n')
-
     if hasSuper:
         sys.stdout.write('\t\tsuper(')
         first = True
@@ -71,11 +70,17 @@ def printType(name, fields, parent = None, keep_open = False ):
             first = False
             sys.stdout.write(f['name'])
         sys.stdout.write(')\n')
-
     for f in fields:
         if 'super' in f and f['super'] == True: continue
         if 'ctor' in f and f['ctor'] == False: continue
         sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
+
+    # clone()
+    #sys.stdout.write('\t\tclone() : ' + name + ' {\n');
+    #for f in fields:
+    #    if 'copy' in f and f['copy'] == False: continue
+    #    sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
+    #sys.stdout.write('\t\t}\n');
 
     sys.stdout.write('\t}\n')
 
@@ -406,11 +411,13 @@ sys.stdout.write('''
 ''')
 
 printType('ClassStmt', [
-    {'name' : 'name', 'type' : 'TypeRef'},
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'extended', 'type' : 'TypeRef'},
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     ], 'IStmt', True)
 sys.stdout.write('''toString() : string
     {
@@ -429,7 +436,7 @@ sys.stdout.write('''toString() : string
         }
         return result;
     }
-    get isGeneric() : boolean { return this.name.generics && this.name.generics.length > 0; }
+    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
 }''')
 
 printType('ExprStmt', [

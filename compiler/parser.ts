@@ -244,6 +244,12 @@ export class Parser
         {
             this.unit.imports = imports;
             this.unit.stmts = stmts;
+
+            for (let stmt of this.unit.generics.values())
+                stmt.unit = this.unit;
+            for (let stmt of this.unit.types.values())
+                stmt.unit = this.unit;
+
             return this.unit;
         }
         else
@@ -370,12 +376,8 @@ export class Parser
         return new Parameter( new Name([name.lexeme]), type, value, vararg, name.location);
     }
 
-    parseFunction( accessor : Accessor ) : FunctionStmt
+    parseGenerics() : Name[]
     {
-        this.consumeEx('Missing function keyword', TokenType.FUNCTION);
-        let name = this.ctx.currentNamespace;
-        name.push( this.consumeEx('Missing function name', TokenType.NAME).lexeme );
-
         let generics : Name[] = [];
         if (this.match(TokenType.LESS))
         {
@@ -384,6 +386,16 @@ export class Parser
             } while (this.match(TokenType.COMMA));
             this.consume(TokenType.GREATER);
         }
+        return generics;
+    }
+
+    parseFunction( accessor : Accessor ) : FunctionStmt
+    {
+        this.consumeEx('Missing function keyword', TokenType.FUNCTION);
+        let name = this.ctx.currentNamespace;
+        name.push( this.consumeEx('Missing function name', TokenType.NAME).lexeme );
+
+        let generics = this.parseGenerics();
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -801,8 +813,8 @@ export class Parser
     parseClass( accessor : Accessor ) : ClassStmt
     {
         let type = this.advance().type;
-        //let name = new Name([this.consumeEx('Missing class name', TokenType.NAME).lexeme]);
-        let name = this.parseTypeRef();
+        let name = this.parseName();
+        let generics = this.parseGenerics();
         let extended : TypeRef = null;
         let implemented : TypeRef[] = null;
 
@@ -830,7 +842,7 @@ export class Parser
             if (this.peekType() == TokenType.NAME)
             {
                 let tname = this.advance();
-                let temp = name.name.clone();
+                let temp = name.clone();
                 temp.lexemes.push(tname.lexeme);
                 temp.location = tname.location;
                 if (this.peekType() == TokenType.LEFT_PAREN || this.peekType() == TokenType.LESS)
@@ -853,19 +865,12 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        return new ClassStmt(name, extended, implemented, stmts, accessor);
+        return new ClassStmt(name, generics, extended, implemented, stmts, accessor);
     }
 
     parseMethod( name : Name ) : FunctionStmt
     {
-        let generics : Name[] = [];
-        if (this.match(TokenType.LESS))
-        {
-            do {
-                generics.push( this.parseName() );
-            } while (this.match(TokenType.COMMA));
-            this.consume(TokenType.GREATER);
-        }
+        let generics = this.parseGenerics();
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -1142,6 +1147,9 @@ export class Parser
     }
 }
 
+/**
+ * Transform functions into classes and replace the original functions by variables.
+ */
 export class NodePromoter
 {
     protected visitNamespaceStmt(target: NamespaceStmt): void {
@@ -1155,11 +1163,10 @@ export class NodePromoter
         // TODO: remove 'static' accessor from 'target.accessor'
         Logger.writeln(`Promoting function ${target.name.qualified}`);
 
-        let temp = target.name.clone();
-        temp.lexemes[ temp.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
-        let name = new TypeRef(temp, null, 0, true, target.location);
+        let name = target.name.clone();
+        name.lexemes[ name.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
         target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
-        let clazz = new ClassStmt(name, NodePromoter.parent, null, [target], target.accessor, target.location);
+        let clazz = new ClassStmt(name, null, NodePromoter.parent, null, [target], target.accessor, target.location);
         target.accessor = new Accessor([TokenType.STATIC]);
         return clazz;
     }
@@ -1171,13 +1178,12 @@ export class NodePromoter
             {
                 let fun = <FunctionStmt> stmts[i];
                 let name = fun.name.clone();
-                Logger.writeln(`Deleting ${name}`);
                 stmts[i] = this.promote(fun);
                 let clazz = <ClassStmt> stmts[i];
                 unit.types.set(clazz.name.qualified, clazz);
                 unit.functions.delete(name.qualified);
                 unit.variables.set( name.qualified,
-                    new VariableStmt(name, new TypeRef(clazz.name.name, null, 0, true, null),
+                    new VariableStmt(name, new TypeRef(clazz.name, null, 0, true, null),
                         new CallExpr( new FieldExpr( new NameLiteral(clazz.name.qualified), new Name(['call'])), []), false) );
             }
             else
@@ -1192,17 +1198,19 @@ export class NodePromoter
     }
 }
 
-let objectRef = new TypeRef(new Name(['Object']), null, 0, true);
-let callableRef = new TypeRef(new Name(['Object']), null, 0, true);
+let objectName = new Name(['Object']);
+let objectRef = new TypeRef(objectName, null, 0, true);
+let callableName = new Name(['ICallable']);
 
 export function injectObject( ctx : CompilationContext) : void
 {
-    let clazz = new ClassStmt(objectRef, null, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(objectRef.qualified, clazz);
+    let methods : FunctionStmt[] = [];
+    let clazz = new ClassStmt(objectName, null, null, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(objectName.qualified, clazz);
 }
 
 export function injectCallable( ctx : CompilationContext) : void
 {
-    let clazz = new ClassStmt(callableRef, objectRef, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(callableRef.qualified, clazz);
+    let clazz = new ClassStmt(callableName, null, objectRef, null, [], new Accessor([TokenType.EXPORT]));
+    ctx.types.set(callableName.qualified, clazz);
 }

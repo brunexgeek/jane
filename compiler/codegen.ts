@@ -343,7 +343,7 @@ export class PortableGenerator extends Dispatcher<void>
         this.comment(`BEGIN class ${target.name.qualified}`, true);
 
         // static storage
-        this.writeln(`struct static_${this.nativeName(target.name.name)}_ {`);
+        this.writeln(`struct static_${this.nativeName(target.name)}_ {`);
         this.buffer.indent();
         this.writeln('void *base__;\nstruct typeinfo_ typeInfo__;');
         for (let stmt of target.stmts)
@@ -356,9 +356,9 @@ export class PortableGenerator extends Dispatcher<void>
         this.writeln(`};\n`);
 
         // dynamic storage
-        this.writeln(`struct dynamic_${this.nativeName(target.name.name)}_ {`);
+        this.writeln(`struct dynamic_${this.nativeName(target.name)}_ {`);
         this.buffer.indent();
-        this.writeln(`struct static_${this.nativeName(target.name.name)}_ *type__;\nuint32_t flags;`);
+        this.writeln(`struct static_${this.nativeName(target.name)}_ *type__;\nuint32_t flags;`);
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof PropertyStmt)) continue;
