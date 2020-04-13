@@ -67,7 +67,7 @@ function print( value : string )
     process.stdout.write(value);
 }
 
-export class SvgPrinter implements IVisitor<void>
+export class SvgPrinter implements IVisitor
 {
 
     visitTypeCastExpr(target: TypeCastExpr): void

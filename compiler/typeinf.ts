@@ -60,7 +60,8 @@ import {
     IStmt,
     TypeCastExpr,
     PropertyStmt,
-    ForStmt} from './types';
+    ForStmt,
+    DispatcherTypeRef} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 
@@ -70,9 +71,25 @@ class ScopeEntry
     type : TypeRef;
 }
 
+class StrScpEntMap{
+    private keys : string[] = [];
+    private items : ScopeEntry[] = [];
+    get( key : string ) : ScopeEntry {
+            let i = this.keys.indexOf(key);
+            if (i < 0) return null;
+            return this.items[i];
+    }
+    set( key : string, value : ScopeEntry ) {
+            let i = this.keys.indexOf(key);
+            if (i >= 0) this.items[i] = value;
+            else { this.keys.push(key); this.items.push(value); }
+    }
+    values() : ScopeEntry[] { return this.items; }
+}
+
 class Scope
 {
-    private entries : Map<string, ScopeEntry> = new Map();
+    private entries : StrScpEntMap = new StrScpEntMap();
 
     constructor()
     {
@@ -120,16 +137,33 @@ export function findSymbol( unit : Unit, name : string ) : IStmt
     return null;
 }
 
-export class TypeInference implements IVisitor<TypeRef>
+class StrIStmtMap{
+    private keys : string[] = [];
+    private items : IStmt[] = [];
+    get( key : string ) : IStmt {
+            let i = this.keys.indexOf(key);
+            if (i < 0) return null;
+            return this.items[i];
+    }
+    set( key : string, value : IStmt ) {
+            let i = this.keys.indexOf(key);
+            if (i >= 0) this.items[i] = value;
+            else { this.keys.push(key); this.items.push(value); }
+    }
+    values() : IStmt[] { return this.items; }
+}
+
+export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
     stack : Scope[] = [new Scope()];
-    imports : Map<string, IStmt> = new Map();
+    imports : StrIStmtMap = new StrIStmtMap();
     unit : Unit = null;
     types : string[] = [];
 
     constructor( ctx : CompilationContext )
     {
+        super();
         this.ctx = ctx;
     }
 
@@ -143,11 +177,11 @@ export class TypeInference implements IVisitor<TypeRef>
         let result : TypeRef = null;
         if (target.type)
         {
-            result = target.type.accept(this);
+            result = this.dispatch(target.type);
         }
         if (target.init)
         {
-            let itype = target.init.accept(this);
+            let itype = this.dispatch(target.init);
             if (result && !this.checkCompatibleTypes(result, itype))
                 this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
 
@@ -255,7 +289,7 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitGroup(target: Group) : TypeRef
     {
-        return target.expr.accept(this);
+        return this.dispatch(target.expr);
     }
 
     visitNullLiteral(target: NullLiteral) : TypeRef
@@ -265,8 +299,8 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitLogicalExpr(target: LogicalExpr) : TypeRef
     {
-        let left = target.left.accept(this);
-        let right = target.right.accept(this);
+        let left = this.dispatch(target.left);
+        let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
             throw this.error(target.location, 'Incompatible types for logical operator');
         return TypeRef.BOOLEAN;
@@ -274,8 +308,8 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitBinaryExpr(target: BinaryExpr) : TypeRef
     {
-        let left = target.left.accept(this);
-        let right = target.right.accept(this);
+        let left = this.dispatch(target.left);
+        let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
             this.error(target.location, `Incompatible types for binary operator (${left} and ${right})`);
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
@@ -285,8 +319,8 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitAssignExpr(target: AssignExpr) : TypeRef
     {
-        let left = target.left.accept(this);
-        let right = target.right.accept(this);
+        let left = this.dispatch(target.left);
+        let right = this.dispatch(target.right);
         if (left != right)
             throw this.error(target.location, 'Incompatible types for logical operator');
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
@@ -296,35 +330,35 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitUnaryExpr(target: UnaryExpr) : TypeRef
     {
-        return target.expr.accept(this);
+        return this.dispatch(target.expr);
     }
 
     visitCallExpr(target: CallExpr) : TypeRef
     {
-        return target.callee.accept(this);
+        return this.dispatch(target.callee);
     }
 
     visitArrayExpr(target: ArrayExpr) : TypeRef
     {
         if (target.values.length > 0)
-            return target.values[0].accept(this);
+            return this.dispatch(target.values[0]);
         return TypeRef.ANY;
     }
 
     visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
     {
-        return target.callee.accept(this);
+        return this.dispatch(target.callee);
     }
 
     visitFieldExpr(target: FieldExpr) : TypeRef
     {
-        let type = target.callee.accept(this);
+        let type = this.dispatch(target.callee);
         return null;
     }
 
     visitNewExpr(target: NewExpr) : TypeRef
     {
-        return target.type = target.type.accept(this);
+        return target.type = this.dispatch(target.type);
     }
 
     visitAccessor(target: Accessor) : TypeRef
@@ -336,7 +370,7 @@ export class TypeInference implements IVisitor<TypeRef>
         this.push();
 
         for (let stmt of target.stmts)
-            stmt.accept(this);
+            this.dispatch(stmt);
 
         this.pop();
         return null;
@@ -344,13 +378,13 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitReturnStmt(target: ReturnStmt) : TypeRef
     {
-        return target.expr.accept(this);
+        return this.dispatch(target.expr);
     }
 
     visitNamespaceStmt(target: NamespaceStmt) : TypeRef
     {
         this.push();
-        for (let stmt of target.stmts) stmt.accept(this);
+        for (let stmt of target.stmts) this.dispatch(stmt);
         this.pop();
         return null;
     }
@@ -454,46 +488,46 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitCaseStmt(target: CaseStmt) : TypeRef
     {
-        target.expr.accept(this);
-        for (let stmt of target.stmts) stmt.accept(this);
+        this.dispatch(target.expr);
+        for (let stmt of target.stmts) this.dispatch(stmt);
 
         return null;
     }
 
     visitSwitchStmt(target: SwitchStmt) : TypeRef
     {
-        target.expr.accept(this);
-        for (let stmt of target.cases) stmt.accept(this);
+        this.dispatch(target.expr);
+        for (let stmt of target.cases) this.dispatch(stmt);
         return null;
     }
 
     visitIfStmt(target: IfStmt) : TypeRef
     {
-        target.condition.accept(this);
-        if (target.thenSide) target.thenSide.accept(this);
-        if (target.elseSide) target.elseSide.accept(this);
+        this.dispatch(target.condition);
+        if (target.thenSide) this.dispatch(target.thenSide);
+        if (target.elseSide) this.dispatch(target.elseSide);
 
         return null;
     }
 
     visitForOfStmt(target: ForOfStmt) : TypeRef
     {
-        target.expr.accept(this);
-        target.stmt.accept(this);
+        this.dispatch(target.expr);
+        this.dispatch(target.stmt);
         return null;
     }
 
     visitDoWhileStmt(target: DoWhileStmt) : TypeRef
     {
-        target.condition.accept(this);
-        target.stmt.accept(this);
+        this.dispatch(target.condition);
+        this.dispatch(target.stmt);
         return null;
     }
 
     visitWhileStmt(target: WhileStmt) : TypeRef
     {
-        target.condition.accept(this);
-        target.stmt.accept(this);
+        this.dispatch(target.condition);
+        this.dispatch(target.stmt);
         return null;
     }
     visitParameter(target: Parameter) : TypeRef
@@ -514,15 +548,15 @@ export class TypeInference implements IVisitor<TypeRef>
         if (!target.type)
             target.type = TypeRef.VOID;
         else
-            target.type.accept(this);
+            this.dispatch(target.type);
 
         for (let param of target.params)
         {
-            param.type.accept(this);
+            this.dispatch(param.type);
             this.top().insert(param.name.toString(), param, param.type);
         }
 
-        if (target.body) target.body.accept(this);
+        if (target.body) this.dispatch(target.body);
 
         this.pop();
 
@@ -534,7 +568,7 @@ export class TypeInference implements IVisitor<TypeRef>
         this.push();
 
         for (let stmt of target.stmts)
-            stmt.accept(this);
+            this.dispatch(stmt);
 
         this.pop();
         return null;
@@ -542,7 +576,7 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitExprStmt(target: ExprStmt) : TypeRef
     {
-        return target.expr.accept(this);
+        return this.dispatch(target.expr);
     }
 
     visitBreakStmt(target: BreakStmt) : TypeRef {
@@ -575,11 +609,11 @@ export class TypeInference implements IVisitor<TypeRef>
         let result : TypeRef = null;
         if (target.type)
         {
-            result = target.type.accept(this);
+            result = this.dispatch(target.type);
         }
         if (target.init)
         {
-            let itype = target.init.accept(this);
+            let itype = this.dispatch(target.init);
             if (result && !this.checkCompatibleTypes(result, itype))
                 this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
 
@@ -593,15 +627,15 @@ export class TypeInference implements IVisitor<TypeRef>
 
     visitTryCatchStmt(target: TryCatchStmt) : TypeRef
     {
-        target.block.accept(this);
-        target.cblock.accept(this);
-        target.fblock.accept(this);
+        this.dispatch(target.block);
+        this.dispatch(target.cblock);
+        this.dispatch(target.fblock);
         return null;
     }
 
     visitThrowStmt(target: ThrowStmt) : TypeRef
     {
-        target.expr.accept(this);
+        this.dispatch(target.expr);
         return null;
     }
 
@@ -610,7 +644,7 @@ export class TypeInference implements IVisitor<TypeRef>
         try {
             this.unit = target;
             this.processImports();
-            for (let stmt of target.stmts) stmt.accept(this);
+            for (let stmt of target.stmts) this.dispatch(stmt);
         } catch (error)
         {
             this.ctx.listener.onError(error.location, error);
@@ -618,5 +652,6 @@ export class TypeInference implements IVisitor<TypeRef>
 
         return null;
     }
+
 
 }

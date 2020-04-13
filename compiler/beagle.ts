@@ -135,13 +135,13 @@ else*/
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
 		let visitor = new SvgPrinter();
-		visitor.visitUnit(comp.ctx.units.values().next().value);
+		visitor.visitUnit(comp.ctx.units.values()[0]);
 	}
 	else
 	if (mode == 'generate' && comp.ctx.units.size > 0)
 	{
 		let codegen = new PortableGenerator(comp.ctx);
-		let code = codegen.generate(comp.ctx.units.values().next().value);
+		let code = codegen.generate(comp.ctx.units.values()[0]);
 		console.log(code);
 	}
 	console.error(Logger.toString());

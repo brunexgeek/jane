@@ -25,7 +25,7 @@ import { SourceLocation } from './compiler';
 
 export interface INode
 {
-    accept<T>( visitor : IVisitor<T> ) : T;
+    accept( visitor : IVisitor ) : void;
     className(): string;
 }
 
@@ -42,7 +42,7 @@ export class Name implements IExpr
 		this.lexemes = lexemes;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitName(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitName(this); }
 	className() : string { return 'Name'; }
 	toString() : string
     {
@@ -85,7 +85,7 @@ export class StringLiteral implements IExpr
 		this.type = type;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitStringLiteral(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitStringLiteral(this); }
 	className() : string { return 'StringLiteral'; }
 }
 
@@ -100,7 +100,7 @@ export class NumberLiteral implements IExpr
 		this.converted = converted;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNumberLiteral(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitNumberLiteral(this); }
 	className() : string { return 'NumberLiteral'; }
 }
 
@@ -113,7 +113,7 @@ export class BoolLiteral implements IExpr
 		this.converted = converted;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitBoolLiteral(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitBoolLiteral(this); }
 	className() : string { return 'BoolLiteral'; }
 }
 
@@ -126,7 +126,7 @@ export class NameLiteral implements IExpr
 		this.value = value;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNameLiteral(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitNameLiteral(this); }
 	className() : string { return 'NameLiteral'; }
 }
 
@@ -139,7 +139,7 @@ export class Group implements IExpr
 		this.expr = expr;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitGroup(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitGroup(this); }
 	className() : string { return 'Group'; }
 }
 
@@ -150,7 +150,7 @@ export class NullLiteral implements IExpr
 	{
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNullLiteral(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitNullLiteral(this); }
 	className() : string { return 'NullLiteral'; }
 }
 
@@ -167,7 +167,7 @@ export class LogicalExpr implements IExpr
 		this.right = right;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitLogicalExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitLogicalExpr(this); }
 	className() : string { return 'LogicalExpr'; }
 }
 
@@ -184,7 +184,7 @@ export class BinaryExpr implements IExpr
 		this.right = right;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitBinaryExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitBinaryExpr(this); }
 	className() : string { return 'BinaryExpr'; }
 }
 
@@ -201,7 +201,7 @@ export class AssignExpr implements IExpr
 		this.right = right;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitAssignExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitAssignExpr(this); }
 	className() : string { return 'AssignExpr'; }
 }
 
@@ -218,7 +218,7 @@ export class UnaryExpr implements IExpr
 		this.post = post;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitUnaryExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitUnaryExpr(this); }
 	className() : string { return 'UnaryExpr'; }
 }
 
@@ -233,7 +233,7 @@ export class TypeCastExpr implements IExpr
 		this.expr = expr;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTypeCastExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitTypeCastExpr(this); }
 	className() : string { return 'TypeCastExpr'; }
 }
 
@@ -248,7 +248,7 @@ export class CallExpr implements IExpr
 		this.args = args;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitCallExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitCallExpr(this); }
 	className() : string { return 'CallExpr'; }
 }
 
@@ -261,7 +261,7 @@ export class ArrayExpr implements IExpr
 		this.values = values;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitArrayExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitArrayExpr(this); }
 	className() : string { return 'ArrayExpr'; }
 }
 
@@ -276,7 +276,7 @@ export class ArrayAccessExpr implements IExpr
 		this.index = index;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitArrayAccessExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitArrayAccessExpr(this); }
 	className() : string { return 'ArrayAccessExpr'; }
 }
 
@@ -291,7 +291,7 @@ export class FieldExpr implements IExpr
 		this.name = name;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitFieldExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitFieldExpr(this); }
 	className() : string { return 'FieldExpr'; }
 }
 
@@ -306,7 +306,7 @@ export class NewExpr implements IExpr
 		this.args = args;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNewExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitNewExpr(this); }
 	className() : string { return 'NewExpr'; }
 }
 
@@ -319,7 +319,7 @@ export class Accessor implements INode
 		this.values = values;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitAccessor(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitAccessor(this); }
 	className() : string { return 'Accessor'; }
 isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
 }export class BlockStmt implements IStmt
@@ -331,7 +331,7 @@ isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
 		this.stmts = stmts;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitBlockStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitBlockStmt(this); }
 	className() : string { return 'BlockStmt'; }
 }
 
@@ -344,7 +344,7 @@ export class ReturnStmt implements IStmt
 		this.expr = expr;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitReturnStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitReturnStmt(this); }
 	className() : string { return 'ReturnStmt'; }
 }
 
@@ -361,7 +361,7 @@ export class NamespaceStmt implements IStmt
 		this.accessor = accessor;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitNamespaceStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitNamespaceStmt(this); }
 	className() : string { return 'NamespaceStmt'; }
 }
 
@@ -380,7 +380,7 @@ export class TypeRef implements INode
 		this.nullable = nullable;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTypeRef(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitTypeRef(this); }
 	className() : string { return 'TypeRef'; }
 	toString( qualified : boolean = true) : string
     {
@@ -428,7 +428,7 @@ export class CaseStmt implements IStmt
 		this.stmts = stmts;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitCaseStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitCaseStmt(this); }
 	className() : string { return 'CaseStmt'; }
 }
 
@@ -443,7 +443,7 @@ export class SwitchStmt implements IStmt
 		this.cases = cases;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitSwitchStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitSwitchStmt(this); }
 	className() : string { return 'SwitchStmt'; }
 }
 
@@ -460,7 +460,7 @@ export class IfStmt implements IStmt
 		this.elseSide = elseSide;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitIfStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitIfStmt(this); }
 	className() : string { return 'IfStmt'; }
 }
 
@@ -477,7 +477,7 @@ export class ForOfStmt implements IExpr
 		this.stmt = stmt;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitForOfStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitForOfStmt(this); }
 	className() : string { return 'ForOfStmt'; }
 }
 
@@ -496,7 +496,7 @@ export class ForStmt implements IExpr
 		this.stmt = stmt;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitForStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitForStmt(this); }
 	className() : string { return 'ForStmt'; }
 }
 
@@ -511,7 +511,7 @@ export class DoWhileStmt implements IStmt
 		this.condition = condition;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitDoWhileStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitDoWhileStmt(this); }
 	className() : string { return 'DoWhileStmt'; }
 }
 
@@ -526,7 +526,7 @@ export class WhileStmt implements IStmt
 		this.stmt = stmt;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitWhileStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitWhileStmt(this); }
 	className() : string { return 'WhileStmt'; }
 }
 
@@ -545,7 +545,7 @@ export class Parameter implements INode
 		this.vararg = vararg;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitParameter(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitParameter(this); }
 	className() : string { return 'Parameter'; }
 }
 
@@ -558,7 +558,7 @@ export class ExpandExpr implements IExpr
 		this.name = name;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitExpandExpr(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitExpandExpr(this); }
 	className() : string { return 'ExpandExpr'; }
 }
 
@@ -582,7 +582,7 @@ export class FunctionStmt implements IStmt
 		this.accessor = accessor;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitFunctionStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitFunctionStmt(this); }
 	className() : string { return 'FunctionStmt'; }
 
     toString(): string
@@ -627,7 +627,7 @@ export class ClassStmt implements IStmt
 		this.accessor = accessor;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitClassStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitClassStmt(this); }
 	className() : string { return 'ClassStmt'; }
 toString() : string
     {
@@ -656,7 +656,7 @@ toString() : string
 		this.expr = expr;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitExprStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitExprStmt(this); }
 	className() : string { return 'ExprStmt'; }
 }
 
@@ -667,7 +667,7 @@ export class BreakStmt implements IStmt
 	{
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitBreakStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitBreakStmt(this); }
 	className() : string { return 'BreakStmt'; }
 }
 
@@ -678,7 +678,7 @@ export class ContinueStmt implements IStmt
 	{
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitContinueStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitContinueStmt(this); }
 	className() : string { return 'ContinueStmt'; }
 }
 
@@ -693,7 +693,7 @@ export class ImportStmt implements IStmt
 		this.source = source;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitImportStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitImportStmt(this); }
 	className() : string { return 'ImportStmt'; }
 }
 
@@ -714,7 +714,7 @@ export class VariableStmt implements IStmt
 		this.accessor = accessor;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitVariableStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitVariableStmt(this); }
 	className() : string { return 'VariableStmt'; }
 
     toString() : string
@@ -741,7 +741,7 @@ export class PropertyStmt implements IStmt
 		this.accessor = accessor;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitPropertyStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitPropertyStmt(this); }
 	className() : string { return 'PropertyStmt'; }
 
     toString() : string
@@ -766,7 +766,7 @@ export class TryCatchStmt implements IStmt
 		this.fblock = fblock;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitTryCatchStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitTryCatchStmt(this); }
 	className() : string { return 'TryCatchStmt'; }
 }
 
@@ -779,19 +779,131 @@ export class ThrowStmt implements IStmt
 		this.expr = expr;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitThrowStmt(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitThrowStmt(this); }
 	className() : string { return 'ThrowStmt'; }
 }
 
+export class StrUnitMap{
+	private keys : string[] = [];
+	private items : Unit[] = [];
+	get( key : string ) : Unit {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : Unit ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : Unit[] { return this.items; }
+}
+export class StrVarMap{
+	private keys : string[] = [];
+	private items : VariableStmt[] = [];
+	get( key : string ) : VariableStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : VariableStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : VariableStmt[] { return this.items; }
+}
+export class StrClassMap{
+	private keys : string[] = [];
+	private items : ClassStmt[] = [];
+	get( key : string ) : ClassStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : ClassStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : ClassStmt[] { return this.items; }
+}
+export class StrFuncMap{
+	private keys : string[] = [];
+	private items : FunctionStmt[] = [];
+	get( key : string ) : FunctionStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : FunctionStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : FunctionStmt[] { return this.items; }
+}
 export class Unit implements INode
 {
 	fileName : string = '';
 	stmts : IStmt[];
 	imports : ImportStmt[];
-	variables : Map<string,VariableStmt> = new Map();
-	types : Map<string,ClassStmt> = new Map();
-	generics : Map<string,ClassStmt> = new Map();
-	functions : Map<string,FunctionStmt> = new Map();
+	variables : StrVarMap = new StrVarMap();
+	types : StrClassMap = new StrClassMap();
+	generics : StrClassMap = new StrClassMap();
+	functions : StrFuncMap = new StrFuncMap();
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )
 	{
@@ -799,56 +911,56 @@ export class Unit implements INode
 		this.imports = imports;
 		this.location = location;
 	}
-	accept<T>( visitor : IVisitor<T> ) : T { return visitor.visitUnit(this); }
+	accept( visitor : IVisitor ) : void { visitor.visitUnit(this); }
 	className() : string { return 'Unit'; }
 }
 
-export interface IVisitor<T>{
-	visitName( target : Name) : T;
-	visitStringLiteral( target : StringLiteral) : T;
-	visitNumberLiteral( target : NumberLiteral) : T;
-	visitBoolLiteral( target : BoolLiteral) : T;
-	visitNameLiteral( target : NameLiteral) : T;
-	visitGroup( target : Group) : T;
-	visitNullLiteral( target : NullLiteral) : T;
-	visitLogicalExpr( target : LogicalExpr) : T;
-	visitBinaryExpr( target : BinaryExpr) : T;
-	visitAssignExpr( target : AssignExpr) : T;
-	visitUnaryExpr( target : UnaryExpr) : T;
-	visitTypeCastExpr( target : TypeCastExpr) : T;
-	visitCallExpr( target : CallExpr) : T;
-	visitArrayExpr( target : ArrayExpr) : T;
-	visitArrayAccessExpr( target : ArrayAccessExpr) : T;
-	visitFieldExpr( target : FieldExpr) : T;
-	visitNewExpr( target : NewExpr) : T;
-	visitAccessor( target : Accessor) : T;
-	visitBlockStmt( target : BlockStmt) : T;
-	visitReturnStmt( target : ReturnStmt) : T;
-	visitNamespaceStmt( target : NamespaceStmt) : T;
-	visitTypeRef( target : TypeRef) : T;
-	visitCaseStmt( target : CaseStmt) : T;
-	visitSwitchStmt( target : SwitchStmt) : T;
-	visitIfStmt( target : IfStmt) : T;
-	visitForOfStmt( target : ForOfStmt) : T;
-	visitForStmt( target : ForStmt) : T;
-	visitDoWhileStmt( target : DoWhileStmt) : T;
-	visitWhileStmt( target : WhileStmt) : T;
-	visitParameter( target : Parameter) : T;
-	visitExpandExpr( target : ExpandExpr) : T;
-	visitFunctionStmt( target : FunctionStmt) : T;
-	visitClassStmt( target : ClassStmt) : T;
-	visitExprStmt( target : ExprStmt) : T;
-	visitBreakStmt( target : BreakStmt) : T;
-	visitContinueStmt( target : ContinueStmt) : T;
-	visitImportStmt( target : ImportStmt) : T;
-	visitVariableStmt( target : VariableStmt) : T;
-	visitPropertyStmt( target : PropertyStmt) : T;
-	visitTryCatchStmt( target : TryCatchStmt) : T;
-	visitThrowStmt( target : ThrowStmt) : T;
-	visitUnit( target : Unit) : T;
+export interface IVisitor {
+	visitName( target : Name) : void;
+	visitStringLiteral( target : StringLiteral) : void;
+	visitNumberLiteral( target : NumberLiteral) : void;
+	visitBoolLiteral( target : BoolLiteral) : void;
+	visitNameLiteral( target : NameLiteral) : void;
+	visitGroup( target : Group) : void;
+	visitNullLiteral( target : NullLiteral) : void;
+	visitLogicalExpr( target : LogicalExpr) : void;
+	visitBinaryExpr( target : BinaryExpr) : void;
+	visitAssignExpr( target : AssignExpr) : void;
+	visitUnaryExpr( target : UnaryExpr) : void;
+	visitTypeCastExpr( target : TypeCastExpr) : void;
+	visitCallExpr( target : CallExpr) : void;
+	visitArrayExpr( target : ArrayExpr) : void;
+	visitArrayAccessExpr( target : ArrayAccessExpr) : void;
+	visitFieldExpr( target : FieldExpr) : void;
+	visitNewExpr( target : NewExpr) : void;
+	visitAccessor( target : Accessor) : void;
+	visitBlockStmt( target : BlockStmt) : void;
+	visitReturnStmt( target : ReturnStmt) : void;
+	visitNamespaceStmt( target : NamespaceStmt) : void;
+	visitTypeRef( target : TypeRef) : void;
+	visitCaseStmt( target : CaseStmt) : void;
+	visitSwitchStmt( target : SwitchStmt) : void;
+	visitIfStmt( target : IfStmt) : void;
+	visitForOfStmt( target : ForOfStmt) : void;
+	visitForStmt( target : ForStmt) : void;
+	visitDoWhileStmt( target : DoWhileStmt) : void;
+	visitWhileStmt( target : WhileStmt) : void;
+	visitParameter( target : Parameter) : void;
+	visitExpandExpr( target : ExpandExpr) : void;
+	visitFunctionStmt( target : FunctionStmt) : void;
+	visitClassStmt( target : ClassStmt) : void;
+	visitExprStmt( target : ExprStmt) : void;
+	visitBreakStmt( target : BreakStmt) : void;
+	visitContinueStmt( target : ContinueStmt) : void;
+	visitImportStmt( target : ImportStmt) : void;
+	visitVariableStmt( target : VariableStmt) : void;
+	visitPropertyStmt( target : PropertyStmt) : void;
+	visitTryCatchStmt( target : TryCatchStmt) : void;
+	visitThrowStmt( target : ThrowStmt) : void;
+	visitUnit( target : Unit) : void;
 }
 
-export class Visitor implements IVisitor<void> {
+export class Visitor implements IVisitor {
 	visitName( target : Name) : void {}
 	visitStringLiteral( target : StringLiteral) : void {}
 	visitNumberLiteral( target : NumberLiteral) : void {}
@@ -893,50 +1005,143 @@ export class Visitor implements IVisitor<void> {
 	visitUnit( target : Unit) : void {}
 }
 
-export abstract class Dispatcher<T> {
-	protected abstract visitName( target : Name) : T;
-	protected abstract visitStringLiteral( target : StringLiteral) : T;
-	protected abstract visitNumberLiteral( target : NumberLiteral) : T;
-	protected abstract visitBoolLiteral( target : BoolLiteral) : T;
-	protected abstract visitNameLiteral( target : NameLiteral) : T;
-	protected abstract visitGroup( target : Group) : T;
-	protected abstract visitNullLiteral( target : NullLiteral) : T;
-	protected abstract visitLogicalExpr( target : LogicalExpr) : T;
-	protected abstract visitBinaryExpr( target : BinaryExpr) : T;
-	protected abstract visitAssignExpr( target : AssignExpr) : T;
-	protected abstract visitUnaryExpr( target : UnaryExpr) : T;
-	protected abstract visitTypeCastExpr( target : TypeCastExpr) : T;
-	protected abstract visitCallExpr( target : CallExpr) : T;
-	protected abstract visitArrayExpr( target : ArrayExpr) : T;
-	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : T;
-	protected abstract visitFieldExpr( target : FieldExpr) : T;
-	protected abstract visitNewExpr( target : NewExpr) : T;
-	protected abstract visitAccessor( target : Accessor) : T;
-	protected abstract visitBlockStmt( target : BlockStmt) : T;
-	protected abstract visitReturnStmt( target : ReturnStmt) : T;
-	protected abstract visitNamespaceStmt( target : NamespaceStmt) : T;
-	protected abstract visitTypeRef( target : TypeRef) : T;
-	protected abstract visitCaseStmt( target : CaseStmt) : T;
-	protected abstract visitSwitchStmt( target : SwitchStmt) : T;
-	protected abstract visitIfStmt( target : IfStmt) : T;
-	protected abstract visitForOfStmt( target : ForOfStmt) : T;
-	protected abstract visitForStmt( target : ForStmt) : T;
-	protected abstract visitDoWhileStmt( target : DoWhileStmt) : T;
-	protected abstract visitWhileStmt( target : WhileStmt) : T;
-	protected abstract visitParameter( target : Parameter) : T;
-	protected abstract visitExpandExpr( target : ExpandExpr) : T;
-	protected abstract visitFunctionStmt( target : FunctionStmt) : T;
-	protected abstract visitClassStmt( target : ClassStmt) : T;
-	protected abstract visitExprStmt( target : ExprStmt) : T;
-	protected abstract visitBreakStmt( target : BreakStmt) : T;
-	protected abstract visitContinueStmt( target : ContinueStmt) : T;
-	protected abstract visitImportStmt( target : ImportStmt) : T;
-	protected abstract visitVariableStmt( target : VariableStmt) : T;
-	protected abstract visitPropertyStmt( target : PropertyStmt) : T;
-	protected abstract visitTryCatchStmt( target : TryCatchStmt) : T;
-	protected abstract visitThrowStmt( target : ThrowStmt) : T;
-	protected abstract visitUnit( target : Unit) : T;
-	protected dispatch( node : INode ) : T {
+export abstract class DispatcherTypeRef {
+	protected abstract visitName( target : Name) : TypeRef;
+	protected abstract visitStringLiteral( target : StringLiteral) : TypeRef;
+	protected abstract visitNumberLiteral( target : NumberLiteral) : TypeRef;
+	protected abstract visitBoolLiteral( target : BoolLiteral) : TypeRef;
+	protected abstract visitNameLiteral( target : NameLiteral) : TypeRef;
+	protected abstract visitGroup( target : Group) : TypeRef;
+	protected abstract visitNullLiteral( target : NullLiteral) : TypeRef;
+	protected abstract visitLogicalExpr( target : LogicalExpr) : TypeRef;
+	protected abstract visitBinaryExpr( target : BinaryExpr) : TypeRef;
+	protected abstract visitAssignExpr( target : AssignExpr) : TypeRef;
+	protected abstract visitUnaryExpr( target : UnaryExpr) : TypeRef;
+	protected abstract visitTypeCastExpr( target : TypeCastExpr) : TypeRef;
+	protected abstract visitCallExpr( target : CallExpr) : TypeRef;
+	protected abstract visitArrayExpr( target : ArrayExpr) : TypeRef;
+	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : TypeRef;
+	protected abstract visitFieldExpr( target : FieldExpr) : TypeRef;
+	protected abstract visitNewExpr( target : NewExpr) : TypeRef;
+	protected abstract visitAccessor( target : Accessor) : TypeRef;
+	protected abstract visitBlockStmt( target : BlockStmt) : TypeRef;
+	protected abstract visitReturnStmt( target : ReturnStmt) : TypeRef;
+	protected abstract visitNamespaceStmt( target : NamespaceStmt) : TypeRef;
+	protected abstract visitTypeRef( target : TypeRef) : TypeRef;
+	protected abstract visitCaseStmt( target : CaseStmt) : TypeRef;
+	protected abstract visitSwitchStmt( target : SwitchStmt) : TypeRef;
+	protected abstract visitIfStmt( target : IfStmt) : TypeRef;
+	protected abstract visitForOfStmt( target : ForOfStmt) : TypeRef;
+	protected abstract visitForStmt( target : ForStmt) : TypeRef;
+	protected abstract visitDoWhileStmt( target : DoWhileStmt) : TypeRef;
+	protected abstract visitWhileStmt( target : WhileStmt) : TypeRef;
+	protected abstract visitParameter( target : Parameter) : TypeRef;
+	protected abstract visitExpandExpr( target : ExpandExpr) : TypeRef;
+	protected abstract visitFunctionStmt( target : FunctionStmt) : TypeRef;
+	protected abstract visitClassStmt( target : ClassStmt) : TypeRef;
+	protected abstract visitExprStmt( target : ExprStmt) : TypeRef;
+	protected abstract visitBreakStmt( target : BreakStmt) : TypeRef;
+	protected abstract visitContinueStmt( target : ContinueStmt) : TypeRef;
+	protected abstract visitImportStmt( target : ImportStmt) : TypeRef;
+	protected abstract visitVariableStmt( target : VariableStmt) : TypeRef;
+	protected abstract visitPropertyStmt( target : PropertyStmt) : TypeRef;
+	protected abstract visitTryCatchStmt( target : TryCatchStmt) : TypeRef;
+	protected abstract visitThrowStmt( target : ThrowStmt) : TypeRef;
+	protected abstract visitUnit( target : Unit) : TypeRef;
+	protected dispatch( node : INode ) : TypeRef {
+		if (!node) return;
+		switch (node.className()) {
+			case 'Name': return this.visitName(<Name>node);
+			case 'StringLiteral': return this.visitStringLiteral(<StringLiteral>node);
+			case 'NumberLiteral': return this.visitNumberLiteral(<NumberLiteral>node);
+			case 'BoolLiteral': return this.visitBoolLiteral(<BoolLiteral>node);
+			case 'NameLiteral': return this.visitNameLiteral(<NameLiteral>node);
+			case 'Group': return this.visitGroup(<Group>node);
+			case 'NullLiteral': return this.visitNullLiteral(<NullLiteral>node);
+			case 'LogicalExpr': return this.visitLogicalExpr(<LogicalExpr>node);
+			case 'BinaryExpr': return this.visitBinaryExpr(<BinaryExpr>node);
+			case 'AssignExpr': return this.visitAssignExpr(<AssignExpr>node);
+			case 'UnaryExpr': return this.visitUnaryExpr(<UnaryExpr>node);
+			case 'TypeCastExpr': return this.visitTypeCastExpr(<TypeCastExpr>node);
+			case 'CallExpr': return this.visitCallExpr(<CallExpr>node);
+			case 'ArrayExpr': return this.visitArrayExpr(<ArrayExpr>node);
+			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
+			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
+			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
+			case 'Accessor': return this.visitAccessor(<Accessor>node);
+			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
+			case 'ReturnStmt': return this.visitReturnStmt(<ReturnStmt>node);
+			case 'NamespaceStmt': return this.visitNamespaceStmt(<NamespaceStmt>node);
+			case 'TypeRef': return this.visitTypeRef(<TypeRef>node);
+			case 'CaseStmt': return this.visitCaseStmt(<CaseStmt>node);
+			case 'SwitchStmt': return this.visitSwitchStmt(<SwitchStmt>node);
+			case 'IfStmt': return this.visitIfStmt(<IfStmt>node);
+			case 'ForOfStmt': return this.visitForOfStmt(<ForOfStmt>node);
+			case 'ForStmt': return this.visitForStmt(<ForStmt>node);
+			case 'DoWhileStmt': return this.visitDoWhileStmt(<DoWhileStmt>node);
+			case 'WhileStmt': return this.visitWhileStmt(<WhileStmt>node);
+			case 'Parameter': return this.visitParameter(<Parameter>node);
+			case 'ExpandExpr': return this.visitExpandExpr(<ExpandExpr>node);
+			case 'FunctionStmt': return this.visitFunctionStmt(<FunctionStmt>node);
+			case 'ClassStmt': return this.visitClassStmt(<ClassStmt>node);
+			case 'ExprStmt': return this.visitExprStmt(<ExprStmt>node);
+			case 'BreakStmt': return this.visitBreakStmt(<BreakStmt>node);
+			case 'ContinueStmt': return this.visitContinueStmt(<ContinueStmt>node);
+			case 'ImportStmt': return this.visitImportStmt(<ImportStmt>node);
+			case 'VariableStmt': return this.visitVariableStmt(<VariableStmt>node);
+			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
+			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
+			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'Unit': return this.visitUnit(<Unit>node);
+		}
+		throw Error(`Unable to dispatch an object of '${node.className()}'`);
+	}
+}
+
+export abstract class DispatcherVoid {
+	protected abstract visitName( target : Name) : void;
+	protected abstract visitStringLiteral( target : StringLiteral) : void;
+	protected abstract visitNumberLiteral( target : NumberLiteral) : void;
+	protected abstract visitBoolLiteral( target : BoolLiteral) : void;
+	protected abstract visitNameLiteral( target : NameLiteral) : void;
+	protected abstract visitGroup( target : Group) : void;
+	protected abstract visitNullLiteral( target : NullLiteral) : void;
+	protected abstract visitLogicalExpr( target : LogicalExpr) : void;
+	protected abstract visitBinaryExpr( target : BinaryExpr) : void;
+	protected abstract visitAssignExpr( target : AssignExpr) : void;
+	protected abstract visitUnaryExpr( target : UnaryExpr) : void;
+	protected abstract visitTypeCastExpr( target : TypeCastExpr) : void;
+	protected abstract visitCallExpr( target : CallExpr) : void;
+	protected abstract visitArrayExpr( target : ArrayExpr) : void;
+	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : void;
+	protected abstract visitFieldExpr( target : FieldExpr) : void;
+	protected abstract visitNewExpr( target : NewExpr) : void;
+	protected abstract visitAccessor( target : Accessor) : void;
+	protected abstract visitBlockStmt( target : BlockStmt) : void;
+	protected abstract visitReturnStmt( target : ReturnStmt) : void;
+	protected abstract visitNamespaceStmt( target : NamespaceStmt) : void;
+	protected abstract visitTypeRef( target : TypeRef) : void;
+	protected abstract visitCaseStmt( target : CaseStmt) : void;
+	protected abstract visitSwitchStmt( target : SwitchStmt) : void;
+	protected abstract visitIfStmt( target : IfStmt) : void;
+	protected abstract visitForOfStmt( target : ForOfStmt) : void;
+	protected abstract visitForStmt( target : ForStmt) : void;
+	protected abstract visitDoWhileStmt( target : DoWhileStmt) : void;
+	protected abstract visitWhileStmt( target : WhileStmt) : void;
+	protected abstract visitParameter( target : Parameter) : void;
+	protected abstract visitExpandExpr( target : ExpandExpr) : void;
+	protected abstract visitFunctionStmt( target : FunctionStmt) : void;
+	protected abstract visitClassStmt( target : ClassStmt) : void;
+	protected abstract visitExprStmt( target : ExprStmt) : void;
+	protected abstract visitBreakStmt( target : BreakStmt) : void;
+	protected abstract visitContinueStmt( target : ContinueStmt) : void;
+	protected abstract visitImportStmt( target : ImportStmt) : void;
+	protected abstract visitVariableStmt( target : VariableStmt) : void;
+	protected abstract visitPropertyStmt( target : PropertyStmt) : void;
+	protected abstract visitTryCatchStmt( target : TryCatchStmt) : void;
+	protected abstract visitThrowStmt( target : ThrowStmt) : void;
+	protected abstract visitUnit( target : Unit) : void;
+	protected dispatch( node : INode ) : void {
 		if (!node) return;
 		switch (node.className()) {
 			case 'Name': return this.visitName(<Name>node);

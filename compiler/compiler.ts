@@ -1,4 +1,4 @@
-import { IStmt, Unit, Name, ClassStmt } from './types';
+import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser, NodePromoter, injectObject, injectCallable } from './parser';
@@ -42,8 +42,8 @@ export interface CompilationListener
 export class CompilationContext
 {
 	listener : CompilationListener;
-    units : Map<string, Unit> = new Map();
-    types : Map<string, ClassStmt> = new Map();
+    units : StrUnitMap = new StrUnitMap();
+    types : StrClassMap = new StrClassMap();
     namespaceStack : Name[] = [];
 
 	constructor( listener : CompilationListener )
@@ -116,13 +116,10 @@ export class Compiler
 
     typeInference()
     {
-        let it = this.ctx.units.values();
-        while (true)
+        for (let unit of this.ctx.units.values())
         {
-            let ir = it.next();
-            if (ir.done) break;
             let inf = new TypeInference(this.ctx);
-            inf.visitUnit(ir.value);
+            inf.visitUnit(unit);
         }
     }
 

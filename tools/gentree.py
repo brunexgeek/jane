@@ -18,6 +18,7 @@
 #
 
 import sys;
+import map
 
 types = []
 
@@ -85,7 +86,7 @@ def printType(name, fields, parent = None, keep_open = False ):
     sys.stdout.write('\t}\n')
 
     # visitor caller
-    sys.stdout.write('\taccept<T>( visitor : IVisitor<T> ) : T { return visitor.visit' + name + '(this); }\n')
+    sys.stdout.write('\taccept( visitor : IVisitor ) : void { visitor.visit' + name + '(this); }\n')
 
     # class name helper
     sys.stdout.write('\tclassName() : string { return \'' + name + '\'; }\n')
@@ -94,23 +95,23 @@ def printType(name, fields, parent = None, keep_open = False ):
 
 def printVisitor():
     # interface
-    sys.stdout.write('''export interface IVisitor<T>{\n''')
+    sys.stdout.write('''export interface IVisitor {\n''')
     for t in types:
-        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : T;\n')
+        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void;\n')
     sys.stdout.write('}\n\n')
 
     # class
-    sys.stdout.write('''export class Visitor implements IVisitor<void> {\n''')
+    sys.stdout.write('''export class Visitor implements IVisitor {\n''')
     for t in types:
         sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void {}\n')
     sys.stdout.write('}\n\n')
 
-def printDispatcher():
-    # class
-    sys.stdout.write('''export abstract class Dispatcher<T> {\n''')
+def printDispatcher(type):
+    name = type[0].upper() + type[1:];
+    sys.stdout.write('export abstract class Dispatcher' + name + ' {\n')
     for t in types:
-        sys.stdout.write('\tprotected abstract visit' + t + '( target : ' + t + ') : T;\n')
-    sys.stdout.write('\tprotected dispatch( node : INode ) : T {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
+        sys.stdout.write('\tprotected abstract visit' + t + '( target : ' + t + ') : ' + type + ';\n')
+    sys.stdout.write('\tprotected dispatch( node : INode ) : ' + type + ' {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
     for t in types:
         sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
     sys.stdout.write('\t\t}\n\t\tthrow Error(`Unable to dispatch an object of \'${node.className()}\'`);\n\t}\n}\n\n')
@@ -143,7 +144,7 @@ import { SourceLocation } from './compiler';
 
 export interface INode
 {
-    accept<T>( visitor : IVisitor<T> ) : T;
+    accept( visitor : IVisitor ) : void;
     className(): string;
 }
 
@@ -498,16 +499,22 @@ printType('ThrowStmt', [
     {'name' : 'expr', 'type' : 'IExpr'}
     ], 'IStmt')
 
+map.createMap('StrUnitMap', 'string', 'Unit')
+map.createMap('StrVarMap', 'string', 'VariableStmt')
+map.createMap('StrClassMap', 'string', 'ClassStmt')
+map.createMap('StrFuncMap', 'string', 'FunctionStmt')
+
 printType('Unit', [
     {'name' : 'fileName', 'type' : 'string', 'init' : '', 'ctor' : False},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'imports', 'type' : 'ImportStmt[]'},
-    {'name' : 'variables', 'type' : 'Map<string,VariableStmt>', 'init' : 'new Map()', 'ctor' : False},
-    {'name' : 'types', 'type' : 'Map<string,ClassStmt>', 'init' : 'new Map()', 'ctor' : False},
-    {'name' : 'generics', 'type' : 'Map<string,ClassStmt>', 'init' : 'new Map()', 'ctor' : False},
-    {'name' : 'functions', 'type' : 'Map<string,FunctionStmt>', 'init' : 'new Map()', 'ctor' : False}
+    {'name' : 'variables', 'type' : 'StrVarMap', 'init' : 'new StrVarMap()', 'ctor' : False},
+    {'name' : 'types', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
+    {'name' : 'generics', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
+    {'name' : 'functions', 'type' : 'StrFuncMap', 'init' : 'new StrFuncMap()', 'ctor' : False}
     ])
 
 printVisitor()
 
-printDispatcher()
+printDispatcher('TypeRef')
+printDispatcher('void')

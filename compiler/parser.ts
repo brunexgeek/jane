@@ -58,7 +58,7 @@ import {
     Unit,
     ImportStmt,
     ForStmt,
-    Dispatcher,
+    DispatcherTypeRef,
     TypeCastExpr,
     PropertyStmt} from './types';
 
@@ -1205,7 +1205,7 @@ export class NodePromoter
 
     process( unit : Unit )
     {
-        this.processStatements(unit, unit.stmts);
+        if (unit) this.processStatements(unit, unit.stmts);
     }
 }
 

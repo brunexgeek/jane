@@ -42,13 +42,13 @@ import {
     Unit,
     ImportStmt,
     ForStmt,
-    Dispatcher,
+    DispatcherVoid,
     TypeCastExpr,
     PropertyStmt} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
-export class PortableGenerator extends Dispatcher<void>
+export class PortableGenerator extends DispatcherVoid
 {
     ctx : CompilationContext;
     buffer : StringBuffer = new StringBuffer();
