@@ -89,6 +89,7 @@ export class Parser
     private tok : Tokenizer;
     private ctx : CompilationContext;
     private stack : Token[] = [];
+    private previous : Token = null;
     private unit : Unit = null;
     private hasError = false;
     private hasAborted = false;
@@ -109,12 +110,19 @@ export class Parser
             //if (this.stack[0].type == TokenType.NAME)
             //    Logger.writeln('--- ' + this.stack[0].toString());
         }
-        return this.stack[0];
+        return this.stack[this.stack.length - 1];
     }
 
     peekType() : TokenType
     {
         return this.peek().type;
+    }
+
+    unget()
+    {
+        if (this.previous == null) throw this.error(null, "Not previous token");
+        this.stack.push(this.previous);
+        this.previous = null;
     }
 
     check( ...types : TokenType[] ) : boolean
@@ -127,9 +135,9 @@ export class Parser
 
     advance() : Token
     {
-        let tt = this.peek();
+        this.previous = this.peek();
         this.stack.pop();
-        return tt;
+        return this.previous;
     }
 
     consume( ...types : TokenType[] ) : Token
@@ -805,7 +813,10 @@ export class Parser
         if (result != null)
         {
             this.advance();
-            return new Token(result, value.lexeme, value.location);
+            if (this.peekType() != TokenType.LEFT_PAREN)
+                return new Token(result, value.lexeme, value.location);
+            else
+                this.unget();
         }
         return null;
     }
