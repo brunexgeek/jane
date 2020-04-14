@@ -499,6 +499,7 @@ printType('ThrowStmt', [
     {'name' : 'expr', 'type' : 'IExpr'}
     ], 'IStmt')
 
+map.createMap('StrIStmtMap', 'string', 'IStmt')
 map.createMap('StrUnitMap', 'string', 'Unit')
 map.createMap('StrVarMap', 'string', 'VariableStmt')
 map.createMap('StrClassMap', 'string', 'ClassStmt')

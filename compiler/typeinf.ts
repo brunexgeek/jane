@@ -61,7 +61,8 @@ import {
     TypeCastExpr,
     PropertyStmt,
     ForStmt,
-    DispatcherTypeRef} from './types';
+    DispatcherTypeRef,
+    StrIStmtMap} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 
@@ -137,29 +138,12 @@ export function findSymbol( unit : Unit, name : string ) : IStmt
     return null;
 }
 
-class StrIStmtMap{
-    private keys : string[] = [];
-    private items : IStmt[] = [];
-    get( key : string ) : IStmt {
-            let i = this.keys.indexOf(key);
-            if (i < 0) return null;
-            return this.items[i];
-    }
-    set( key : string, value : IStmt ) {
-            let i = this.keys.indexOf(key);
-            if (i >= 0) this.items[i] = value;
-            else { this.keys.push(key); this.items.push(value); }
-    }
-    values() : IStmt[] { return this.items; }
-}
-
 export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
     stack : Scope[] = [new Scope()];
     imports : StrIStmtMap = new StrIStmtMap();
     unit : Unit = null;
-    types : string[] = [];
 
     constructor( ctx : CompilationContext )
     {
@@ -476,8 +460,8 @@ export class TypeInference extends DispatcherTypeRef
         let name = type.qualified;
 
         if (name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
-        if (this.types.indexOf(name) >= 0) return type;
-        if (this.imports.get(name)) return type;
+        if (this.unit.types.has(name)) return type;
+        if (this.imports.has(name)) return type;
         throw this.error(type.location, `Unknown type '${name}'`);
     }
 

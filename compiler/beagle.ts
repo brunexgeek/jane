@@ -38,7 +38,10 @@ class MyListener implements CompilationListener
 	}
 
 	onError(location: SourceLocation, error : Error): boolean {
-		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
+		if (location)
+			Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
+		else
+			Logger.writeln('<unkown source>:0:0: ERROR - ' + error.message);
 		//Logger.writeln(error.stack);
 		//process.exit(1);
 		return false;

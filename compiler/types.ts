@@ -783,6 +783,34 @@ export class ThrowStmt implements IStmt
 	className() : string { return 'ThrowStmt'; }
 }
 
+export class StrIStmtMap{
+	private keys : string[] = [];
+	private items : IStmt[] = [];
+	get( key : string ) : IStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : IStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : IStmt[] { return this.items; }
+}
 export class StrUnitMap{
 	private keys : string[] = [];
 	private items : Unit[] = [];
