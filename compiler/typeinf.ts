@@ -283,15 +283,19 @@ export class TypeInference extends DispatcherTypeRef
 
     visitLogicalExpr(target: LogicalExpr) : TypeRef
     {
+        /*
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
             throw this.error(target.location, 'Incompatible types for logical operator');
         return TypeRef.BOOLEAN;
+        */
+        return null;
     }
 
     visitBinaryExpr(target: BinaryExpr) : TypeRef
     {
+        /*
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
@@ -299,17 +303,20 @@ export class TypeInference extends DispatcherTypeRef
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
             this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
         return left;
+        */
+        return null;
     }
 
     visitAssignExpr(target: AssignExpr) : TypeRef
     {
-        let left = this.dispatch(target.left);
+        /*let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (left != right)
             throw this.error(target.location, 'Incompatible types for logical operator');
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
             throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
-        return left;
+        return left;*/
+        return null;
     }
 
     visitUnaryExpr(target: UnaryExpr) : TypeRef
@@ -514,6 +521,7 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.stmt);
         return null;
     }
+
     visitParameter(target: Parameter) : TypeRef
     {
         return null;
@@ -538,6 +546,12 @@ export class TypeInference extends DispatcherTypeRef
         {
             this.dispatch(param.type);
             this.top().insert(param.name.toString(), param, param.type);
+        }
+        if (target.parent instanceof ClassStmt)
+        {
+            let type = new TypeRef(target.name, null, 0, true);
+            let self = new VariableStmt(new Name(['this']), type, null, false);
+            this.top().insert('this', self, type);
         }
 
         if (target.body) this.dispatch(target.body);

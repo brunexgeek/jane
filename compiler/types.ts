@@ -571,6 +571,7 @@ export class FunctionStmt implements IStmt
 	body : BlockStmt;
 	accessor : Accessor;
 	property : TokenType = null;
+	parent : INode = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, accessor : Accessor = null, location : SourceLocation = null )
 	{
@@ -615,7 +616,7 @@ export class ClassStmt implements IStmt
 	implemented : TypeRef[];
 	stmts : IStmt[];
 	accessor : Accessor;
-	unit : Unit = null;
+	parent : Unit = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
 	{
@@ -704,6 +705,7 @@ export class VariableStmt implements IStmt
 	init : IExpr;
 	constant : boolean;
 	accessor : Accessor;
+	parent : INode = null;
 	location : SourceLocation;
 	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, accessor : Accessor = null, location : SourceLocation = null )
 	{

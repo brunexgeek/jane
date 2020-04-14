@@ -254,9 +254,13 @@ export class Parser
             this.unit.stmts = stmts;
 
             for (let stmt of this.unit.generics.values())
-                stmt.unit = this.unit;
+                stmt.parent = this.unit;
             for (let stmt of this.unit.types.values())
-                stmt.unit = this.unit;
+                stmt.parent = this.unit;
+            for (let stmt of this.unit.functions.values())
+                stmt.parent = this.unit;
+            for (let stmt of this.unit.variables.values())
+                stmt.parent = this.unit;
 
             return this.unit;
         }
@@ -876,7 +880,10 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        return new ClassStmt(name, generics, extended, implemented, stmts, accessor);
+        let result = new ClassStmt(name, generics, extended, implemented, stmts, accessor);
+        for (let stmt of stmts)
+            if (stmt instanceof VariableStmt || stmt instanceof FunctionStmt) stmt.parent = result;
+        return result;
     }
 
     parseMethod( name : Name ) : FunctionStmt
