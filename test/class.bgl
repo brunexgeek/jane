@@ -1,21 +1,28 @@
-class MyClass1
+interface IMyContract
 {
-    // empty class
+    toString() : string;
 }
 
 class MyClass2
 {
     x : number;
     y : string;
+    static text : string;
 }
 
 namespace test {
 
-class MyClass3
+class MyClass3 extends MyClass2 implements IMyContract
 {
     a : number;
     // this field use a previously defined class
     c : MyClass2;
+
+    sum( value : number ) : number
+    {
+        return this.a + value;
+    }
+    toString() : string { return "";}
 }
 
 }

@@ -321,7 +321,7 @@ export class Accessor implements INode
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitAccessor(this); }
 	className() : string { return 'Accessor'; }
-isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
 }export class BlockStmt implements IStmt
 {
 	stmts : IStmt[];
@@ -371,6 +371,7 @@ export class TypeRef implements INode
 	generics : TypeRef[];
 	dims : number;
 	nullable : boolean;
+	ref : ClassStmt = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : TypeRef[], dims : number, nullable : boolean, location : SourceLocation = null )
 	{
@@ -607,6 +608,8 @@ export class FunctionStmt implements IStmt
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isAbstract() : boolean { return this.body == null; }
 }
 export class ClassStmt implements IStmt
 {
@@ -727,6 +730,7 @@ export class VariableStmt implements IStmt
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
 }
 export class PropertyStmt implements IStmt
 {
@@ -752,6 +756,7 @@ export class PropertyStmt implements IStmt
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
 }
 export class TryCatchStmt implements IStmt
 {

@@ -214,9 +214,7 @@ export class PortableGenerator extends DispatcherVoid
     }
     protected visitNamespaceStmt(target: NamespaceStmt): void
     {
-        this.comment(`BEGIN namespace '${target.name}'`);
         for (let stmt of target.stmts) this.dispatch(stmt);
-        this.comment(`END namespace '${target.name}'`);
     }
 
     protected visitTypeRef(target: TypeRef): void
@@ -290,21 +288,26 @@ export class PortableGenerator extends DispatcherVoid
 
     protected visitExpandExpr(target: ExpandExpr): void { }
 
+    protected methodName( target : FunctionStmt ) : string
+    {
+        return `${this.nativeName(target.name)}_`;
+    }
+
     protected visitFunctionStmt(target: FunctionStmt): void
     {
         if (!target.body) return;
         let first = true;
 
-        this.write(`${this.nativeType(target.type)} ${this.nativeName(target.name)}(`);
-        if (!target.accessor || !target.accessor.isStatic())
+        this.write(`static ${this.nativeType(target.type)} ${this.methodName(target)}(`);
+        if (!target.isStatic)
         {
             let type = new TypeRef(target.name.parent, null, 0, true);
-            this.write(` ${this.nativeType(type)} thisptr__`);
+            this.write(`${this.nativeType(type)} thisptr__`);
             first = false;
         }
         for (let param of target.params)
         {
-            if (!first) this.write(',\n');
+            if (!first) this.write(', ');
             first = false;
             this.write(`${this.nativeType(param.type) } ${this.nativeName(param.name)}`);
         }
@@ -312,17 +315,17 @@ export class PortableGenerator extends DispatcherVoid
         this.dispatch(target.body);
     }
 
-    nativeName( name : Name ) : string
+    protected nativeName( name : Name ) : string
     {
         return name.qualified.replace(/\./g, '_');
     }
 
-    nativeNameAndGenerics( name : Name ) : string
+    protected nativeNameAndGenerics( name : Name ) : string
     {
         return name.qualified.replace(/\./g, '_');
     }
 
-    nativeType( type : TypeRef ) : string
+    protected nativeType( type : TypeRef ) : string
     {
         if (!type) return 'void';
 
@@ -338,44 +341,157 @@ export class PortableGenerator extends DispatcherVoid
         }
     }
 
-    protected visitClassStmt(target: ClassStmt): void
+    protected nativeDefault( type : TypeRef ) : string
     {
-        this.comment(`BEGIN class ${target.name.qualified}`, true);
+        if (!type) return 'BGL_NULL';
 
-        // static storage
-        this.writeln(`struct static_${this.nativeName(target.name)}_ {`);
-        this.buffer.indent();
-        this.writeln('void *base__;\nstruct typeinfo_ typeInfo__;');
+        let name = type.name.canonical;
+        switch (name)
+        {
+            case 'number': return '0';
+            case 'string': return '""';
+            case 'boolean': return 'BGL_FALSE';
+            default:
+                return 'BGL_NULL';
+        }
+    }
+
+    protected staticStorageName( target : ClassStmt ) : string
+    {
+        return `${this.nativeName(target.name)}_storage_`;
+    }
+
+    protected generateStatic( target: ClassStmt, complete : boolean = false )
+    {
+        if (complete)
+        {
+            this.writeln(`struct static_${this.nativeName(target.name)}_ {`);
+            this.buffer.indent();
+            this.writeln(`const void (**${target.name.canonical}_vtable__)();`);
+        }
+        // parent class
+        if (target.extended && target.extended.ref)
+            this.generateStatic(target.extended.ref);
+        // fields
+        this.comment(`${target.name.qualified} fields`, true);
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof PropertyStmt)) continue;
-            if (stmt.accessor && stmt.accessor.values.indexOf(TokenType.STATIC) >= 0)
+            if (stmt.isStatic)
                 this.dispatch(stmt);
         }
-        this.buffer.dedent();
-        this.writeln(`};\n`);
+        if (complete)
+        {
+            this.buffer.dedent();
+            this.writeln(`};\n`);
+            this.writeln(`static struct static_${this.nativeName(target.name)}_ ${this.staticStorageName(target)};\n`);
+        }
+    }
 
-        // dynamic storage
-        this.writeln(`struct dynamic_${this.nativeName(target.name)}_ {`);
-        this.buffer.indent();
-        this.writeln(`struct static_${this.nativeName(target.name)}_ *type__;\nuint32_t flags;`);
+    protected generateDynamic( target: ClassStmt, complete : boolean = false )
+    {
+        if (complete)
+        {
+            this.writeln(`struct dynamic_${this.nativeName(target.name)}_ {`);
+            this.buffer.indent();
+            this.writeln(`const void (**${target.name.canonical}_vtable__)();`);
+        }
+        // parent class
+        if (target.extended && target.extended.ref)
+            this.generateDynamic(target.extended.ref);
+        // fields
+        this.comment(`${target.name.qualified} fields`, true);
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof PropertyStmt)) continue;
             if (!stmt.accessor || stmt.accessor.values.indexOf(TokenType.STATIC) < 0)
                 this.dispatch(stmt);
         }
-        this.buffer.dedent();
-        this.writeln(`};\n`);
+        // interfaces
+        if (target.implemented)
+        {
+            for (let stmt of target.implemented)
+            {
+                this.writeln(`void (**${stmt.name.canonical}_vtable__)();`);
+            }
+        }
+        if (complete)
+        {
+            this.buffer.dedent();
+            this.writeln(`};\n`);
+        }
+    }
 
+    protected generateStaticInit(target: ClassStmt): void
+    {
+        let name = this.staticStorageName(target);
+        this.writeln(`static void ${this.nativeName(target.name)}_sctor() {`);
+        this.buffer.indent();
+        this.writeln(`${this.staticStorageName(target)}.${this.nativeName(target.name)}_vtable__ = ${this.nativeName(target.name)}_vtable;`);
+        // static fields
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof PropertyStmt)) continue;
+            if (!stmt.isStatic) continue;
+            this.writeln(`${name}.${stmt.name.canonical} = ${this.nativeDefault(stmt.type)};`);
+        }
+        this.buffer.dedent();
+        this.writeln('}\n');
+    }
+
+    protected generateVTable( target : ClassStmt )
+    {
+        this.write(`static const void(*${this.nativeName(target.name)}_vtable)() = `);
+        let first = true;
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof FunctionStmt)) continue;
+            if (stmt.isAbstract) continue;
+            if (first)
+            {
+                this.writeln('{');
+                this.buffer.indent();
+                first = false;
+            }
+            else
+                this.writeln(',');
+
+            this.write(this.methodName(stmt));
+        }
+        if (first)
+            this.writeln(' BGL_NULL;');
+        else
+        {
+            this.writeln(' };');
+            this.buffer.dedent();
+        }
+    }
+
+    protected visitClassStmt(target: ClassStmt): void
+    {
+        this.comment(`class ${target.name.qualified}`, true);
+
+        // static storage
+        this.generateStatic(target, true);
+        // dynamic storage
+        this.generateDynamic(target, true);
+        // methods ID
+        let i = 0;
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof FunctionStmt)) continue;
+            this.writeln(`#define ID_${this.methodName(stmt).toUpperCase()}_ ${i++}`);
+        }
         // methods
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof FunctionStmt)) continue;
             this.dispatch(stmt);
         }
-
-        this.comment(`END class ${target.name.qualified}`, true);
+        // vtable storage
+        this.generateVTable(target);
+        // static initializer
+        this.generateStaticInit(target);
     }
 
     protected visitExprStmt(target: ExprStmt): void

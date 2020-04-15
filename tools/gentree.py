@@ -265,7 +265,7 @@ printType('NewExpr', [
 printType('Accessor', [
     {'name' : 'values', 'type' : 'TokenType[]'}
     ], None, True)
-sys.stdout.write('''isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+sys.stdout.write('''get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
 }''')
 
 printType('BlockStmt', [
@@ -287,6 +287,7 @@ printType('TypeRef', [
     {'name' : 'generics', 'type' : 'TypeRef[]'},
     {'name' : 'dims', 'type' : 'number'},
     {'name' : 'nullable', 'type' : 'boolean'},
+    {'name' : 'ref', 'type' : 'ClassStmt', 'init' : 'null', 'ctor' : False},
     ], None, True)
 sys.stdout.write('''\ttoString( qualified : boolean = true) : string
     {
@@ -409,6 +410,8 @@ sys.stdout.write('''
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isAbstract() : boolean { return this.body == null; }
 }
 ''')
 
@@ -471,6 +474,7 @@ sys.stdout.write('''
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
 }
 ''')
 
@@ -487,6 +491,7 @@ sys.stdout.write('''
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
+    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
 }
 ''')
 

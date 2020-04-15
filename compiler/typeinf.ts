@@ -466,9 +466,22 @@ export class TypeInference extends DispatcherTypeRef
 
         let name = type.qualified;
 
-        if (name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
-        if (this.unit.types.has(name)) return type;
-        if (this.imports.has(name)) return type;
+        if (name == 'Object' || name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
+
+        let clazz = this.unit.types.get(name);
+        if (clazz)
+        {
+            type.ref = clazz;
+            return type;
+        }
+
+        let stmt = this.imports.get(name);
+        if (stmt && stmt instanceof ClassStmt)
+        {
+            type.ref = clazz;
+            return type;
+        }
+
         throw this.error(type.location, `Unknown type '${name}'`);
     }
 
@@ -565,6 +578,13 @@ export class TypeInference extends DispatcherTypeRef
     {
         this.push();
 
+        if (target.extended)
+            this.dispatch(target.extended);
+        if (target.implemented)
+        {
+            for (let intf of target.implemented)
+                this.dispatch(intf);
+        }
         for (let stmt of target.stmts)
             this.dispatch(stmt);
 
