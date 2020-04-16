@@ -1,7 +1,7 @@
 import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
-import { Parser, NodePromoter, injectObject, injectCallable } from './parser';
+import { Parser, NodePromoter, createObject, createCallable, createError } from './parser';
 import { TypeInference } from './typeinf';
 
 export class SourceLocation
@@ -74,12 +74,17 @@ export class CompilerError extends Error
 export class Compiler
 {
     ctx : CompilationContext;
+    hasError = false;
 
     constructor( listener : CompilationListener )
     {
         this.ctx = new CompilationContext(listener);
-        injectObject(this.ctx);
-        injectCallable(this.ctx);
+        let type = createObject();
+        this.ctx.types.set(type.name.qualified, type);
+        type = createCallable();
+        this.ctx.types.set(type.name.qualified, type);
+        type = createError();
+        this.ctx.types.set(type.name.qualified, type);
     }
 
     parseSource( fileName : string ) : Unit
@@ -106,10 +111,12 @@ export class Compiler
                     this.parseSource(path);
                 }
             }
-        }
 
-        let prom = new NodePromoter();
-        prom.process(unit);
+            let prom = new NodePromoter();
+            prom.process(unit);
+        }
+        else
+            this.hasError = true;
 
         return unit;
     }
@@ -126,6 +133,7 @@ export class Compiler
     compile( fileName : string )
     {
         this.parseSource(fileName);
+        if (this.hasError) return;
         this.typeInference();
     }
 

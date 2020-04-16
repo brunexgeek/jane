@@ -142,7 +142,7 @@ export class TokenType
 
     // Keywords
     static readonly ELSE = new TokenType('ELSE', 'else', true);
-    static readonly FALSE = new TokenType('FALSE', 'true', true);
+    static readonly FALSE = new TokenType('FALSE', 'false', true);
     static readonly FUNCTION = new TokenType('FUNCTION', 'function', true);
     static readonly FOR = new TokenType('FOR', 'for', true);
     static readonly OF = new TokenType('OF', 'of', true);
@@ -404,7 +404,7 @@ export class Tokenizer
                 if (this.scanner.match('/')) return;
                 this.scanner.advance();
             }
-            throw Error('Unterminated block comment');
+            throw new Error('Unterminated block comment');
         }
     }
 

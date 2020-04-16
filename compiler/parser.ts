@@ -1216,19 +1216,22 @@ export class NodePromoter
     }
 }
 
+let errorName = new Name(['Error']);
 let objectName = new Name(['Object']);
 let objectRef = new TypeRef(objectName, null, 0, true);
 let callableName = new Name(['ICallable']);
 
-export function injectObject( ctx : CompilationContext) : void
+export function createObject() : ClassStmt
 {
-    let methods : FunctionStmt[] = [];
-    let clazz = new ClassStmt(objectName, null, null, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(objectName.qualified, clazz);
+    return new ClassStmt(objectName, null, null, null, [], new Accessor([TokenType.EXPORT]));
 }
 
-export function injectCallable( ctx : CompilationContext) : void
+export function createCallable() : ClassStmt
 {
-    let clazz = new ClassStmt(callableName, null, objectRef, null, [], new Accessor([TokenType.EXPORT]));
-    ctx.types.set(callableName.qualified, clazz);
+    return new ClassStmt(callableName, null, objectRef, null, [], new Accessor([TokenType.EXPORT]));
+}
+
+export function createError() : ClassStmt
+{
+    return new ClassStmt(errorName, null, null, null, [], new Accessor([TokenType.EXPORT]));
 }

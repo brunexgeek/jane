@@ -1129,7 +1129,7 @@ export abstract class DispatcherTypeRef {
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
-		throw Error(`Unable to dispatch an object of '${node.className()}'`);
+		throw new Error(`Unable to dispatch an object of '${node.className()}'`);
 	}
 }
 

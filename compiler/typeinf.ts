@@ -65,6 +65,7 @@ import {
     StrIStmtMap} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
+import { createObject, createCallable, createError } from './parser';
 
 class ScopeEntry
 {
@@ -100,7 +101,7 @@ class Scope
 
     insert( name : string, target : IStmt, type : TypeRef )
     {
-        Logger.writeln(`Adding '${name}' -> ${target.className()}`);
+        //Logger.writeln(`Adding '${name}' -> ${target.className()}`);
         let item = new ScopeEntry();
         item.target = target;
         item.type = type;
@@ -125,19 +126,6 @@ export class SemanticError extends Error
     }
 }
 
-export function findSymbol( unit : Unit, name : string ) : IStmt
-{
-    let stmt = <IStmt> unit.variables.get(name);
-    if (stmt) return stmt;
-    stmt = <IStmt> unit.functions.get(name);
-    if (stmt) return stmt;
-    stmt = <IStmt> unit.types.get(name);
-    if (stmt) return stmt;
-    stmt = <IStmt> unit.generics.get(name);
-    if (stmt) return stmt;
-    return null;
-}
-
 export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
@@ -149,6 +137,19 @@ export class TypeInference extends DispatcherTypeRef
     {
         super();
         this.ctx = ctx;
+    }
+
+    findSymbol( unit : Unit, name : string ) : IStmt
+    {
+        let stmt = <IStmt> unit.variables.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.functions.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.types.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.generics.get(name);
+        if (stmt) return stmt;
+        return null;
     }
 
     visitTypeCastExpr(target: TypeCastExpr): TypeRef
@@ -187,11 +188,19 @@ export class TypeInference extends DispatcherTypeRef
             if (!unit) this.error(imp.location, `Missing symbols for ${source}`); // never should happen
             for (let name of imp.names)
             {
-                let stmt = findSymbol(unit, name.qualified);
+                let stmt = this.findSymbol(unit, name.qualified);
                 if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
                 this.imports.set(name.qualified, stmt);
             }
         }
+
+        // built-in types
+        let type = createObject();
+        this.imports.set(type.name.qualified, type);
+        type = createCallable();
+        this.imports.set(type.name.qualified, type);
+        type = createError();
+        this.imports.set(type.name.qualified, type);
     }
 
     visitForStmt(target: ForStmt): TypeRef {
@@ -236,10 +245,22 @@ export class TypeInference extends DispatcherTypeRef
             if (entry != null) break;
             --i;
         }
-        if (entry)
+
+        // check for known types
+        let stmt : IStmt = this.unit.types.get(name);
+        if (!stmt) stmt = this.imports.get(name);
+        if (stmt && stmt instanceof ClassStmt)
+        {
+            entry = new ScopeEntry();
+            entry.target = stmt;
+            entry.type = new TypeRef((<ClassStmt>stmt).name, null, 0, true);
+        }
+
+        /*if (entry)
             Logger.writeln(`Found '${name}' (${this.stack.length} scopes)`);
         else
-            Logger.writeln(`Missing '${name}'  (${this.stack.length} scopes)`);
+        if (!entry)
+            Logger.writeln(`Missing '${name}'  (${this.stack.length} scopes)`);*/
         return entry;
     }
 

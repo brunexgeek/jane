@@ -114,7 +114,7 @@ def printDispatcher(type):
     sys.stdout.write('\tprotected dispatch( node : INode ) : ' + type + ' {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
     for t in types:
         sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
-    sys.stdout.write('\t\t}\n\t\tthrow Error(`Unable to dispatch an object of \'${node.className()}\'`);\n\t}\n}\n\n')
+    sys.stdout.write('\t\t}\n\t\tthrow new Error(`Unable to dispatch an object of \'${node.className()}\'`);\n\t}\n}\n\n')
 
 
 sys.stdout.write('''
