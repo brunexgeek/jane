@@ -65,7 +65,7 @@ import {
     StrIStmtMap} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
-import { createObject, createCallable, createError } from './parser';
+import { createObject, createCallable, createError, createString } from './parser';
 
 class ScopeEntry
 {
@@ -101,7 +101,7 @@ class Scope
 
     insert( name : string, target : IStmt, type : TypeRef )
     {
-        //Logger.writeln(`Adding '${name}' -> ${target.className()}`);
+        //Logger.writeln(`Adding '${name}' as ${type.qualified}`);
         let item = new ScopeEntry();
         item.target = target;
         item.type = type;
@@ -201,6 +201,8 @@ export class TypeInference extends DispatcherTypeRef
         this.imports.set(type.name.qualified, type);
         type = createError();
         this.imports.set(type.name.qualified, type);
+        type = createString();
+        this.imports.set(type.name.qualified, type);
     }
 
     visitForStmt(target: ForStmt): TypeRef {
@@ -246,14 +248,17 @@ export class TypeInference extends DispatcherTypeRef
             --i;
         }
 
-        // check for known types
-        let stmt : IStmt = this.unit.types.get(name);
-        if (!stmt) stmt = this.imports.get(name);
-        if (stmt && stmt instanceof ClassStmt)
+        if (!entry)
         {
-            entry = new ScopeEntry();
-            entry.target = stmt;
-            entry.type = new TypeRef((<ClassStmt>stmt).name, null, 0, true);
+            // check for known types
+            let stmt : IStmt = this.unit.types.get(name);
+            if (!stmt) stmt = this.imports.get(name);
+            if (stmt && stmt instanceof ClassStmt)
+            {
+                entry = new ScopeEntry();
+                entry.target = stmt;
+                entry.type = new TypeRef((<ClassStmt>stmt).name, null, 0, true);
+            }
         }
 
         /*if (entry)
@@ -289,7 +294,12 @@ export class TypeInference extends DispatcherTypeRef
         if (entry == null)
             this.error(target.location, `Cannot find name '${target.value}'`);
         else
+        {
+            //Logger.writeln('---- visitNameLiteral -> ' + target.value + ' is a ' + entry.type.qualified);
+            target.resolvedType_ = entry.type;
             return entry.type;
+        }
+        return null;
     }
 
     visitGroup(target: Group) : TypeRef
@@ -304,19 +314,16 @@ export class TypeInference extends DispatcherTypeRef
 
     visitLogicalExpr(target: LogicalExpr) : TypeRef
     {
-        /*
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
             throw this.error(target.location, 'Incompatible types for logical operator');
         return TypeRef.BOOLEAN;
-        */
-        return null;
     }
 
     visitBinaryExpr(target: BinaryExpr) : TypeRef
     {
-        /*
+
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.checkCompatibleTypes(left, right))
@@ -324,20 +331,17 @@ export class TypeInference extends DispatcherTypeRef
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
             this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
         return left;
-        */
-        return null;
     }
 
     visitAssignExpr(target: AssignExpr) : TypeRef
     {
-        /*let left = this.dispatch(target.left);
+        let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (left != right)
-            throw this.error(target.location, 'Incompatible types for logical operator');
+            throw this.error(target.location, 'Incompatible types for assignment (' + target.left.className() + ' and ' + right + ')');
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
             throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
-        return left;*/
-        return null;
+        return left;
     }
 
     visitUnaryExpr(target: UnaryExpr) : TypeRef
@@ -347,7 +351,10 @@ export class TypeInference extends DispatcherTypeRef
 
     visitCallExpr(target: CallExpr) : TypeRef
     {
-        return this.dispatch(target.callee);
+        this.dispatch(target.callee);
+        if (target.callee.resolvedType().isPrimitive())
+            this.error(target.location, 'Only functions and methods can be called');
+        return target.callee.resolvedType();
     }
 
     visitArrayExpr(target: ArrayExpr) : TypeRef
@@ -362,9 +369,45 @@ export class TypeInference extends DispatcherTypeRef
         return this.dispatch(target.callee);
     }
 
+    findMember( name : string, target : ClassStmt ) : IStmt
+    {
+        for (let stmt of target.stmts)
+        {
+            if (stmt instanceof FunctionStmt && stmt.name.canonical == name)
+                return stmt;
+            if (stmt instanceof PropertyStmt && stmt.name.canonical == name)
+                return stmt;
+            //if (stmt instanceof PropertyStmt) Logger.writeln('---- findMember: ' + stmt.name.canonical);
+        }
+        if (target.extended && target.extended.ref)
+            return this.findMember(name, target.extended.ref);
+        if (target.implemented)
+        {
+            for (let intf of target.implemented)
+            {
+                if (!intf.ref) continue;
+                let result = this.findMember(name, intf.ref);
+                if (result) return result;
+            }
+        }
+        return null;
+    }
+
     visitFieldExpr(target: FieldExpr) : TypeRef
     {
+        //Logger.writeln('---- visitFieldExpr -> ' + target.callee.className());
         let type = this.dispatch(target.callee);
+        //Logger.writeln('---- visitFieldExpr -> ' + type.ref.name.qualified);
+        if (type.ref && type.ref instanceof ClassStmt)
+        {
+            let stmt = this.findMember(target.name.canonical, type.ref);
+            if (stmt instanceof PropertyStmt)
+                return target.resolvedType_ = stmt.type;
+            else
+            if (stmt instanceof FunctionStmt)
+                return target.resolvedType_ = stmt.type;
+        }
+        this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
         return null;
     }
 
@@ -487,7 +530,7 @@ export class TypeInference extends DispatcherTypeRef
 
         let name = type.qualified;
 
-        if (name == 'Object' || name == 'string' || name == 'number' || name == 'boolean' || name == 'void') return type;
+        if (name == 'number' || name == 'boolean' || name == 'void') return type;
 
         let clazz = this.unit.types.get(name);
         if (clazz)
@@ -499,7 +542,7 @@ export class TypeInference extends DispatcherTypeRef
         let stmt = this.imports.get(name);
         if (stmt && stmt instanceof ClassStmt)
         {
-            type.ref = clazz;
+            type.ref = stmt;
             return type;
         }
 
@@ -579,13 +622,19 @@ export class TypeInference extends DispatcherTypeRef
         for (let param of target.params)
         {
             this.dispatch(param.type);
-            this.top().insert(param.name.toString(), param, param.type);
+            this.top().insert(param.name.canonical, param, param.type);
         }
         if (target.parent instanceof ClassStmt)
         {
-            let type = new TypeRef(target.name, null, 0, true);
-            let self = new VariableStmt(new Name(['this']), type, null, false);
-            this.top().insert('this', self, type);
+            let type = new TypeRef(target.parent.name, null, 0, true);
+            type.ref = target.parent;
+            let variable = new VariableStmt(new Name(['this']), type, null, false);
+            this.top().insert(variable.name.canonical, variable, type);
+
+            type = new TypeRef(target.parent.extended.name, null, 0, true);
+            type.ref = target.parent.extended.ref;
+            variable = new VariableStmt(new Name(['super']), type, null, false);
+            this.top().insert(variable.name.canonical, variable, type);
         }
 
         if (target.body) this.dispatch(target.body);
@@ -635,12 +684,14 @@ export class TypeInference extends DispatcherTypeRef
     checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
     {
         if (type1 == TypeRef.BOOLEAN || type1 == TypeRef.NUMBER)
-            return type2.toString() == type1.toString();
-        if (type1 == TypeRef.STRING || type2 == TypeRef.NULL)
+            return type2.qualified == type1.qualified;
+        if (type1 == TypeRef.VOID || type2 == TypeRef.VOID)
+            return false;
+        if (type1 == TypeRef.NULL || type2 == TypeRef.NULL)
             return true;
         if (type1 == TypeRef.ANY || type2 == TypeRef.ANY)
             return true;
-        return type2.toString() == type1.toString();
+        return type1.qualified == type2.qualified;
     }
 
     visitVariableStmt(target: VariableStmt) : TypeRef

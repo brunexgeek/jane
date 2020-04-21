@@ -71,6 +71,9 @@ def printType(name, fields, parent = None, keep_open = False ):
             first = False
             sys.stdout.write(f['name'])
         sys.stdout.write(')\n')
+    else:
+        if not parent.startswith('I'):
+            sys.stdout.write('\t\tsuper();\n')
     for f in fields:
         if 'super' in f and f['super'] == True: continue
         if 'ctor' in f and f['ctor'] == False: continue
@@ -150,13 +153,22 @@ export interface INode
 
 export interface IStmt extends INode { }
 
-export interface IExpr extends INode { }
+export interface IExpr extends INode {
+    resolvedType() : TypeRef;
+}
+
+export abstract class Expr implements IExpr {
+    resolvedType_ : TypeRef;
+	resolvedType() : TypeRef { return this.resolvedType_; }
+	abstract accept( visitor : IVisitor ) : void;
+    abstract className(): string;
+}
 
 ''')
 
 printType('Name', [
     {'name' : 'lexemes', 'type' : 'string[]'}
-    ], 'IExpr', True)
+    ], 'Expr', True)
 sys.stdout.write('''\ttoString() : string
     {
         let result = '';
@@ -192,75 +204,75 @@ sys.stdout.write('''\ttoString() : string
 printType('StringLiteral', [
     {'name' : 'value', 'type' : 'string'},
     {'name' : 'type', 'type' : 'TokenType'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('NumberLiteral', [
     {'name' : 'value', 'type' : 'string'},
     {'name' : 'converted', 'type' : 'number'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('BoolLiteral', [
     {'name' : 'converted', 'type' : 'boolean'}
-    ], 'IExpr')
+    ], 'Expr')
 
-printType('NameLiteral', [{'name' : 'value', 'type' : 'string'}], 'IExpr')
+printType('NameLiteral', [{'name' : 'value', 'type' : 'string'}], 'Expr')
 
-printType('Group', [{'name' : 'expr', 'type' : 'IExpr'}], 'IExpr')
+printType('Group', [{'name' : 'expr', 'type' : 'IExpr'}], 'Expr')
 
-printType('NullLiteral', [], 'IExpr')
+printType('NullLiteral', [], 'Expr')
 
 printType('LogicalExpr', [
     {'name' : 'left', 'type' : 'IExpr'},
     {'name' : 'oper', 'type' : 'TokenType'},
     {'name' : 'right', 'type' : 'IExpr'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('BinaryExpr', [
     {'name' : 'left', 'type' : 'IExpr'},
     {'name' : 'oper', 'type' : 'TokenType'},
     {'name' : 'right', 'type' : 'IExpr'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('AssignExpr', [
     {'name' : 'left', 'type' : 'IExpr'},
     {'name' : 'oper', 'type' : 'TokenType'},
     {'name' : 'right', 'type' : 'IExpr'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('UnaryExpr', [
     {'name' : 'oper', 'type' : 'TokenType'},
     {'name' : 'expr', 'type' : 'IExpr'},
     {'name' : 'post', 'type' : 'boolean'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('TypeCastExpr', [
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'expr', 'type' : 'IExpr'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('CallExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'args', 'type' : 'IExpr[]'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('ArrayExpr', [
     {'name' : 'values', 'type' : 'IExpr[]'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('ArrayAccessExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'index', 'type' : 'IExpr'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('FieldExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'name', 'type' : 'Name'},
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('NewExpr', [
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'args', 'type' : 'IExpr[]'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('Accessor', [
     {'name' : 'values', 'type' : 'TokenType[]'}
@@ -323,6 +335,15 @@ sys.stdout.write('''\ttoString( qualified : boolean = true) : string
     static readonly NULL = new TypeRef(new Name(['null']), null, 0, false);
     static readonly ANY = new TypeRef(new Name(['any']), null, 0, false);
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    isDerived( qname : string ) : boolean
+    {
+        if (this.ref && this.ref instanceof ClassStmt)
+            return this.ref.isDerived(qname);
+        return false;
+    }
+    isPrimitive() : boolean {
+        return this.name.qualified == 'boolean' || this.name.qualified == 'number';
+    }
 }
 ''')
 
@@ -346,14 +367,14 @@ printType('ForOfStmt', [
     {'name' : 'variable', 'type' : 'VariableStmt'},
     {'name' : 'expr', 'type' : 'IExpr'},
     {'name' : 'stmt', 'type' : 'IStmt'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('ForStmt', [
     {'name' : 'init', 'type' : 'IStmt'},
     {'name' : 'condition', 'type' : 'IExpr'},
     {'name' : 'fexpr', 'type' : 'IExpr'},
     {'name' : 'stmt', 'type' : 'IStmt'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('DoWhileStmt', [
     {'name' : 'stmt', 'type' : 'IStmt'},
@@ -376,7 +397,7 @@ printType('Parameter', [
 # TODO: rename to 'SpreadExpr'
 printType('ExpandExpr', [
     {'name' : 'name', 'type' : 'Name'}
-    ], 'IExpr')
+    ], 'Expr')
 
 printType('FunctionStmt', [
     {'name' : 'name', 'type' : 'Name'},
@@ -442,6 +463,16 @@ sys.stdout.write('''toString() : string
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    isDerived( qname : string ) : boolean
+    {
+        if (this.extended && this.extended.name.qualified == qname)
+            return true;
+        for (let intf of this.implemented)
+            if (intf.name.qualified == qname) return true;
+        if (this.extended && this.extended.ref)
+            return this.extended.ref.isDerived(qname);
+        return false;
+    }
 }''')
 
 printType('ExprStmt', [

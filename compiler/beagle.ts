@@ -103,8 +103,8 @@ else*/
 	let comp = new Compiler(new MyListener());
 	let units = comp.compile(realpath(inputFileName));
 
-	for (let type of comp.ctx.types.values())
-		Logger.writeln(`Defined type '${type.name}'`);
+	//for (let type of comp.ctx.types.values())
+	//	Logger.writeln(`Defined type '${type.name}'`);
 	for (let unit of comp.ctx.units.values())
 	{
 		Logger.writeln(`Unit ${unit.fileName}`);

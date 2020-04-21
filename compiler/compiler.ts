@@ -1,7 +1,7 @@
 import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
-import { Parser, NodePromoter, createObject, createCallable, createError } from './parser';
+import { Parser, NodePromoter, createObject, createCallable, createError, createString } from './parser';
 import { TypeInference } from './typeinf';
 
 export class SourceLocation
@@ -43,7 +43,7 @@ export class CompilationContext
 {
 	listener : CompilationListener;
     units : StrUnitMap = new StrUnitMap();
-    types : StrClassMap = new StrClassMap();
+    //types : StrClassMap = new StrClassMap();
     namespaceStack : Name[] = [];
 
 	constructor( listener : CompilationListener )
@@ -79,12 +79,14 @@ export class Compiler
     constructor( listener : CompilationListener )
     {
         this.ctx = new CompilationContext(listener);
-        let type = createObject();
-        this.ctx.types.set(type.name.qualified, type);
-        type = createCallable();
-        this.ctx.types.set(type.name.qualified, type);
-        type = createError();
-        this.ctx.types.set(type.name.qualified, type);
+        //let type = createObject();
+        //this.ctx.types.set(type.name.qualified, type);
+        //type = createCallable();
+        //this.ctx.types.set(type.name.qualified, type);
+        //type = createError();
+        //this.ctx.types.set(type.name.qualified, type);
+        //type = createString();
+        //this.ctx.types.set(type.name.qualified, type);
     }
 
     parseSource( fileName : string ) : Unit

@@ -789,7 +789,7 @@ export class Parser
                 else
                 {
                     this.unit.types.set(qname, stmt);
-                    this.ctx.types.set(qname, stmt);
+                    //this.ctx.types.set(qname, stmt);
                 }
                 return stmt;
             }
@@ -1050,7 +1050,7 @@ export class Parser
                 let cosntant = this.advance().type == TokenType.CONST;
                 let name = this.parseName();
                 let type : TypeRef = null;
-                let value : IStmt = null;
+                let value : IExpr = null;
                 if (this.match(TokenType.COLON))
                     type = this.parseTypeRef();
                 if (this.match(TokenType.EQUAL))
@@ -1174,7 +1174,7 @@ export class NodePromoter
         throw new Error("Method not implemented.");
     }
 
-    static readonly parent = new TypeRef(new Name(['Callable'], null), null, 0, true);
+    static readonly parent = new TypeRef(new Name(['ICallable'], null), null, 0, true);
 
     protected promote( target : FunctionStmt ) : ClassStmt
     {
@@ -1220,10 +1220,22 @@ let errorName = new Name(['Error']);
 let objectName = new Name(['Object']);
 let objectRef = new TypeRef(objectName, null, 0, true);
 let callableName = new Name(['ICallable']);
+let stringName = new Name(['string']);
 
 export function createObject() : ClassStmt
 {
     return new ClassStmt(objectName, null, null, null, [], new Accessor([TokenType.EXPORT]));
+}
+
+export function createString() : ClassStmt
+{
+    let stmt = new FunctionStmt(
+        new Name(['indexOf']),
+        null,
+        [new Parameter(new Name(['value']), TypeRef.STRING, null, false)],
+        TypeRef.NUMBER,
+        null);
+    return new ClassStmt(stringName, null, null, null, [stmt], new Accessor([TokenType.EXPORT]));
 }
 
 export function createCallable() : ClassStmt

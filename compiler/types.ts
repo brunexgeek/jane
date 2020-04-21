@@ -31,14 +31,24 @@ export interface INode
 
 export interface IStmt extends INode { }
 
-export interface IExpr extends INode { }
+export interface IExpr extends INode {
+    resolvedType() : TypeRef;
+}
 
-export class Name implements IExpr
+export abstract class Expr implements IExpr {
+    resolvedType_ : TypeRef;
+	resolvedType() : TypeRef { return this.resolvedType_; }
+	abstract accept( visitor : IVisitor ) : void;
+    abstract className(): string;
+}
+
+export class Name extends Expr
 {
 	lexemes : string[];
 	location : SourceLocation;
 	constructor( lexemes : string[], location : SourceLocation = null )
 	{
+		super();
 		this.lexemes = lexemes;
 		this.location = location;
 	}
@@ -74,13 +84,14 @@ export class Name implements IExpr
         return name;
     }
 }
-export class StringLiteral implements IExpr
+export class StringLiteral extends Expr
 {
 	value : string;
 	type : TokenType;
 	location : SourceLocation;
 	constructor( value : string, type : TokenType, location : SourceLocation = null )
 	{
+		super();
 		this.value = value;
 		this.type = type;
 		this.location = location;
@@ -89,13 +100,14 @@ export class StringLiteral implements IExpr
 	className() : string { return 'StringLiteral'; }
 }
 
-export class NumberLiteral implements IExpr
+export class NumberLiteral extends Expr
 {
 	value : string;
 	converted : number;
 	location : SourceLocation;
 	constructor( value : string, converted : number, location : SourceLocation = null )
 	{
+		super();
 		this.value = value;
 		this.converted = converted;
 		this.location = location;
@@ -104,12 +116,13 @@ export class NumberLiteral implements IExpr
 	className() : string { return 'NumberLiteral'; }
 }
 
-export class BoolLiteral implements IExpr
+export class BoolLiteral extends Expr
 {
 	converted : boolean;
 	location : SourceLocation;
 	constructor( converted : boolean, location : SourceLocation = null )
 	{
+		super();
 		this.converted = converted;
 		this.location = location;
 	}
@@ -117,12 +130,13 @@ export class BoolLiteral implements IExpr
 	className() : string { return 'BoolLiteral'; }
 }
 
-export class NameLiteral implements IExpr
+export class NameLiteral extends Expr
 {
 	value : string;
 	location : SourceLocation;
 	constructor( value : string, location : SourceLocation = null )
 	{
+		super();
 		this.value = value;
 		this.location = location;
 	}
@@ -130,12 +144,13 @@ export class NameLiteral implements IExpr
 	className() : string { return 'NameLiteral'; }
 }
 
-export class Group implements IExpr
+export class Group extends Expr
 {
 	expr : IExpr;
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.expr = expr;
 		this.location = location;
 	}
@@ -143,18 +158,19 @@ export class Group implements IExpr
 	className() : string { return 'Group'; }
 }
 
-export class NullLiteral implements IExpr
+export class NullLiteral extends Expr
 {
 	location : SourceLocation;
 	constructor( location : SourceLocation = null )
 	{
+		super();
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitNullLiteral(this); }
 	className() : string { return 'NullLiteral'; }
 }
 
-export class LogicalExpr implements IExpr
+export class LogicalExpr extends Expr
 {
 	left : IExpr;
 	oper : TokenType;
@@ -162,6 +178,7 @@ export class LogicalExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -171,7 +188,7 @@ export class LogicalExpr implements IExpr
 	className() : string { return 'LogicalExpr'; }
 }
 
-export class BinaryExpr implements IExpr
+export class BinaryExpr extends Expr
 {
 	left : IExpr;
 	oper : TokenType;
@@ -179,6 +196,7 @@ export class BinaryExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -188,7 +206,7 @@ export class BinaryExpr implements IExpr
 	className() : string { return 'BinaryExpr'; }
 }
 
-export class AssignExpr implements IExpr
+export class AssignExpr extends Expr
 {
 	left : IExpr;
 	oper : TokenType;
@@ -196,6 +214,7 @@ export class AssignExpr implements IExpr
 	location : SourceLocation;
 	constructor( left : IExpr, oper : TokenType, right : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.left = left;
 		this.oper = oper;
 		this.right = right;
@@ -205,7 +224,7 @@ export class AssignExpr implements IExpr
 	className() : string { return 'AssignExpr'; }
 }
 
-export class UnaryExpr implements IExpr
+export class UnaryExpr extends Expr
 {
 	oper : TokenType;
 	expr : IExpr;
@@ -213,6 +232,7 @@ export class UnaryExpr implements IExpr
 	location : SourceLocation;
 	constructor( oper : TokenType, expr : IExpr, post : boolean, location : SourceLocation = null )
 	{
+		super();
 		this.oper = oper;
 		this.expr = expr;
 		this.post = post;
@@ -222,13 +242,14 @@ export class UnaryExpr implements IExpr
 	className() : string { return 'UnaryExpr'; }
 }
 
-export class TypeCastExpr implements IExpr
+export class TypeCastExpr extends Expr
 {
 	type : TypeRef;
 	expr : IExpr;
 	location : SourceLocation;
 	constructor( type : TypeRef, expr : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.type = type;
 		this.expr = expr;
 		this.location = location;
@@ -237,13 +258,14 @@ export class TypeCastExpr implements IExpr
 	className() : string { return 'TypeCastExpr'; }
 }
 
-export class CallExpr implements IExpr
+export class CallExpr extends Expr
 {
 	callee : IExpr;
 	args : IExpr[];
 	location : SourceLocation;
 	constructor( callee : IExpr, args : IExpr[], location : SourceLocation = null )
 	{
+		super();
 		this.callee = callee;
 		this.args = args;
 		this.location = location;
@@ -252,12 +274,13 @@ export class CallExpr implements IExpr
 	className() : string { return 'CallExpr'; }
 }
 
-export class ArrayExpr implements IExpr
+export class ArrayExpr extends Expr
 {
 	values : IExpr[];
 	location : SourceLocation;
 	constructor( values : IExpr[], location : SourceLocation = null )
 	{
+		super();
 		this.values = values;
 		this.location = location;
 	}
@@ -265,13 +288,14 @@ export class ArrayExpr implements IExpr
 	className() : string { return 'ArrayExpr'; }
 }
 
-export class ArrayAccessExpr implements IExpr
+export class ArrayAccessExpr extends Expr
 {
 	callee : IExpr;
 	index : IExpr;
 	location : SourceLocation;
 	constructor( callee : IExpr, index : IExpr, location : SourceLocation = null )
 	{
+		super();
 		this.callee = callee;
 		this.index = index;
 		this.location = location;
@@ -280,13 +304,14 @@ export class ArrayAccessExpr implements IExpr
 	className() : string { return 'ArrayAccessExpr'; }
 }
 
-export class FieldExpr implements IExpr
+export class FieldExpr extends Expr
 {
 	callee : IExpr;
 	name : Name;
 	location : SourceLocation;
 	constructor( callee : IExpr, name : Name, location : SourceLocation = null )
 	{
+		super();
 		this.callee = callee;
 		this.name = name;
 		this.location = location;
@@ -295,13 +320,14 @@ export class FieldExpr implements IExpr
 	className() : string { return 'FieldExpr'; }
 }
 
-export class NewExpr implements IExpr
+export class NewExpr extends Expr
 {
 	type : TypeRef;
 	args : IExpr[];
 	location : SourceLocation;
 	constructor( type : TypeRef, args : IExpr[], location : SourceLocation = null )
 	{
+		super();
 		this.type = type;
 		this.args = args;
 		this.location = location;
@@ -417,6 +443,15 @@ export class TypeRef implements INode
     static readonly NULL = new TypeRef(new Name(['null']), null, 0, false);
     static readonly ANY = new TypeRef(new Name(['any']), null, 0, false);
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    isDerived( qname : string ) : boolean
+    {
+        if (this.ref && this.ref instanceof ClassStmt)
+            return this.ref.isDerived(qname);
+        return false;
+    }
+    isPrimitive() : boolean {
+        return this.name.qualified == 'boolean' || this.name.qualified == 'number';
+    }
 }
 export class CaseStmt implements IStmt
 {
@@ -465,7 +500,7 @@ export class IfStmt implements IStmt
 	className() : string { return 'IfStmt'; }
 }
 
-export class ForOfStmt implements IExpr
+export class ForOfStmt extends Expr
 {
 	variable : VariableStmt;
 	expr : IExpr;
@@ -473,6 +508,7 @@ export class ForOfStmt implements IExpr
 	location : SourceLocation;
 	constructor( variable : VariableStmt, expr : IExpr, stmt : IStmt, location : SourceLocation = null )
 	{
+		super();
 		this.variable = variable;
 		this.expr = expr;
 		this.stmt = stmt;
@@ -482,7 +518,7 @@ export class ForOfStmt implements IExpr
 	className() : string { return 'ForOfStmt'; }
 }
 
-export class ForStmt implements IExpr
+export class ForStmt extends Expr
 {
 	init : IStmt;
 	condition : IExpr;
@@ -491,6 +527,7 @@ export class ForStmt implements IExpr
 	location : SourceLocation;
 	constructor( init : IStmt, condition : IExpr, fexpr : IExpr, stmt : IStmt, location : SourceLocation = null )
 	{
+		super();
 		this.init = init;
 		this.condition = condition;
 		this.fexpr = fexpr;
@@ -550,12 +587,13 @@ export class Parameter implements INode
 	className() : string { return 'Parameter'; }
 }
 
-export class ExpandExpr implements IExpr
+export class ExpandExpr extends Expr
 {
 	name : Name;
 	location : SourceLocation;
 	constructor( name : Name, location : SourceLocation = null )
 	{
+		super();
 		this.name = name;
 		this.location = location;
 	}
@@ -651,6 +689,16 @@ toString() : string
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+    isDerived( qname : string ) : boolean
+    {
+        if (this.extended && this.extended.name.qualified == qname)
+            return true;
+        for (let intf of this.implemented)
+            if (intf.name.qualified == qname) return true;
+        if (this.extended && this.extended.ref)
+            return this.extended.ref.isDerived(qname);
+        return false;
+    }
 }export class ExprStmt implements IStmt
 {
 	expr : IExpr;
@@ -1222,7 +1270,7 @@ export abstract class DispatcherVoid {
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
-		throw Error(`Unable to dispatch an object of '${node.className()}'`);
+		throw new Error(`Unable to dispatch an object of '${node.className()}'`);
 	}
 }
 

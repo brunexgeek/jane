@@ -86,47 +86,52 @@ void BEAGLE_FREE(void*);
     do{ if (__sync_sub_and_fetch(&((x)->refc), 1) == 0) { \
         (x)->dtor(x); BEAGLE_FREE(x); } } while(0)
 
+typedef void (*vtable_entry_t)();
 
 /*
  * Type definition
  */
-
 struct typeinfo_
 {
-	struct typeinfo_ *base; // pointer to base class/struct type info (NULL = no base)
-	size_t staticSize;
-	size_t dynamicSize;
-	const char *nameU8;
-    const uint16_t *nameU16;
+	const char *name;
+};
+
+/*
+ * Object class
+ */
+struct sta_Object_
+{
+   const void *base_;
+   void (**vtable_)();
+   struct typeinfo_ typeInfo_;
+};
+
+struct dyn_Object_
+{
+	struct static_Object_ *Object_type_;
 };
 
 
 /**
  * String class
  */
-struct static_string_
+struct sta_string_
 {
-   void *base__;
+   const struct sta_Object_ *base_;
+   void (**vtable__)();
    struct typeinfo_ typeInfo__;
 };
 
-struct dynamic_string_
+struct dyn_string_
 {
-	struct static_string_ *type__;
+	struct static_string_ *string_type_;
 	uint32_t length;
 	const char *content;
 };
 
-
-static const uint16_t string_name_u16_[] = { 0x0073, 0x0074, 0x0072, 0x0069, 0x006e, 0x0067 };
-
-static struct static_string_ type_string_ =
+static struct sta_string_ typ_string_ =
 {
-   .typeInfo__.base = NULL,
-   .typeInfo__.staticSize = sizeof(struct static_string_),
-   .typeInfo__.dynamicSize = sizeof(struct dynamic_string_),
-   .typeInfo__.nameU8 = "string",
-   .typeInfo__.nameU16 = string_name_u16_,
+   .typeInfo__.name = "string",
    .base__ = NULL
 };
 

@@ -142,7 +142,7 @@ export class PortableGenerator extends DispatcherVoid
 
     protected visitTypeCastExpr(target: TypeCastExpr): void
     {
-        this.write(`${this.nativeType(target.type)} `);
+        this.write('(' + this.nativeType(target.type) + ') ');
         this.dispatch(target.expr);
     }
 
@@ -290,7 +290,7 @@ export class PortableGenerator extends DispatcherVoid
 
     protected methodName( target : FunctionStmt ) : string
     {
-        return `${this.nativeName(target.name)}_`;
+        return this.nativeName(target.name) + '_';
     }
 
     protected visitFunctionStmt(target: FunctionStmt): void
@@ -333,11 +333,11 @@ export class PortableGenerator extends DispatcherVoid
         switch (name)
         {
             case 'number': return 'beagle_float64';
-            case 'string': return 'struct dynamic_string_*';
+            case 'string': return 'struct dyn_string_*';
             case 'boolean': return 'beagle_bool';
             case 'void': return 'void';
             default:
-                return `struct dynamic_${this.nativeName(type.name)}_*`;
+                return `struct dyn_${this.nativeName(type.name)}_*`;
         }
     }
 
@@ -365,9 +365,14 @@ export class PortableGenerator extends DispatcherVoid
     {
         if (complete)
         {
-            this.writeln(`struct static_${this.nativeName(target.name)}_ {`);
+            this.writeln('struct sta_' + this.nativeName(target.name) + '_ {');
             this.buffer.indent();
-            this.writeln(`const void (**${target.name.canonical}_vtable__)();`);
+            if (target.extended)
+                this.writeln('const struct sta_' + this.nativeName(target.extended.name) + '_* base_;');
+            else
+                this.writeln('const void *base_;');
+            this.writeln('const vtable_entry_t *vtable_;');
+            this.writeln('struct typeinfo_ type_;');
         }
         // parent class
         if (target.extended && target.extended.ref)
@@ -384,7 +389,7 @@ export class PortableGenerator extends DispatcherVoid
         {
             this.buffer.dedent();
             this.writeln(`};\n`);
-            this.writeln(`static struct static_${this.nativeName(target.name)}_ ${this.staticStorageName(target)};\n`);
+            this.writeln('static struct sta_'  + this.nativeName(target.name) + '_ ' + this.staticStorageName(target) + ';\n');
         }
     }
 
@@ -392,9 +397,9 @@ export class PortableGenerator extends DispatcherVoid
     {
         if (complete)
         {
-            this.writeln(`struct dynamic_${this.nativeName(target.name)}_ {`);
+            this.writeln(`struct dyn_${this.nativeName(target.name)}_ {`);
             this.buffer.indent();
-            this.writeln(`const void (**${target.name.canonical}_vtable__)();`);
+            this.writeln('const struct sta_' + this.nativeName(target.name) + '_* ' + this.nativeName(target.name) + '_type_;');
         }
         // parent class
         if (target.extended && target.extended.ref)
@@ -412,7 +417,7 @@ export class PortableGenerator extends DispatcherVoid
         {
             for (let stmt of target.implemented)
             {
-                this.writeln(`void (**${stmt.name.canonical}_vtable__)();`);
+                this.writeln('const struct sta_' + this.nativeName(stmt.name) + '_* ' + this.nativeName(stmt.name) + '_type_;');
             }
         }
         if (complete)
@@ -425,9 +430,9 @@ export class PortableGenerator extends DispatcherVoid
     protected generateStaticInit(target: ClassStmt): void
     {
         let name = this.staticStorageName(target);
-        this.writeln(`static void ${this.nativeName(target.name)}_sctor() {`);
+        this.writeln(`static void ${this.nativeName(target.name)}_sta_ctor() {`);
         this.buffer.indent();
-        this.writeln(`${this.staticStorageName(target)}.${this.nativeName(target.name)}_vtable__ = ${this.nativeName(target.name)}_vtable;`);
+        this.writeln(`${this.staticStorageName(target)}.vtable_ = ${this.nativeName(target.name)}_vtable;`);
         // static fields
         for (let stmt of target.stmts)
         {
@@ -441,7 +446,7 @@ export class PortableGenerator extends DispatcherVoid
 
     protected generateVTable( target : ClassStmt )
     {
-        this.write(`static const void(*${this.nativeName(target.name)}_vtable)() = `);
+        this.write(`static const vtable_entry_t ${this.nativeName(target.name)}_vtable[] = `);
         let first = true;
         for (let stmt of target.stmts)
         {
@@ -459,7 +464,7 @@ export class PortableGenerator extends DispatcherVoid
             this.write(this.methodName(stmt));
         }
         if (first)
-            this.writeln(' BGL_NULL;');
+            this.writeln('{ BGL_NULL };');
         else
         {
             this.writeln(' };');
