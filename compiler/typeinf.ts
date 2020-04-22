@@ -154,7 +154,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitTypeCastExpr(target: TypeCastExpr): TypeRef
     {
-        throw new Error("Method not implemented.");
+        return this.dispatch(target.type);
     }
 
     visitPropertyStmt(target: PropertyStmt): TypeRef
@@ -206,7 +206,7 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     visitForStmt(target: ForStmt): TypeRef {
-        return null;
+        return TypeRef.VOID;
     }
 
     push()
@@ -258,6 +258,7 @@ export class TypeInference extends DispatcherTypeRef
                 entry = new ScopeEntry();
                 entry.target = stmt;
                 entry.type = new TypeRef((<ClassStmt>stmt).name, null, 0, true);
+                entry.type.ref = stmt;
             }
         }
 
@@ -270,7 +271,7 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     visitName(target: Name) : TypeRef {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitStringLiteral(target: StringLiteral) : TypeRef
@@ -299,7 +300,7 @@ export class TypeInference extends DispatcherTypeRef
             target.resolvedType_ = entry.type;
             return entry.type;
         }
-        return null;
+        return TypeRef.VOID;
     }
 
     visitGroup(target: Group) : TypeRef
@@ -333,12 +334,27 @@ export class TypeInference extends DispatcherTypeRef
         return left;
     }
 
+    isAssignable( lhs : TypeRef, rhs : TypeRef )
+    {
+        if (!lhs || !rhs) return false;
+        if (lhs == TypeRef.BOOLEAN || lhs == TypeRef.NUMBER)
+            return lhs.qualified == rhs.qualified;
+        if (lhs == TypeRef.VOID)
+            return false;
+        if (rhs == TypeRef.NULL)
+            return true;
+        if (lhs.qualified == rhs.qualified)
+            return true;
+        // FIXME: handl derived types
+        return false;
+    }
+
     visitAssignExpr(target: AssignExpr) : TypeRef
     {
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
-        if (left != right)
-            throw this.error(target.location, 'Incompatible types for assignment (' + target.left.className() + ' and ' + right + ')');
+        if (!this.isAssignable(left, right))
+            throw this.error(target.location, 'Incompatible types for assignment (' + left + ' and ' + right + ')');
         if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
             throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
         return left;
@@ -352,7 +368,7 @@ export class TypeInference extends DispatcherTypeRef
     visitCallExpr(target: CallExpr) : TypeRef
     {
         this.dispatch(target.callee);
-        if (target.callee.resolvedType().isPrimitive())
+        if (!target.callee.resolvedType() || target.callee.resolvedType().isPrimitive())
             this.error(target.location, 'Only functions and methods can be called');
         return target.callee.resolvedType();
     }
@@ -374,9 +390,15 @@ export class TypeInference extends DispatcherTypeRef
         for (let stmt of target.stmts)
         {
             if (stmt instanceof FunctionStmt && stmt.name.canonical == name)
+            {
+                if (!stmt.type.ref) this.dispatch(stmt.type);
                 return stmt;
+            }
             if (stmt instanceof PropertyStmt && stmt.name.canonical == name)
+            {
+                if (!stmt.type.ref) this.dispatch(stmt.type);
                 return stmt;
+            }
             //if (stmt instanceof PropertyStmt) Logger.writeln('---- findMember: ' + stmt.name.canonical);
         }
         if (target.extended && target.extended.ref)
@@ -408,7 +430,7 @@ export class TypeInference extends DispatcherTypeRef
                 return target.resolvedType_ = stmt.type;
         }
         this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
-        return null;
+        return TypeRef.VOID;
     }
 
     visitNewExpr(target: NewExpr) : TypeRef
@@ -418,7 +440,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitAccessor(target: Accessor) : TypeRef
     {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitBlockStmt(target: BlockStmt) : TypeRef {
@@ -428,7 +450,7 @@ export class TypeInference extends DispatcherTypeRef
             this.dispatch(stmt);
 
         this.pop();
-        return null;
+        return TypeRef.VOID;
     }
 
     visitReturnStmt(target: ReturnStmt) : TypeRef
@@ -441,7 +463,7 @@ export class TypeInference extends DispatcherTypeRef
         this.push();
         for (let stmt of target.stmts) this.dispatch(stmt);
         this.pop();
-        return null;
+        return TypeRef.VOID;
     }
 
     /**
@@ -559,14 +581,14 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.expr);
         for (let stmt of target.stmts) this.dispatch(stmt);
 
-        return null;
+        return TypeRef.VOID;
     }
 
     visitSwitchStmt(target: SwitchStmt) : TypeRef
     {
         this.dispatch(target.expr);
         for (let stmt of target.cases) this.dispatch(stmt);
-        return null;
+        return TypeRef.VOID;
     }
 
     visitIfStmt(target: IfStmt) : TypeRef
@@ -575,43 +597,48 @@ export class TypeInference extends DispatcherTypeRef
         if (target.thenSide) this.dispatch(target.thenSide);
         if (target.elseSide) this.dispatch(target.elseSide);
 
-        return null;
+        return TypeRef.VOID;
     }
 
     visitForOfStmt(target: ForOfStmt) : TypeRef
     {
+        this.push();
+        let type = this.dispatch(target.expr);
+        target.variable.type = type;
+        type = this.dispatch(target.variable);
         this.dispatch(target.expr);
         this.dispatch(target.stmt);
-        return null;
+        this.pop();
+        return TypeRef.VOID;
     }
 
     visitDoWhileStmt(target: DoWhileStmt) : TypeRef
     {
         this.dispatch(target.condition);
         this.dispatch(target.stmt);
-        return null;
+        return TypeRef.VOID;
     }
 
     visitWhileStmt(target: WhileStmt) : TypeRef
     {
         this.dispatch(target.condition);
         this.dispatch(target.stmt);
-        return null;
+        return TypeRef.VOID;
     }
 
     visitParameter(target: Parameter) : TypeRef
     {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitExpandExpr(target: ExpandExpr) : TypeRef
     {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitFunctionStmt(target: FunctionStmt) : TypeRef
     {
-        if (target.isGeneric) return null;
+        if (target.isGeneric) return TypeRef.VOID;
         this.push();
 
         if (!target.type)
@@ -659,7 +686,7 @@ export class TypeInference extends DispatcherTypeRef
             this.dispatch(stmt);
 
         this.pop();
-        return null;
+        return TypeRef.VOID;
     }
 
     visitExprStmt(target: ExprStmt) : TypeRef
@@ -668,17 +695,17 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     visitBreakStmt(target: BreakStmt) : TypeRef {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitContinueStmt(target: ContinueStmt) : TypeRef
     {
-        return null;
+        return TypeRef.VOID;
     }
 
     visitImportStmt(target: ImportStmt) : TypeRef
     {
-        return null;
+        return TypeRef.VOID;
     }
 
     checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
@@ -698,13 +725,11 @@ export class TypeInference extends DispatcherTypeRef
     {
         let result : TypeRef = null;
         if (target.type)
-        {
             result = this.dispatch(target.type);
-        }
         if (target.init)
         {
             let itype = this.dispatch(target.init);
-            if (result && !this.checkCompatibleTypes(result, itype))
+            if (result && !this.isAssignable(result, itype))
                 this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
 
             if (!result) result = itype;
@@ -712,6 +737,7 @@ export class TypeInference extends DispatcherTypeRef
         target.type = result;
 
         this.top().insert(target.name.toString(), target, result);
+        if (!result) return TypeRef.VOID;
         return result;
     }
 
@@ -720,13 +746,13 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.block);
         this.dispatch(target.cblock);
         this.dispatch(target.fblock);
-        return null;
+        return TypeRef.VOID;
     }
 
     visitThrowStmt(target: ThrowStmt) : TypeRef
     {
         this.dispatch(target.expr);
-        return null;
+        return TypeRef.VOID;
     }
 
     visitUnit(target: Unit) : TypeRef
@@ -740,7 +766,7 @@ export class TypeInference extends DispatcherTypeRef
             this.ctx.listener.onError(error.location, error);
         }
 
-        return null;
+        return TypeRef.VOID;
     }
 
 

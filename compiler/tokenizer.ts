@@ -20,20 +20,28 @@ import { CompilationContext, SourceLocation } from './compiler';
 export class Scanner
 {
     source : string;
+    fileName : string;
     index : number;
     context : CompilationContext;
-    pos : SourceLocation;
+    lbreaks : number[] = [0];
 
     constructor( ctx : CompilationContext, fileName : string, source : string )
     {
         this.source = source;
         this.index = 0;
-        this.pos = new SourceLocation(fileName, 1, 1);
+        this.fileName = fileName;
     }
 
     get position() : SourceLocation
     {
-        return this.pos.clone();
+        let lb : number = 0;
+        for (let i = 0; i < this.lbreaks.length; ++i)
+        {
+            if (this.lbreaks[i] > this.index) break;
+            lb = i;
+        }
+
+        return new SourceLocation(this.fileName, lb + 1, this.index - this.lbreaks[lb]);
     }
 
     eof() : boolean
@@ -51,14 +59,9 @@ export class Scanner
     advance() : string
     {
         if (this.eof()) return null;
-        let c = this.source.charAt(this.index++);
-        if (c == '\n')
-        {
-            this.pos.line++;
-            this.pos.column = 0;
-        }
-        else
-            this.pos.column++;
+        let c = this.peek();
+        ++this.index;
+        if (c == '\n') this.lbreaks.push(this.index);
         return c;
     }
 
@@ -71,14 +74,13 @@ export class Scanner
     unget() : string
     {
         if (this.index > 0) this.index--;
-        if (this.peek() == '\n') this.pos.line--;
         return this.peek();
     }
 
     match( expected : string ) : boolean
     {
         if (this.eof()) return false;
-        if (this.source.charAt(this.index) != expected) return false;
+        if (this.peek() != expected) return false;
         this.index++;
         return true;
     }
@@ -385,7 +387,7 @@ export class Tokenizer
                 case '\r':
                     continue;
             }
-            throw Error('Invalid character \'' + c + '\' at ' + this.scanner.pos.toString());
+            throw Error('Invalid character \'' + c + '\' at ' + this.scanner.position.toString());
         }
         return this.end;
     }

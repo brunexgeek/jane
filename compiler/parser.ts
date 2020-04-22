@@ -99,7 +99,7 @@ export class Parser
         this.tok = tok;
         this.ctx = ctx;
         this.unit = new Unit([], []);
-        this.unit.fileName = tok.scanner.pos.fileName;
+        this.unit.fileName = tok.scanner.fileName;
     }
 
     peek() : Token
@@ -642,6 +642,7 @@ export class Parser
         {
             if (this.match(TokenType.LEFT_PAREN))
             {
+                let loc = this.previous.location;
                 let args : IExpr[] = [];
                 if (this.peekType() != TokenType.RIGHT_PAREN)
                 {
@@ -650,7 +651,7 @@ export class Parser
                     } while (this.match(TokenType.COMMA));
                 }
                 this.consume(TokenType.RIGHT_PAREN);
-                expr = new CallExpr(expr, args);
+                expr = new CallExpr(expr, args, loc);
             }
             else
             if (this.match(TokenType.LEFT_BRACKET))
@@ -662,8 +663,9 @@ export class Parser
             else
             if (this.match(TokenType.DOT))
             {
-                let name = new Name([this.consumeEx('Expect name after \'.\'.', TokenType.NAME).lexeme]);
-                expr = new FieldExpr(expr, name);
+                let tname = this.consumeEx('Expect name after \'.\'.', TokenType.NAME);
+                let name = new Name([tname.lexeme], tname.location);
+                expr = new FieldExpr(expr, name, name.location);
             }
             else
                 break;
