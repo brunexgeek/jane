@@ -543,7 +543,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
+        while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) // should be 'if', not 'while' (we cannot use sequencial equalities like && and ||)
         {
             let right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -1168,7 +1168,7 @@ export class Parser
 }
 
 /**
- * Transform functions into classes and replace the original functions by variables.
+ * Transform functions into classes and replace the original functions by static calls.
  */
 export class NodePromoter
 {
@@ -1231,13 +1231,14 @@ export function createObject() : ClassStmt
 
 export function createString() : ClassStmt
 {
-    let stmt = new FunctionStmt(
+    let stmt1 = new FunctionStmt(
         new Name(['indexOf']),
         null,
         [new Parameter(new Name(['value']), TypeRef.STRING, null, false)],
         TypeRef.NUMBER,
         null);
-    return new ClassStmt(stringName, null, null, null, [stmt], new Accessor([TokenType.EXPORT]));
+    let stmt2 = new VariableStmt(new Name(['length'], null), TypeRef.NUMBER, null, false);
+    return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Accessor([TokenType.EXPORT]));
 }
 
 export function createCallable() : ClassStmt

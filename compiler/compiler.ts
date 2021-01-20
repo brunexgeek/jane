@@ -93,7 +93,7 @@ export class Compiler
     {
         if (this.ctx.units.has(fileName)) return;
 
-        Logger.writeln(`Compiling ${fileName}`);
+        Logger.writeln(`Parsing '${fileName}'`);
         let source : string = readfile(fileName);
         let scanner = new Scanner(this.ctx, fileName, source);
         let tok = new Tokenizer(this.ctx, scanner);
@@ -114,8 +114,8 @@ export class Compiler
                 }
             }
 
-            let prom = new NodePromoter();
-            prom.process(unit);
+            //let prom = new NodePromoter();
+            //prom.process(unit);
         }
         else
             this.hasError = true;
@@ -132,11 +132,12 @@ export class Compiler
         }
     }
 
-    compile( fileName : string )
+    compile( fileName : string ) : boolean
     {
         this.parseSource(fileName);
-        if (this.hasError) return;
+        if (this.hasError) return false;
         this.typeInference();
+        return true;
     }
 
 }

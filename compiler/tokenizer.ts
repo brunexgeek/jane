@@ -188,7 +188,7 @@ export class TokenType
     {
         this.name = this.lexeme = name;
         if (lexeme.length != 0) this.lexeme = lexeme;
-        if (kword && lexeme)
+        if (kword && lexeme != null)
         {
             TokenType.names.push(lexeme);
             TokenType.tokens.push(this);

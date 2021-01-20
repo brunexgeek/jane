@@ -927,6 +927,10 @@ export class StrClassMap{
 	private items : ClassStmt[] = [];
 	get( key : string ) : ClassStmt {
 		let i = this.keys.indexOf(key);
+		if (i < 0 && key == 'IExpr')
+		{
+			for (let k of this.keys) console.info(`-- ${k}`);
+		}
 		if (i < 0) return null;
 		return this.items[i];
 	}
