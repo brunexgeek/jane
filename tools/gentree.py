@@ -407,6 +407,7 @@ printType('FunctionStmt', [
     {'name' : 'body', 'type' : 'BlockStmt'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
     {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
+    {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''
@@ -443,6 +444,7 @@ printType('ClassStmt', [
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     {'name' : 'parent', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     ], 'IStmt', True)
 sys.stdout.write('''toString() : string
@@ -494,6 +496,7 @@ printType('VariableStmt', [
     {'name' : 'init', 'type' : 'IExpr'},
     {'name' : 'constant', 'type' : 'boolean'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
 sys.stdout.write('''

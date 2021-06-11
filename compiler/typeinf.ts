@@ -353,7 +353,7 @@ export class TypeInference extends DispatcherTypeRef
             return true;
         if (lhs.qualified == rhs.qualified)
             return true;
-        // FIXME: handl derived types
+        // FIXME: handle derived types
         return false;
     }
 
@@ -603,7 +603,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitTypeRef(target: TypeRef) : TypeRef
     {
-        /*if (target.dims > 0)
+        if (target.dims > 0)
         {
             target.name = new Name(['array_' + target.dims + '_'  + target.name.toString()]);
             target.dims = 0;
@@ -611,7 +611,7 @@ export class TypeInference extends DispatcherTypeRef
             {
                 this.unit.types.set(target.name.toString(), this.createArrayType(target.name));
             }
-        }*/
+        }
         return this.resolveType(target);
     }
 

@@ -11,4 +11,4 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-$BASEDIR/build.sh && node "$BASEDIR/compiler/beagle.js" ast "$1" | dot -T svg -o$SVGFILE
+$BASEDIR/build.sh && node "$BASEDIR/build/beagle.js" ast "$1" | dot -T svg -o$SVGFILE
