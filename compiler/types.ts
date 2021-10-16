@@ -610,6 +610,7 @@ export class FunctionStmt implements IStmt
 	body : BlockStmt;
 	accessor : Accessor;
 	property : TokenType = null;
+	unit : Unit = null;
 	parent : INode = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, accessor : Accessor = null, location : SourceLocation = null )
@@ -657,6 +658,7 @@ export class ClassStmt implements IStmt
 	implemented : TypeRef[];
 	stmts : IStmt[];
 	accessor : Accessor;
+	unit : Unit = null;
 	parent : Unit = null;
 	location : SourceLocation;
 	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
@@ -756,6 +758,7 @@ export class VariableStmt implements IStmt
 	init : IExpr;
 	constant : boolean;
 	accessor : Accessor;
+	unit : Unit = null;
 	parent : INode = null;
 	location : SourceLocation;
 	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, accessor : Accessor = null, location : SourceLocation = null )
@@ -927,10 +930,6 @@ export class StrClassMap{
 	private items : ClassStmt[] = [];
 	get( key : string ) : ClassStmt {
 		let i = this.keys.indexOf(key);
-		if (i < 0 && key == 'IExpr')
-		{
-			for (let k of this.keys) console.info(`-- ${k}`);
-		}
 		if (i < 0) return null;
 		return this.items[i];
 	}
@@ -991,6 +990,7 @@ export class Unit implements INode
 	types : StrClassMap = new StrClassMap();
 	generics : StrClassMap = new StrClassMap();
 	functions : StrFuncMap = new StrFuncMap();
+	imports_ : StrIStmtMap = new StrIStmtMap();
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )
 	{
@@ -1278,3 +1278,31 @@ export abstract class DispatcherVoid {
 	}
 }
 
+export class StrClassStmtMap{
+	private keys : string[] = [];
+	private items : ClassStmt[] = [];
+	get( key : string ) : ClassStmt {
+			let i = this.keys.indexOf(key);
+			if (i < 0) return null;
+			return this.items[i];
+	}
+	set( key : string, value : ClassStmt ) {
+			let i = this.keys.indexOf(key);
+			if (i >= 0) this.items[i] = value;
+			else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+			let i = this.keys.indexOf(key);
+			if (i < 0 || this.size == 0) return false;
+			let last = this.keys.length - 1;
+			if (i != last) {
+					this.keys[i] = this.keys[last];
+					this.items[i] = this.items[last];
+			}
+			this.keys.pop();
+			this.items.pop();
+	}
+	values() : ClassStmt[] { return this.items; }
+}

@@ -1,4 +1,4 @@
 #!/bin/bash
 
-BASEDIR=$(cd $(dirname $0); pwd)
-tsc -p $BASEDIR
+BASEDIR=$(cd $(dirname $0) && pwd)
+npx tsc -p $BASEDIR

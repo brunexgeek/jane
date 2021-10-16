@@ -1,4 +1,4 @@
-import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap } from './types';
+import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap, StrClassStmtMap } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser, NodePromoter, createObject, createCallable, createError, createString } from './parser';
@@ -45,6 +45,7 @@ export class CompilationContext
     units : StrUnitMap = new StrUnitMap();
     //types : StrClassMap = new StrClassMap();
     namespaceStack : Name[] = [];
+    array_types: StrClassStmtMap;
 
 	constructor( listener : CompilationListener )
 	{
@@ -125,11 +126,11 @@ export class Compiler
 
     typeInference()
     {
+        let inf = new TypeInference(this.ctx);
         for (let unit of this.ctx.units.values())
-        {
-            let inf = new TypeInference(this.ctx);
+            inf.processImports(unit);
+        for (let unit of this.ctx.units.values())
             inf.visitUnit(unit);
-        }
     }
 
     compile( fileName : string ) : boolean

@@ -130,7 +130,6 @@ export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
     stack : Scope[] = [new Scope()];
-    imports : StrIStmtMap = new StrIStmtMap();
     unit : Unit = null;
 
     constructor( ctx : CompilationContext )
@@ -178,37 +177,42 @@ export class TypeInference extends DispatcherTypeRef
         return result;
     }
 
-    processImports()
+    processImports( unit : Unit )
     {
-        let dir = dirname(this.unit.fileName);
-        for (let imp of this.unit.imports)
+        // check whether the imported symbols exist
+        let dir = dirname(unit.fileName);
+        for (let imp of unit.imports)
         {
             let source = realpath(dir + imp.source + '.ts');
-            let unit = this.ctx.units.get(source);
-            if (!unit) this.error(imp.location, `Missing symbols for ${source}`); // never should happen
+            let cunit = this.ctx.units.get(source);
+            if (!cunit) this.error(imp.location, `Missing symbols for ${source}`); // never should happen
             for (let name of imp.names)
             {
-                let stmt = this.findSymbol(unit, name.qualified);
+                let stmt = this.findSymbol(cunit, name.qualified);
                 if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
-                this.imports.set(name.qualified, stmt);
+                unit.imports_.set(name.qualified, stmt);
             }
         }
 
-        // built-in types
+        // append the built-in types
         let type = createObject();
-        this.imports.set(type.name.qualified, type);
+        unit.imports_.set(type.name.qualified, type);
         type = createCallable();
-        this.imports.set(type.name.qualified, type);
+        unit.imports_.set(type.name.qualified, type);
         type = createError();
-        this.imports.set(type.name.qualified, type);
+        unit.imports_.set(type.name.qualified, type);
         type = createString();
-        this.imports.set(type.name.qualified, type);
+        unit.imports_.set(type.name.qualified, type);
     }
 
-    visitForStmt(target: ForStmt): TypeRef {
+    visitForStmt(target: ForStmt): TypeRef
+    {
         return TypeRef.VOID;
     }
 
+    /**
+     * Creates a new variable scope.
+     */
     push()
     {
         this.stack.push(new Scope());
@@ -252,7 +256,7 @@ export class TypeInference extends DispatcherTypeRef
         {
             // check for known types
             let stmt : IStmt = this.unit.types.get(name);
-            if (!stmt) stmt = this.imports.get(name);
+            if (!stmt) stmt = this.unit.imports_.get(name);
             if (stmt && stmt instanceof ClassStmt)
             {
                 entry = new ScopeEntry();
@@ -333,6 +337,10 @@ export class TypeInference extends DispatcherTypeRef
         let right = this.dispatch(target.right);
         if (left != null && right != null)
         {
+            if ((left == TypeRef.STRING || right == TypeRef.STRING) &&
+                (left == TypeRef.NUMBER || right == TypeRef.NUMBER) &&
+                target.oper != TokenType.PLUS)
+                return TypeRef.STRING;
             if (!this.checkCompatibleTypes(left, right))
                 throw this.error(target.location, `Incompatible types for binary operator (${left} and ${right})`);
             if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
@@ -384,7 +392,13 @@ export class TypeInference extends DispatcherTypeRef
     visitArrayExpr(target: ArrayExpr) : TypeRef
     {
         if (target.values.length > 0)
-            return this.dispatch(target.values[0]);
+        {
+            let type = this.dispatch(target.values[0]);
+            let name = `array_1_${type.name}`;
+            let tref = new TypeRef(new Name([name]), null, 1, true, null);
+            tref.ref = <ClassStmt>this.unit.imports_.get(name);
+            return tref;
+        }
         return TypeRef.ANY;
     }
 
@@ -450,7 +464,8 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID;
     }
 
-    visitBlockStmt(target: BlockStmt) : TypeRef {
+    visitBlockStmt(target: BlockStmt) : TypeRef
+    {
         this.push();
 
         for (let stmt of target.stmts)
@@ -473,82 +488,6 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID;
     }
 
-    /**
-     * Try to find a generic type in the current unit or in the import list.
-     */
-    findGeneric( name : string ) : ClassStmt
-    {
-        let stmt = this.unit.generics.get(name);
-        if (stmt) return stmt;
-        // TODO: validate the type of the imported symbol
-        // TODO: make sure the imported symbol is a generic
-        stmt = <ClassStmt> this.imports.get(name);
-        if (stmt) return stmt;
-        return null;
-    }
-/*
-    applyTypes( type : TypeRef, args : Map<string, TypeRef> ) : TypeRef
-    {
-        let result = type.clone();
-        for (let j = 0; j < result.generics.length; ++j)
-        {
-            let match = args.get(result.generics[j].qualified);
-            if (match) result.generics[j] = match;
-        }
-        return result;
-    }
-
-    hashCode( value : string ) : number
-    {
-        return 0;
-    }
-
-    specializeGeneric( stmt : ClassStmt, params : TypeRef[] ) : TypeRef
-    {
-        if (!stmt.isGeneric) return;
-        if (params.length != stmt.generics.length)
-            throw this.error(stmt.location, `Incorrect number of generic arguments`);
-
-        stmt = stmt.clone();
-
-        // apply generics and resolve types for inherited classes/interfaces
-        let args = new Map<string, TypeRef>();
-        for (let i = 0; i < params.length; ++i)
-            args.set(stmt.generics[i].canonical, params[i]);
-        if (stmt.extended)
-        {
-            if (stmt.extended.isGeneric)
-                stmt.extended = this.applyTypes(stmt.extended, args);
-            stmt.extended = this.resolveType(stmt.extended);
-        }
-        if (stmt.implemented)
-        {
-            for (let i = 0; i < stmt.implemented.length; ++i)
-            {
-                if (stmt.implemented[i].isGeneric)
-                    stmt.implemented[i] = this.applyTypes(stmt.implemented[i], args);
-                stmt.implemented[i] = this.resolveType(stmt.implemented[i]);
-            }
-        }
-        // remove generic types
-        stmt.generics.length = 0;
-        // generate a new name using generic types
-        let hash = 1;
-        for (let param of params)
-        {
-            hash = 37 * hash * this.hashCode(param.qualified);
-        }
-
-
-        // 1. clone class
-        // 2.
-
-        for (let subtype of stmt.
-
-
-    }
-*/
-
     resolveTypeByName( type : Name ) : ClassStmt
     {
 
@@ -559,7 +498,7 @@ export class TypeInference extends DispatcherTypeRef
         let clazz = this.unit.types.get(name);
         if (clazz) return clazz;
 
-        let stmt = this.imports.get(name);
+        let stmt = this.unit.imports_.get(name);
         if (stmt && stmt instanceof ClassStmt) return  stmt;
 
         return null;
@@ -585,33 +524,41 @@ export class TypeInference extends DispatcherTypeRef
             return type;
         }
 
-        let stmt = this.imports.get(name);
+        let stmt = this.unit.imports_.get(name);
         if (stmt && stmt instanceof ClassStmt)
         {
             type.ref = stmt;
             return type;
         }
 
-        throw this.error(type.location, `Unknown type '${name}'`);
+        let imps = '';
+        for (const name of this.unit.imports_.values())
+        {
+            imps += (<ClassStmt>name).name + ' ';
+        }
+        throw this.error(type.location, `Unknown type '${name} [${imps}]'`);
     }
 
-    createArrayType( name : Name ) : ClassStmt
+    createArrayType( dims : number, ref : TypeRef ) : TypeRef
     {
-        let length = new VariableStmt(new Name(['length']), TypeRef.NUMBER, null, false);
-        return new ClassStmt(name, null, null, null, [length]);
+        ref.dims = 0;
+        let name = `array_${dims}_${ref.name.toString()}`
+        let type = this.ctx.array_types.get(name);
+        if (type == null)
+        {
+            let length = new VariableStmt(new Name(['length']), TypeRef.NUMBER, null, false);
+            type = new ClassStmt(new Name([name]), null, null, null, [length]);
+            this.ctx.array_types.set(name, type);
+        }
+        let result = new TypeRef(new Name([name]), null, 0, true);
+        result.ref = type;
+        return result;
     }
 
     visitTypeRef(target: TypeRef) : TypeRef
     {
         if (target.dims > 0)
-        {
-            target.name = new Name(['array_' + target.dims + '_'  + target.name.toString()]);
-            target.dims = 0;
-            if (this.resolveTypeByName(target.name) == null)
-            {
-                this.unit.types.set(target.name.toString(), this.createArrayType(target.name));
-            }
-        }
+            return this.createArrayType(target.dims, target);
         return this.resolveType(target);
     }
 
@@ -798,7 +745,6 @@ export class TypeInference extends DispatcherTypeRef
     {
         try {
             this.unit = target;
-            this.processImports();
             for (let stmt of target.stmts) this.dispatch(stmt);
         } catch (error)
         {
