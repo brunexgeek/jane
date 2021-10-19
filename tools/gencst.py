@@ -19,7 +19,7 @@
 
 #
 # Generate the 'Code Syntax Tree' which is the tree representing the source code
-# the way it was written. This tree can be converted to the original source code,
+# the way it was written. This tree can be converted back to the original source code,
 # including comments.
 #
 

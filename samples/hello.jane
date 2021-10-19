@@ -1,0 +1,25 @@
+class Shape
+{
+    x : number;
+    y : number;
+    static value : number;
+
+    test() : void { return; }
+    abstract area() : number;
+}
+
+class Rectangle extends Shape
+{
+    w : number;
+    h : number;
+
+    area() : number { return 5; }
+}
+
+class Circle extends Shape
+{
+    rad : number;
+
+    area() : number { return 5; }
+    toString( a : number ) : string { return "Circle";}
+}

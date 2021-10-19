@@ -288,21 +288,15 @@ export class PortableGenerator extends DispatcherVoid
 
     protected visitExpandExpr(target: ExpandExpr): void { }
 
-    protected methodName( target : FunctionStmt ) : string
-    {
-        return this.nativeName(target.name) + '_';
-    }
-
     protected visitFunctionStmt(target: FunctionStmt): void
     {
-        if (!target.body) return;
         let first = true;
 
-        this.write(`static ${this.nativeType(target.type)} ${this.methodName(target)}(`);
+        this.write(`\nstatic ${this.nativeType(target.type)} func_${this.nativeName(target.name)}(`);
         if (!target.isStatic)
         {
             let type = new TypeRef(target.name.parent, null, 0, true);
-            this.write(`${this.nativeType(type)} thisptr__`);
+            this.write(`${this.nativeType(type)} self_`);
             first = false;
         }
         for (let param of target.params)
@@ -312,12 +306,22 @@ export class PortableGenerator extends DispatcherVoid
             this.write(`${this.nativeType(param.type) } ${this.nativeName(param.name)}`);
         }
         this.writeln(')');
-        this.dispatch(target.body);
+        if (target.isAbstract)
+        {
+            this.writeln(`{\n\tself_->vtable_->${target.name.canonical}(self_);\n}`);
+        }
+        else
+            this.dispatch(target.body);
     }
 
     protected nativeName( name : Name ) : string
     {
         return name.qualified.replace(/\./g, '_');
+    }
+
+    protected nativeFunctionName( stmt : FunctionStmt )
+    {
+        return `func_${this.nativeName(stmt.name)}`;
     }
 
     protected nativeNameAndGenerics( name : Name ) : string
@@ -332,47 +336,43 @@ export class PortableGenerator extends DispatcherVoid
         let name = type.name.canonical;
         switch (name)
         {
-            case 'number': return 'beagle_float64';
-            case 'string': return 'struct dyn_string_*';
-            case 'boolean': return 'beagle_bool';
+            case 'number': return 'double';
+            case 'string': return 'struct dyn_string*';
+            case 'boolean': return 'uint8_t';
             case 'void': return 'void';
             default:
-                return `struct dyn_${this.nativeName(type.name)}_*`;
+                return `struct dyn_${this.nativeName(type.name)}*`;
         }
     }
 
     protected nativeDefault( type : TypeRef ) : string
     {
-        if (!type) return 'BGL_NULL';
+        if (!type) return 'NULL';
 
         let name = type.name.canonical;
         switch (name)
         {
             case 'number': return '0';
             case 'string': return '""';
-            case 'boolean': return 'BGL_FALSE';
+            case 'boolean': return '0';
             default:
-                return 'BGL_NULL';
+                return 'NULL';
         }
     }
 
     protected staticStorageName( target : ClassStmt ) : string
     {
-        return `${this.nativeName(target.name)}_storage_`;
+        return `sta_${this.nativeName(target.name)}`;
     }
 
     protected generateStatic( target: ClassStmt, complete : boolean = false )
     {
         if (complete)
         {
-            this.writeln('struct sta_' + this.nativeName(target.name) + '_ {');
+            this.writeln(`struct vtbl_${this.nativeName(target.name)};`);
+            this.writeln(`struct sta_${this.nativeName(target.name)} {`);
             this.buffer.indent();
-            if (target.extended)
-                this.writeln('const struct sta_' + this.nativeName(target.extended.name) + '_* base_;');
-            else
-                this.writeln('const void *base_;');
-            this.writeln('const vtable_entry_t *vtable_;');
-            this.writeln('struct typeinfo_ type_;');
+            this.writeln(`const struct vtbl_${this.nativeName(target.name)}* vtable_;`);
         }
         // parent class
         if (target.extended && target.extended.ref)
@@ -389,7 +389,7 @@ export class PortableGenerator extends DispatcherVoid
         {
             this.buffer.dedent();
             this.writeln(`};\n`);
-            this.writeln('static struct sta_'  + this.nativeName(target.name) + '_ ' + this.staticStorageName(target) + ';\n');
+            this.writeln(`static struct sta_${this.nativeName(target.name)} ${this.staticStorageName(target)};\n`);
         }
     }
 
@@ -397,9 +397,10 @@ export class PortableGenerator extends DispatcherVoid
     {
         if (complete)
         {
-            this.writeln(`struct dyn_${this.nativeName(target.name)}_ {`);
+            this.writeln(`struct vtbl_${this.nativeName(target.name)};`);
+            this.writeln(`struct dyn_${this.nativeName(target.name)} {`);
             this.buffer.indent();
-            this.writeln('const struct sta_' + this.nativeName(target.name) + '_* ' + this.nativeName(target.name) + '_type_;');
+            this.writeln(`const struct vtbl_${this.nativeName(target.name)}* vtable_;`);
         }
         // parent class
         if (target.extended && target.extended.ref)
@@ -412,14 +413,6 @@ export class PortableGenerator extends DispatcherVoid
             if (!stmt.accessor || stmt.accessor.values.indexOf(TokenType.STATIC) < 0)
                 this.dispatch(stmt);
         }
-        // interfaces
-        if (target.implemented)
-        {
-            for (let stmt of target.implemented)
-            {
-                this.writeln('const struct sta_' + this.nativeName(stmt.name) + '_* ' + this.nativeName(stmt.name) + '_type_;');
-            }
-        }
         if (complete)
         {
             this.buffer.dedent();
@@ -430,9 +423,9 @@ export class PortableGenerator extends DispatcherVoid
     protected generateStaticInit(target: ClassStmt): void
     {
         let name = this.staticStorageName(target);
-        this.writeln(`static void ${this.nativeName(target.name)}_sta_ctor() {`);
+        this.writeln(`static void ${this.nativeName(target.name)}_sta_ctor()\n{`);
         this.buffer.indent();
-        this.writeln(`${this.staticStorageName(target)}.vtable_ = ${this.nativeName(target.name)}_vtable;`);
+        this.writeln(`${this.staticStorageName(target)}.vtable_ = &vtbl_${this.nativeName(target.name)};`);
         // static fields
         for (let stmt of target.stmts)
         {
@@ -441,62 +434,139 @@ export class PortableGenerator extends DispatcherVoid
             this.writeln(`${name}.${stmt.name.canonical} = ${this.nativeDefault(stmt.type)};`);
         }
         this.buffer.dedent();
-        this.writeln('}\n');
+        this.writeln('}');
     }
 
-    protected generateVTable( target : ClassStmt )
+    protected methodTypeDef( parent : ClassStmt, target : FunctionStmt )
     {
-        this.write(`static const vtable_entry_t ${this.nativeName(target.name)}_vtable[] = `);
+        this.write(`typedef ${this.nativeType(target.type)} (${this.nativeFunctionName(target)}_t)(`);
         let first = true;
-        for (let stmt of target.stmts)
+        if (!target.isStatic)
+        {
+            this.write(`struct dyn_${this.nativeName(parent.name)}*`);
+            first = false;
+        }
+        for (let stmt of target.params)
+        {
+            if (!first) this.write(', ')
+            this.write(`${this.nativeType(stmt.type)}`)
+            first = false;
+        }
+        this.writeln(');');
+    }
+
+    protected methodPrototype( parent : ClassStmt, target : FunctionStmt )
+    {
+        this.write(`static ${this.nativeType(target.type)} ${this.nativeFunctionName(target)}(`);
+        let first = true;
+        if (!target.isStatic)
+        {
+            this.write(`struct dyn_${this.nativeName(parent.name)}*`);
+            first = false;
+        }
+        for (let stmt of target.params)
+        {
+            if (!first) this.write(', ')
+            this.write(`${this.nativeType(stmt.type)}`)
+            first = false;
+        }
+        this.writeln(');');
+    }
+
+    protected getClassHierarchy( target : ClassStmt )
+    {
+        // collect all methods from the class hierarchy
+        let output = []
+        let current = target;
+        while (current != null)
+        {
+            output.push(current);
+            current = current.extended?.ref;
+        }
+        output.reverse();
+        return output;
+    }
+
+    protected getMethodHierarchy( target : ClassStmt )
+    {
+        // collect all methods from the class hierarchy
+        let methods : FunctionStmt[] = [];
+        let names : string[] = [];
+        for (let clazz of this.getClassHierarchy(target))
+        {
+            for (let stmt of clazz.stmts)
+            {
+                if (!(stmt instanceof FunctionStmt)) continue;
+                let idx = names.indexOf(stmt.name.canonical);
+                if (idx < 0)
+                {
+                    methods.push(stmt);
+                    names.push(stmt.name.canonical);
+                }
+                else
+                    methods[idx] = stmt;
+            }
+        }
+        return methods;
+    }
+
+    protected generateVTableType( target : ClassStmt, methods : FunctionStmt[] )
+    {
+        // method type definition
+        for (let stmt of methods)
+        {
+            if (stmt.parent != target) continue;
+            this.methodTypeDef(target, stmt);
+        }
+
+        this.writeln(`\nstruct vtbl_${this.nativeName(target.name)} {`);
+        for (let stmt of methods)
         {
             if (!(stmt instanceof FunctionStmt)) continue;
-            if (stmt.isAbstract) continue;
-            if (first)
-            {
-                this.writeln('{');
-                this.buffer.indent();
-                first = false;
-            }
-            else
-                this.writeln(',');
+            this.writeln(`\t${this.nativeFunctionName(stmt)}_t* ${stmt.name.canonical};`);
+        }
+        this.writeln('};\n');
+    }
 
-            this.write(this.methodName(stmt));
-        }
-        if (first)
-            this.writeln('{ BGL_NULL };');
-        else
+    protected generateVTableStorage( target : ClassStmt, methods : FunctionStmt[] )
+    {
+        // method prototype
+        for (let stmt of methods)
         {
-            this.writeln(' };');
-            this.buffer.dedent();
+            if (stmt.parent != target) continue;
+            this.methodPrototype(target, stmt);
         }
+
+        this.writeln(`\nstatic const struct vtbl_${this.nativeName(target.name)} vtbl_${this.nativeName(target.name)} = {`);
+        for (let stmt of methods)
+        {
+            if (!(stmt instanceof FunctionStmt)) continue;
+            this.writeln(`\t${this.nativeFunctionName(stmt)},`);
+        }
+        this.writeln('};');
     }
 
     protected visitClassStmt(target: ClassStmt): void
     {
         this.comment(`class ${target.name.qualified}`, true);
 
-        // static storage
+        // static structure and storage
         this.generateStatic(target, true);
-        // dynamic storage
+        // dynamic structure
         this.generateDynamic(target, true);
-        // methods ID
-        let i = 0;
-        for (let stmt of target.stmts)
-        {
-            if (!(stmt instanceof FunctionStmt)) continue;
-            this.writeln(`#define ID_${this.methodName(stmt).toUpperCase()}_ ${i++}`);
-        }
+        // vtable structure
+        let methods = this.getMethodHierarchy(target);
+        this.generateVTableType(target, methods);
+        // vtable storage
+        this.generateVTableStorage(target, methods);
+        // static initializer
+        this.generateStaticInit(target);
         // methods
         for (let stmt of target.stmts)
         {
             if (!(stmt instanceof FunctionStmt)) continue;
-            this.dispatch(stmt);
+            this.visitFunctionStmt(stmt);
         }
-        // vtable storage
-        this.generateVTable(target);
-        // static initializer
-        this.generateStaticInit(target);
     }
 
     protected visitExprStmt(target: ExprStmt): void
@@ -553,7 +623,6 @@ export class PortableGenerator extends DispatcherVoid
 
     generate( target : Unit ) : string
     {
-        this.writeln('#include <base.h>');
         this.dispatch(target);
         return this.buffer.toString();
     }
