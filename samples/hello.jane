@@ -1,10 +1,20 @@
-class Shape
+interface IMoveable
+{
+    move( x : number, y : number ) : void;
+}
+
+abstract class Shape implements IMoveable
 {
     x : number;
     y : number;
     static value : number;
 
-    test() : void { return; }
+    move( x : number, y : number ) : void
+    {
+        this.x += x;
+        this.y += y;
+    }
+
     abstract area() : number;
 }
 
@@ -13,13 +23,16 @@ class Rectangle extends Shape
     w : number;
     h : number;
 
-    area() : number { return 5; }
+    area() : number { return this.w * this.h; }
 }
 
-class Circle extends Shape
+class Triangle extends Shape
 {
-    rad : number;
+    b : number;
+    h : number;
 
-    area() : number { return 5; }
-    toString( a : number ) : string { return "Circle";}
+    area() : number
+    {
+        return (this.b * this.h) / 2;
+    }
 }

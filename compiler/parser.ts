@@ -883,6 +883,7 @@ export class Parser
         this.consume(TokenType.RIGHT_BRACE);
 
         let result = new ClassStmt(name, generics, extended, implemented, stmts, accessor);
+        result.isInterface = type.lexeme == 'interface';
         for (let stmt of stmts)
             if (stmt instanceof VariableStmt || stmt instanceof FunctionStmt) stmt.parent = result;
         return result;

@@ -29,7 +29,7 @@ from genbasic import *
 
 sys.stdout.write('''
 /*
- *   Copyright 2020 Bruno Ribeiro
+ *   Copyright 2021 Bruno Ribeiro
  *   <https://github.com/brunexgeek/beagle-lang>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -351,6 +351,7 @@ printType('ClassStmt', [
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
     {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'isInterface', 'type' : 'boolean', 'init' : 'false', 'ctor' : False},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     {'name' : 'parent', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     ], 'IStmt', True)
@@ -452,6 +453,7 @@ map.createMap('StrUnitMap', 'string', 'Unit')
 map.createMap('StrVarMap', 'string', 'VariableStmt')
 map.createMap('StrClassMap', 'string', 'ClassStmt')
 map.createMap('StrFuncMap', 'string', 'FunctionStmt')
+map.createMap('StrClassStmtMap', 'string', 'ClassStmt')
 
 printType('Unit', [
     {'name' : 'fileName', 'type' : 'string', 'init' : '', 'ctor' : False},

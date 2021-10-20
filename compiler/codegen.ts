@@ -81,15 +81,15 @@ export class PortableGenerator extends DispatcherVoid
     protected visitBoolLiteral(target: BoolLiteral): void
     {
         if (target.converted)
-            this.write('BGL_TRUE');
+            this.write('1');
         else
-            this.write('BGL_FALSE');
+            this.write('0');
     }
 
     protected visitNameLiteral(target: NameLiteral): void
     {
         if (target.value == 'this')
-            this.write('thisptr__');
+            this.write('self_');
         else
             this.write(target.value);
     }
@@ -365,66 +365,67 @@ export class PortableGenerator extends DispatcherVoid
         return `sta_${this.nativeName(target.name)}`;
     }
 
-    protected generateStatic( target: ClassStmt, complete : boolean = false )
+    protected generateStatic( target: ClassStmt, recursive : boolean = false )
     {
-        if (complete)
+        if (!recursive)
         {
-            this.writeln(`struct vtbl_${this.nativeName(target.name)};`);
-            this.writeln(`struct sta_${this.nativeName(target.name)} {`);
+            //this.writeln(`struct vtbl_${this.nativeName(target.name)};\n`);
+            this.writeln(`static struct sta_${this.nativeName(target.name)} {`);
             this.buffer.indent();
             this.writeln(`const struct vtbl_${this.nativeName(target.name)}* vtable_;`);
         }
+
         // parent class
-        if (target.extended && target.extended.ref)
-            this.generateStatic(target.extended.ref);
-        // fields
-        this.comment(`${target.name.qualified} fields`, true);
+        if (target.extended?.ref)
+            this.generateStatic(target.extended.ref, true);
+        // current class
         for (let stmt of target.stmts)
         {
-            if (!(stmt instanceof PropertyStmt)) continue;
-            if (stmt.isStatic)
-                this.dispatch(stmt);
+            if (!(stmt instanceof PropertyStmt) || !stmt.isStatic) continue;
+            this.comment(`${target.name.qualified}`);
+            this.dispatch(stmt);
         }
-        if (complete)
+
+        if (!recursive)
         {
             this.buffer.dedent();
-            this.writeln(`};\n`);
-            this.writeln(`static struct sta_${this.nativeName(target.name)} ${this.staticStorageName(target)};\n`);
+            this.writeln(`} ${this.staticStorageName(target)};\n`);
         }
     }
 
-    protected generateDynamic( target: ClassStmt, complete : boolean = false )
+    protected generateDynamic( target: ClassStmt, recursive : boolean = false )
     {
-        if (complete)
+        if (!recursive)
         {
-            this.writeln(`struct vtbl_${this.nativeName(target.name)};`);
             this.writeln(`struct dyn_${this.nativeName(target.name)} {`);
             this.buffer.indent();
             this.writeln(`const struct vtbl_${this.nativeName(target.name)}* vtable_;`);
         }
+
         // parent class
-        if (target.extended && target.extended.ref)
-            this.generateDynamic(target.extended.ref);
-        // fields
-        this.comment(`${target.name.qualified} fields`, true);
+        if (target.extended?.ref)
+            this.generateDynamic(target.extended.ref, true);
+        // current class
         for (let stmt of target.stmts)
         {
-            if (!(stmt instanceof PropertyStmt)) continue;
-            if (!stmt.accessor || stmt.accessor.values.indexOf(TokenType.STATIC) < 0)
-                this.dispatch(stmt);
+            if (!(stmt instanceof PropertyStmt) || stmt.isStatic) continue;
+            this.comment(`${target.name.qualified}`);
+            this.dispatch(stmt);
         }
-        if (complete)
+
+        if (!recursive)
         {
             this.buffer.dedent();
             this.writeln(`};\n`);
         }
     }
 
-    protected generateStaticInit(target: ClassStmt): void
+    protected generateStaticInit(target: ClassStmt) : string
     {
         let name = this.staticStorageName(target);
-        this.writeln(`static void ${this.nativeName(target.name)}_sta_ctor()\n{`);
+        this.writeln(`\nstatic void sta_${this.nativeName(target.name)}_ctor()\n{`);
         this.buffer.indent();
+        // vtable
         this.writeln(`${this.staticStorageName(target)}.vtable_ = &vtbl_${this.nativeName(target.name)};`);
         // static fields
         for (let stmt of target.stmts)
@@ -432,6 +433,36 @@ export class PortableGenerator extends DispatcherVoid
             if (!(stmt instanceof PropertyStmt)) continue;
             if (!stmt.isStatic) continue;
             this.writeln(`${name}.${stmt.name.canonical} = ${this.nativeDefault(stmt.type)};`);
+        }
+        this.buffer.dedent();
+        this.writeln('}');
+
+        return `sta_${this.nativeName(target.name)}_ctor`;
+    }
+
+    protected generateDynamicInit(target: ClassStmt): void
+    {
+        this.writeln('');
+        let parent_name = null;
+        if (target.extended?.ref)
+        {
+            parent_name = this.nativeName(target.extended.ref.name);
+            this.writeln(`static void dyn_${parent_name}_ctor(struct dyn_${parent_name}*);`);
+        }
+
+        this.writeln(`static void dyn_${this.nativeName(target.name)}_ctor(struct dyn_${this.nativeName(target.name)} *self_)\n{`);
+        this.buffer.indent();
+        // parent constructor
+        if (target.extended?.ref)
+            this.writeln(`dyn_${parent_name}_ctor((struct dyn_${parent_name}*)self_);`);
+        // vtable
+        this.writeln(`self_->vtable_ = &vtbl_${this.nativeName(target.name)};`);
+        // dynamic fields
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof PropertyStmt)) continue;
+            if (stmt.isStatic) continue;
+            this.writeln(`self_->${stmt.name.canonical} = ${this.nativeDefault(stmt.type)};`);
         }
         this.buffer.dedent();
         this.writeln('}');
@@ -487,8 +518,20 @@ export class PortableGenerator extends DispatcherVoid
         return output;
     }
 
+    protected getMethods( target : ClassStmt )
+    {
+        let methods : FunctionStmt[] = [];
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof FunctionStmt)) continue;
+            methods.push(stmt);
+        }
+        return methods;
+    }
+
     protected getMethodHierarchy( target : ClassStmt )
     {
+        // FIXME: do not support method overload
         // collect all methods from the class hierarchy
         let methods : FunctionStmt[] = [];
         let names : string[] = [];
@@ -510,34 +553,15 @@ export class PortableGenerator extends DispatcherVoid
         return methods;
     }
 
-    protected generateVTableType( target : ClassStmt, methods : FunctionStmt[] )
+    protected generateVTable( target : ClassStmt, methods : FunctionStmt[] )
     {
-        // method type definition
-        for (let stmt of methods)
-        {
-            if (stmt.parent != target) continue;
-            this.methodTypeDef(target, stmt);
-        }
-
-        this.writeln(`\nstruct vtbl_${this.nativeName(target.name)} {`);
+        this.writeln(`\nstatic const struct vtbl_${this.nativeName(target.name)} {`);
         for (let stmt of methods)
         {
             if (!(stmt instanceof FunctionStmt)) continue;
             this.writeln(`\t${this.nativeFunctionName(stmt)}_t* ${stmt.name.canonical};`);
         }
-        this.writeln('};\n');
-    }
-
-    protected generateVTableStorage( target : ClassStmt, methods : FunctionStmt[] )
-    {
-        // method prototype
-        for (let stmt of methods)
-        {
-            if (stmt.parent != target) continue;
-            this.methodPrototype(target, stmt);
-        }
-
-        this.writeln(`\nstatic const struct vtbl_${this.nativeName(target.name)} vtbl_${this.nativeName(target.name)} = {`);
+        this.writeln(`} vtbl_${this.nativeName(target.name)} = {`);
         for (let stmt of methods)
         {
             if (!(stmt instanceof FunctionStmt)) continue;
@@ -548,24 +572,67 @@ export class PortableGenerator extends DispatcherVoid
 
     protected visitClassStmt(target: ClassStmt): void
     {
-        this.comment(`class ${target.name.qualified}`, true);
+    }
 
+    protected generateClasses(target: Unit): void
+    {
         // static structure and storage
-        this.generateStatic(target, true);
+        for (let stmt of target.stmts)
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+                this.generateStatic(stmt);
         // dynamic structure
-        this.generateDynamic(target, true);
-        // vtable structure
-        let methods = this.getMethodHierarchy(target);
-        this.generateVTableType(target, methods);
-        // vtable storage
-        this.generateVTableStorage(target, methods);
+        for (let stmt of target.stmts)
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+                this.generateDynamic(stmt);
+
+        // method declarations
+        for (let stmt of target.stmts)
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+            {
+                let methods = this.getMethods(stmt);
+                for (let method of methods)
+                {
+                    this.methodTypeDef(stmt, method);
+                    this.methodPrototype(stmt, method);
+                }
+            }
+        // vtables
+        for (let stmt of target.stmts)
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+            {
+                let methods = this.getMethodHierarchy(stmt);
+                this.generateVTable(stmt, methods);
+            }
         // static initializer
-        this.generateStaticInit(target);
-        // methods
+        let functions : string[] = [];
         for (let stmt of target.stmts)
         {
-            if (!(stmt instanceof FunctionStmt)) continue;
-            this.visitFunctionStmt(stmt);
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+            {
+                let methods = this.getMethodHierarchy(stmt);
+                functions.push(this.generateStaticInit(stmt));
+            }
+        }
+        if (functions.length > 0)
+        {
+            this.writeln('\nstatic void sta_ctor()\n{');
+            this.buffer.indent();
+            for (let name of functions) this.writeln(`${name}();`);
+            this.buffer.dedent();
+            this.writeln('}');
+        }
+        functions = null;
+        // default constructor
+        for (let stmt of target.stmts)
+        {
+            if (stmt instanceof ClassStmt && !stmt.isInterface)
+            {
+                let ignore = false;
+                for (let func of stmt.stmts)
+                    ignore = ignore || (func instanceof FunctionStmt && func.name.canonical == 'constructor');
+                if (!ignore)
+                    this.generateDynamicInit(stmt);
+            }
         }
     }
 
@@ -596,14 +663,37 @@ export class PortableGenerator extends DispatcherVoid
     protected visitTryCatchStmt(target: TryCatchStmt): void {
 
     }
+
     protected visitThrowStmt(target: ThrowStmt): void {
 
     }
+
+    protected generateMethods( target : ClassStmt )
+    {
+        if (target.isInterface) return;
+
+        for (let stmt of target.stmts)
+        {
+            if (!(stmt instanceof FunctionStmt)) continue;
+            this.visitFunctionStmt(stmt);
+        }
+    }
+
     protected visitUnit(target: Unit): void
     {
-        this.comment(`begin of unit '${target.fileName}'`, true);
-        for (let stmt of target.stmts) this.dispatch(stmt);
-        this.comment(`end of unit '${target.fileName}'`, true);
+        // prologue
+        // TODO: move to a header or function
+        this.writeln('struct dyn_Object;\nstatic void dyn_Object_ctor(struct dyn_Object* self_) {}\n');
+        // class declarations
+        this.generateClasses(target);
+        // class methods
+        for (let stmt of target.stmts)
+            if (stmt instanceof ClassStmt)
+                this.generateMethods(stmt);
+        // everything else
+        for (let stmt of target.stmts)
+            if (!(stmt instanceof ClassStmt))
+                this.dispatch(stmt);
     }
 
     writeln( value : string )

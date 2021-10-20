@@ -1,6 +1,6 @@
 
 /*
- *   Copyright 2020 Bruno Ribeiro
+ *   Copyright 2021 Bruno Ribeiro
  *   <https://github.com/brunexgeek/beagle-lang>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -658,6 +658,7 @@ export class ClassStmt implements IStmt
 	implemented : TypeRef[];
 	stmts : IStmt[];
 	accessor : Accessor;
+	isInterface : boolean = false;
 	unit : Unit = null;
 	parent : Unit = null;
 	location : SourceLocation;
@@ -981,6 +982,34 @@ export class StrFuncMap{
 	}
 	values() : FunctionStmt[] { return this.items; }
 }
+export class StrClassStmtMap{
+	private keys : string[] = [];
+	private items : ClassStmt[] = [];
+	get( key : string ) : ClassStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : ClassStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : ClassStmt[] { return this.items; }
+}
 export class Unit implements INode
 {
 	fileName : string = '';
@@ -1278,31 +1307,3 @@ export abstract class DispatcherVoid {
 	}
 }
 
-export class StrClassStmtMap{
-	private keys : string[] = [];
-	private items : ClassStmt[] = [];
-	get( key : string ) : ClassStmt {
-			let i = this.keys.indexOf(key);
-			if (i < 0) return null;
-			return this.items[i];
-	}
-	set( key : string, value : ClassStmt ) {
-			let i = this.keys.indexOf(key);
-			if (i >= 0) this.items[i] = value;
-			else { this.keys.push(key); this.items.push(value); }
-	}
-	has( key : string ) : boolean { return this.get(key) != null; }
-	get size() : number { return this.keys.length; }
-	delete( key : string ) {
-			let i = this.keys.indexOf(key);
-			if (i < 0 || this.size == 0) return false;
-			let last = this.keys.length - 1;
-			if (i != last) {
-					this.keys[i] = this.keys[last];
-					this.items[i] = this.items[last];
-			}
-			this.keys.pop();
-			this.items.pop();
-	}
-	values() : ClassStmt[] { return this.items; }
-}
