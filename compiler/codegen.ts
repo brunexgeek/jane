@@ -202,8 +202,10 @@ export class PortableGenerator extends DispatcherVoid
         this.writeln('{');
         this.buffer.indent();
 
-        if (!target.isStatic)
+        // is it a method?
+        if (!target.isStatic && target.parent && target.parent instanceof ClassStmt)
         {
+            // output the typed self pointer
             let cast = this.nativeClassType(<ClassStmt>target.parent);
             this.writeln(`${cast} self_ = (${cast}) self__;`);
         }
@@ -798,30 +800,6 @@ export class PortableGenerator extends DispatcherVoid
         for (let stmt of target.stmts)
             if (!(stmt instanceof ClassStmt))
                 this.dispatch(stmt);
-        this.write(`
-        #include <stdio.h>
-
-        int main( int argc, char **argv )
-        {
-            sta_ctor();
-
-            struct dyn_Rectangle rect;
-            dyn_Rectangle_ctor(&rect);
-
-            struct dyn_IMoveable temp;
-            temp.vtable_ = &vtbl_Rectangle_as_IMoveable;
-            temp.data_ = &rect;
-            temp.vtable_->move(&temp, 10, 15);
-            //func_Shape_move((struct dyn_Shape*) &rect, 10, 15);
-
-            rect.w = 7;
-            rect.h = 7;
-            printf("position = %f %f\\n", rect.x, rect.y);
-            printf("area = %f\\n", func_Rectangle_area(&rect));
-
-            return 0;
-        }
-        `);
     }
 
     writeln( value : string )
