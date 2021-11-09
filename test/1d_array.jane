@@ -1,0 +1,24 @@
+class Ship
+{
+    isSunk: boolean;
+}
+
+class Example
+{
+    array_Object  : Object[];
+    array_Ship    : Ship[];
+    array_char    : char[];
+    array_boolean : boolean[];
+    array_byte    : byte[];   // signed 8-bits integer
+    array_short   : short[];  // signed 16-bits integer
+    array_int     : int[];    // signed 32-bits integer
+    array_long    : long[];   // signed 64-bits integer
+    array_ubyte   : ubyte[];  // unsigned 8-bits integer
+    array_ushort  : ushort[]; // unsigned 16-bits integer
+    array_uint    : uint[];   // unsigned 32-bits integer
+    array_ulong   : ulong[];  // unsigned 64-bits integer
+    array_float   : float[];  // 32-bit IEEE-754
+    array_double  : double[]; // 64-bit IEEE-754
+    array_number  : number[]; // same as 'double'
+    array_string  : string[];
+}

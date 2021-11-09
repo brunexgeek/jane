@@ -33,6 +33,7 @@ import { PortableGenerator } from './codegen';
 
 class MyListener implements CompilationListener
 {
+	failed = false;
 
 	onStart() {
 	}
@@ -44,6 +45,7 @@ class MyListener implements CompilationListener
 			Logger.writeln('<unkown source>:0:0: ERROR - ' + error.message);
 		//Logger.writeln(error.stack);
 		//process.exit(1);
+		this.failed = true;
 		return false;
 	}
 
@@ -100,7 +102,8 @@ let outputFileName = process.argv[4];
 }
 else*/
 {
-	let comp = new Compiler(new MyListener());
+	let listener = new MyListener();
+	let comp = new Compiler(listener);
 	let units = comp.compile(realpath(inputFileName));
 
 	//for (let type of comp.ctx.types.values())
@@ -148,4 +151,8 @@ else*/
 		console.log(code);
 	}
 	console.error(Logger.toString());
+	if (listener.failed)
+		process.exit(1);
+	else
+		process.exit(0);
 }

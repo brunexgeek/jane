@@ -1,0 +1,12 @@
+class Parent
+{
+    name : string;
+    duplicate() : string { return this.name + this.name; }
+}
+
+class Example extends Parent
+{
+    value1 : int;
+    value2 : int;
+    compute() : int { return this.value1 * this.value2; }
+}

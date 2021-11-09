@@ -15,4 +15,6 @@ jobs:
     - name: prepare
       run: npm install typescript source-map-support --save-dev
     - name: compilation
-      run: npx tsc -p $PWD && node ./build/beagle.js generate samples/hello.jane > output.c
+      run: npx tsc -p $PWD
+    - name: tests
+      run: chmod a+x ./test/run-tests.sh && ./test/run-tests.sh

@@ -488,18 +488,17 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID;
     }
 
-    isPrimitiveType( type : Name )
+    isPrimitiveType( type : string )
     {
         const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long','ubyte', 'ushort', 'uint', 'ulong'];
-        return type.qualified in PRIMITIVES;
+        return PRIMITIVES.indexOf(type) >= 0;
     }
 
     resolveTypeByName( type : Name ) : ClassStmt
     {
 
         let name = type.qualified;
-
-        if (this.isPrimitiveType(type)) return null;
+        if (this.isPrimitiveType(name)) return null;
 
         let clazz = this.unit.types.get(name);
         if (clazz) return clazz;
@@ -520,8 +519,7 @@ export class TypeInference extends DispatcherTypeRef
         }*/
 
         let name = type.qualified;
-
-        if (this.isPrimitiveType(type.name)) return null;
+        if (this.isPrimitiveType(name)) return null;
 
         let clazz = this.unit.types.get(name);
         if (clazz)
@@ -537,12 +535,12 @@ export class TypeInference extends DispatcherTypeRef
             return type;
         }
 
-        let imps = '';
+        /*let imps = '';
         for (const name of this.unit.imports_.values())
         {
             imps += (<ClassStmt>name).name + ' ';
-        }
-        throw this.error(type.location, `Unknown type '${name} [${imps}]'`);
+        }*/
+        throw this.error(type.location, `Unknown type '${name}'`);
     }
 
     createArrayType( dims : number, ref : TypeRef ) : TypeRef

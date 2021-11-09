@@ -1,0 +1,6 @@
+class Example
+{
+    value1 : int;
+    value2 : int;
+    compute() : int { return this.value1 * this.value2; }
+}
