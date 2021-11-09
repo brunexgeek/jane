@@ -1,6 +1,6 @@
 /*
  *   Copyright 2020 Bruno Ribeiro
- *   <https://github.com/brunexgeek/beagle-lang>
+ *   <https://github.com/brunexgeek/jane>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -521,7 +521,7 @@ export class TypeInference extends DispatcherTypeRef
 
         let name = type.qualified;
 
-        if (this.isPrimitiveType(type)) return null;
+        if (this.isPrimitiveType(type.name)) return null;
 
         let clazz = this.unit.types.get(name);
         if (clazz)

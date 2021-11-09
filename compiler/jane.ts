@@ -1,6 +1,6 @@
 /*
  *   Copyright 2020 Bruno Ribeiro
- *   <https://github.com/brunexgeek/beagle-lang>
+ *   <https://github.com/brunexgeek/jane>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ let process = require("process");
 
 if (process.argv.length != 4)
 {
-	console.log('Usage: beagle.js (generate | tokenize | ast) <input file>');
+	console.log('Usage: node jane.js (generate | tokenize | ast) <input file>');
 	process.exit(1);
 }
 
