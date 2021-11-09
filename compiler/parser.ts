@@ -364,7 +364,8 @@ export class Parser
 
     parseArgument() : Parameter
     {
-        let vararg = this.match(TokenType.DOT_DOT_DOT);
+        let accessor = this.match(TokenType.PUBLIC);
+        let vararg = this.match(TokenType.SPREAD);
 
         let name = this.consumeEx('Missing argument name', TokenType.NAME);
         let type : TypeRef = null;
@@ -493,8 +494,8 @@ export class Parser
             case TokenType.EQUAL:
             case TokenType.PLUS_EQUAL:
             case TokenType.MINUS_EQUAL:
-            case TokenType.SLASH_EQUAL:
-            case TokenType.STAR_EQUAL:
+            case TokenType.DIV_EQUAL:
+            case TokenType.MUL_EQUAL:
             {
                 this.advance();
                 let right = this.parseAssignment();
@@ -543,7 +544,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) // should be 'if', not 'while' (we cannot use sequencial equalities like && and ||)
+        while (this.match(TokenType.INEQUALITY, TokenType.EQUALITY)) // should be 'if', not 'while' (we cannot use sequencial equalities like && and ||)
         {
             let right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -589,7 +590,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.STAR, TokenType.SLASH))
+        while (this.match(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT))
         {
             let right = this.parsePreUnary();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -603,9 +604,9 @@ export class Parser
         let operator = this.peekType();
         if (this.match(TokenType.BANG,
             TokenType.MINUS,
-            TokenType.MINUS_MINUS,
+            TokenType.DECREMENT,
             TokenType.PLUS,
-            TokenType.PLUS_PLUS
+            TokenType.INCREMENT
             ))
         {
             let expr = this.parsePreUnary();
@@ -628,7 +629,7 @@ export class Parser
         let expr = this.parseCall();
 
         let operator = this.peekType();
-        if (this.match(TokenType.MINUS_MINUS, TokenType.PLUS_PLUS))
+        if (this.match(TokenType.DECREMENT, TokenType.INCREMENT))
             return new UnaryExpr(operator, expr, true);
 
         return expr;
@@ -663,7 +664,7 @@ export class Parser
             else
             if (this.match(TokenType.DOT))
             {
-                let tname = this.consumeEx('Expect name after \'.\'.', TokenType.NAME);
+                let tname = this.consumeEx(/*'Expect name after \'.\'.'*/null, TokenType.NAME);
                 let name = new Name([tname.lexeme], tname.location);
                 expr = new FieldExpr(expr, name, name.location);
             }
@@ -691,7 +692,7 @@ export class Parser
             this.consume(TokenType.RIGHT_BRACKET);
             return new ArrayExpr(values, location);
         }
-        if (this.match(TokenType.DOT_DOT_DOT))
+        if (this.match(TokenType.SPREAD))
         {
             return new ExpandExpr( this.parseName(), location );
         }
@@ -1077,13 +1078,13 @@ export class Parser
             return new ForStmt(init, expr, fexpr, stmt);
         }
         else
-        if (this.peekType() == TokenType.OF)
+        if (this.peekType() == TokenType.OF || this.peekType() == TokenType.IN)
         {
             // for (variable of iterable) statement
             if (!init || !(init instanceof VariableStmt))
                 throw this.error(this.peek().location, 'Missing variable declaration');
             if (init.init) throw this.error(this.peek().location, 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
-            this.consume(TokenType.OF);
+            this.consume(TokenType.OF,TokenType.IN);
             expr = this.parseExpression();
             this.consume(TokenType.RIGHT_PAREN);
             stmt = this.parseBlockOrStmt();

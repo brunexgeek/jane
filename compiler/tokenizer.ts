@@ -102,7 +102,7 @@ export class TokenType
     static readonly RIGHT_BRACKET = new TokenType('RIGHT_BRACKET', ']');
     static readonly COMMA = new TokenType('COMMA', ',');
     static readonly DOT = new TokenType('DOT', '.');
-    static readonly DOT_DOT_DOT = new TokenType('DOT_DOT_DOT', '...');
+    static readonly SPREAD = new TokenType('SPREAD', '...');
     static readonly MINUS = new TokenType('MINUS', '-');
     static readonly PLUS = new TokenType('PLUS', '+');
     static readonly SEMICOLON = new TokenType('SEMICOLON', ';');
@@ -115,34 +115,37 @@ export class TokenType
     static readonly OR = new TokenType('OR', '||');
     static readonly EOF = new TokenType('EOF');
     static readonly PIPE = new TokenType('|');
-    // One or two character tokens
+    static readonly CHAINING = new TokenType('?.');
+    static readonly NULLISH = new TokenType('??');
+
     static readonly BANG = new TokenType('BANG', '!');
-    static readonly BANG_EQUAL = new TokenType('BANG_EQUAL', '!=');
+    static readonly INEQUALITY = new TokenType('INEQUALITY', '!=');
+    static readonly S_INEQUALITY = new TokenType('S_INEQUALITY', '!==');
     static readonly EQUAL = new TokenType('EQUAL', '=');
-    static readonly EQUAL_EQUAL = new TokenType('EQUAL_EQUAL', '==');
+    static readonly EQUALITY = new TokenType('EQUALITY', '==');
+    static readonly S_EQUALITY = new TokenType('S_EQUALITY', '==');
     static readonly GREATER = new TokenType('GREATER', '>');
     static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL', '>=');
     static readonly LESS = new TokenType('LESS', '<');
     static readonly LESS_EQUAL = new TokenType('LESS_EQUAL', '<=');
     static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL', '+=');
     static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL', '-=');
-    static readonly STAR_EQUAL = new TokenType('STAR_EQUAL', '*=');
-    static readonly SLASH_EQUAL = new TokenType('SLASH_EQUAL', '/=');
-    static readonly PLUS_PLUS = new TokenType('PLUS_PLUS', '++');
-    static readonly MINUS_MINUS = new TokenType('MINUS_MINUS', '--');
-
-    static readonly GET = new TokenType('GET', 'get');
-    static readonly SET = new TokenType('SET', 'set');
+    static readonly MUL_EQUAL = new TokenType('MUL_EQUAL', '*=');
+    static readonly DIV_EQUAL = new TokenType('DIV_EQUAL', '/=');
+    static readonly INCREMENT = new TokenType('INCREMENT', '++');
+    static readonly DECREMENT = new TokenType('DECREMENT', '--');
+    static readonly EXPONENT = new TokenType('EXPONENT', '**');
 
     // Literals
     static readonly NAME = new TokenType('NAME');
-    static readonly QNAME = new TokenType('QNAME');
     static readonly TSTRING = new TokenType('TSTRING');
     static readonly SSTRING = new TokenType('SSTRING');
     static readonly DSTRING = new TokenType('DSTRING');
     static readonly NUMBER = new TokenType('NUMBER');
 
     // Keywords
+    static readonly GET = new TokenType('GET', 'get');
+    static readonly SET = new TokenType('SET', 'set');
     static readonly ELSE = new TokenType('ELSE', 'else', true);
     static readonly FALSE = new TokenType('FALSE', 'false', true);
     static readonly FUNCTION = new TokenType('FUNCTION', 'function', true);
@@ -183,6 +186,8 @@ export class TokenType
     static readonly FROM = new TokenType('FROM', 'from', true);
     static readonly DECLARE = new TokenType('DECLARE', 'declare', true);
     static readonly ABSTRACT = new TokenType('ABSTRACT', 'abstract', true);
+    static readonly TYPE = new TokenType('TYPE', 'type', true);
+    static readonly TYPEOF = new TokenType('TYPEOF', 'typeof', true);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -240,6 +245,9 @@ export class Tokenizer
 
     next() : Token
     {
+        if (this.stack.length)
+            return this.stack.pop();
+
         while (!this.scanner.eof())
         {
             let c = this.scanner.advance();
@@ -262,33 +270,42 @@ export class Tokenizer
                 case '.':
                     if (this.scanner.match('.'))
                     {
-                        if (this.scanner.match('.')) return this.token(TokenType.DOT_DOT_DOT);
+                        if (this.scanner.match('.')) return this.token(TokenType.SPREAD);
                         this.scanner.unget();
                     }
                     return this.token(TokenType.DOT);
                 case '-':
                     if (this.scanner.match('=')) return this.token(TokenType.MINUS_EQUAL);
-                    if (this.scanner.match('-')) return this.token(TokenType.MINUS_MINUS);
+                    if (this.scanner.match('-')) return this.token(TokenType.DECREMENT);
                     return this.token(TokenType.MINUS);
                 case '+':
                     if (this.scanner.match('=')) return this.token(TokenType.PLUS_EQUAL);
-                    if (this.scanner.match('+')) return this.token(TokenType.PLUS_PLUS);
+                    if (this.scanner.match('+')) return this.token(TokenType.INCREMENT);
                     return this.token(TokenType.PLUS);
                 case '!':
-                    if (this.scanner.match('=')) return this.token(TokenType.BANG_EQUAL);
+                    if (this.scanner.match('='))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.S_INEQUALITY);
+                        return this.token(TokenType.INEQUALITY);
+                    }
                     return this.token(TokenType.BANG);
                 case ';':
                     return this.token(TokenType.SEMICOLON);
                 case ':':
                     return this.token(TokenType.COLON);
                 case '=':
-                    if (this.scanner.match('=')) return this.token(TokenType.EQUAL_EQUAL);
+                    if (this.scanner.match('='))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.S_EQUALITY);
+                        return this.token(TokenType.EQUALITY);
+                    }
                     return this.token(TokenType.EQUAL);
                 case '*':
-                    if (this.scanner.match('=')) return this.token(TokenType.STAR_EQUAL);
+                    if (this.scanner.match('*')) return this.token(TokenType.EXPONENT);
+                    if (this.scanner.match('=')) return this.token(TokenType.MUL_EQUAL);
                     return this.token(TokenType.STAR);
                 case '/':
-                    if (this.scanner.match('=')) return this.token(TokenType.SLASH_EQUAL);
+                    if (this.scanner.match('=')) return this.token(TokenType.DIV_EQUAL);
                     if (this.scanner.match('/') || this.scanner.match('*'))
                     {
                         this.comment();
@@ -303,6 +320,8 @@ export class Tokenizer
                     if (this.scanner.match('|')) return this.token(TokenType.OR);
                     return this.token(TokenType.PIPE);
                 case '?':
+                    if (this.scanner.match('.')) return this.token(TokenType.CHAINING);
+                    if (this.scanner.match('?')) return this.token(TokenType.NULLISH);
                     return this.token(TokenType.QUESTION);
                 case '%':
                     return this.token(TokenType.PERCENT);
@@ -310,7 +329,11 @@ export class Tokenizer
                     if (this.scanner.match('=')) return this.token(TokenType.LESS_EQUAL);
                     return this.token(TokenType.LESS);
                 case '>':
-                    if (this.scanner.match('=')) return this.token(TokenType.GREATER_EQUAL);
+                    if (this.scanner.match('='))
+                    {
+                        this.scanner.match('='); // strict equality (i.e. ===)
+                        return this.token(TokenType.GREATER_EQUAL);
+                    }
                     return this.token(TokenType.GREATER);
                 case '&':
                     if (this.scanner.match('&')) return this.token(TokenType.AND);
@@ -473,6 +496,8 @@ export class Tokenizer
 
     private name() : Token
     {
+        // NOTE: the caller ensures the first cheracter is not a digit
+
         let lexeme = this.scanner.previous();
         let location = this.scanner.position;
 
@@ -499,9 +524,10 @@ export class Tokenizer
         let location = this.scanner.position;
 
         while (this.isDigit(this.scanner.peek()))
-        {
             lexeme += this.scanner.advance();
-        }
+        if (this.scanner.match('.'))
+            while (this.isDigit(this.scanner.peek()))
+                lexeme += this.scanner.advance();
         return new Token(TokenType.NUMBER, lexeme, location);
     }
 

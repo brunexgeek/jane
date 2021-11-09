@@ -488,12 +488,18 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID;
     }
 
+    isPrimitiveType( type : Name )
+    {
+        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long','ubyte', 'ushort', 'uint', 'ulong'];
+        return type.qualified in PRIMITIVES;
+    }
+
     resolveTypeByName( type : Name ) : ClassStmt
     {
 
         let name = type.qualified;
 
-        if (name == 'number' || name == 'boolean' || name == 'void') return null;
+        if (this.isPrimitiveType(type)) return null;
 
         let clazz = this.unit.types.get(name);
         if (clazz) return clazz;
@@ -515,7 +521,7 @@ export class TypeInference extends DispatcherTypeRef
 
         let name = type.qualified;
 
-        if (name == 'number' || name == 'boolean' || name == 'void') return type;
+        if (this.isPrimitiveType(type)) return null;
 
         let clazz = this.unit.types.get(name);
         if (clazz)
