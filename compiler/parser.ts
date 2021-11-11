@@ -60,7 +60,8 @@ import {
     ForStmt,
     DispatcherTypeRef,
     TypeCastExpr,
-    PropertyStmt} from './types';
+    PropertyStmt,
+    TypeId} from './types';
 
 import {
     TokenType,
@@ -200,6 +201,7 @@ export class Parser
         return result;
     }
 
+    // Try to synchronize after a parse error
     synchronize()
     {
         let prev = this.advance();
@@ -427,7 +429,7 @@ export class Parser
             type = this.parseTypeRef();
         }
         else
-            type = new TypeRef(new Name(['void']), [], 0, false, null);
+            type = new TypeRef(TypeId.OBJECT, new Name(['void']), 0);
 
         let block = this.parseBlock();
 
@@ -444,21 +446,21 @@ export class Parser
         return new Name(lexemes, location);
     }
 
+    getTypeId( type : string ) : TypeId
+    {
+        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+        const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+        let idx = PRIMITIVES.indexOf(type);
+        return (idx >= 0) ? TYPES[idx] : TypeId.INVALID;
+    }
+
     parseTypeRef( allow_array : boolean = true ) : TypeRef
     {
         let location = this.peek().location;
         let name = this.parseName(true);
         let dims = 0;
-        let nullable = false;
-
-        let generics : TypeRef[] = [];
-        if (this.match(TokenType.LESS))
-        {
-            do {
-                generics.push( this.parseTypeRef() );
-            } while (this.match(TokenType.COMMA));
-            this.consume(TokenType.GREATER);
-        }
 
         if (!allow_array && this.peekType() == TokenType.LEFT_BRACKET)
             throw this.error(this.peek().location, "Array specified not allowed here");
@@ -468,13 +470,7 @@ export class Parser
             this.consume(TokenType.RIGHT_BRACKET);
         }
 
-        if (this.match(TokenType.PIPE))
-        {
-            let token = this.consume(TokenType.NIL);
-            nullable = true;
-        }
-
-        return new TypeRef(name, generics, dims, nullable, location);
+        return new TypeRef(this.getTypeId(name.qualified), name, dims, location);
     }
 
     parseExpression() : IExpr
@@ -714,7 +710,7 @@ export class Parser
         if (this.peekType() == TokenType.NAME)
             return new NameLiteral(this.advance().lexeme, location);
         if (this.match(TokenType.NUMBER))
-            return new NumberLiteral( tt.lexeme, parseInt(tt.lexeme), location );
+            return new NumberLiteral( tt.lexeme, location );
         if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
             return new StringLiteral(tt.lexeme, tt.type, location);
 
@@ -911,7 +907,7 @@ export class Parser
             type = this.parseTypeRef();
         }
         else
-            type = new TypeRef(new Name(['void']), [], 0, false, this.peek().location);
+            type = new TypeRef(TypeId.VOID, new Name(['void']), 0, this.peek().location);
 
         let block : BlockStmt = null;
         if (this.peekType() == TokenType.LEFT_BRACE)
@@ -1178,7 +1174,7 @@ export class NodePromoter
         throw new Error("Method not implemented.");
     }
 
-    static readonly parent = new TypeRef(new Name(['ICallable'], null), null, 0, true);
+    static readonly parent = new TypeRef(TypeId.OBJECT, new Name(['ICallable'], null), 0);
 
     protected promote( target : FunctionStmt ) : ClassStmt
     {
@@ -1205,7 +1201,7 @@ export class NodePromoter
                 unit.types.set(clazz.name.qualified, clazz);
                 unit.functions.delete(name.qualified);
                 unit.variables.set( name.qualified,
-                    new VariableStmt(name, new TypeRef(clazz.name, null, 0, true, null),
+                    new VariableStmt(name, new TypeRef(TypeId.OBJECT, clazz.name, 0),
                         new CallExpr( new FieldExpr( new NameLiteral(clazz.name.qualified), new Name(['call'])), []), false) );
             }
             else
@@ -1222,7 +1218,7 @@ export class NodePromoter
 
 let errorName = new Name(['Error']);
 let objectName = new Name(['Object']);
-let objectRef = new TypeRef(objectName, null, 0, true);
+let objectRef = new TypeRef(TypeId.OBJECT, objectName, 0);
 let callableName = new Name(['ICallable']);
 let stringName = new Name(['string']);
 
@@ -1236,10 +1232,10 @@ export function createString() : ClassStmt
     let stmt1 = new FunctionStmt(
         new Name(['indexOf']),
         null,
-        [new Parameter(new Name(['value']), TypeRef.STRING, null, false)],
-        TypeRef.NUMBER,
+        [new Parameter(new Name(['value']), new TypeRef(TypeId.STRING, new Name(['string']), 0), null, false)],
+        new TypeRef(TypeId.NUMBER, new Name(['number']), 0),
         null);
-    let stmt2 = new VariableStmt(new Name(['length'], null), TypeRef.NUMBER, null, false);
+    let stmt2 = new VariableStmt(new Name(['length'], null), new TypeRef(TypeId.NUMBER, new Name(['number']), 0), null, false);
     return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Accessor([TokenType.EXPORT]));
 }
 

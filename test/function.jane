@@ -1,0 +1,15 @@
+function identity(n : number)
+{
+    let matrix : number[][];
+    for (let i: number = 0; i < n; i++)
+    {
+        for (let j: number = 0; j < n; j++)
+        {
+            if (i != j)
+                matrix[i][j] = 0;
+            else
+                matrix[i][j] = 1;
+        }
+    }
+    return matrix;
+}

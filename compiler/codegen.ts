@@ -44,7 +44,8 @@ import {
     ForStmt,
     DispatcherVoid,
     TypeCastExpr,
-    PropertyStmt} from './types';
+    PropertyStmt,
+    TypeId} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -314,7 +315,7 @@ export class PortableGenerator extends DispatcherVoid
         this.write(`\nstatic ${this.nativeType(target.type)} func_${this.nativeName(target.name)}(`);
         if (!target.isStatic)
         {
-            let type = new TypeRef(target.name.parent, null, 0, true);
+            let type = new TypeRef(TypeId.OBJECT, target.name.parent, 0);
             this.write(`void *self__`);
             first = false;
         }

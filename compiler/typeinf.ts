@@ -62,7 +62,7 @@ import {
     PropertyStmt,
     ForStmt,
     DispatcherTypeRef,
-    StrIStmtMap} from './types';
+    TypeId} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 import { createObject, createCallable, createError, createString } from './parser';
@@ -167,7 +167,7 @@ export class TypeInference extends DispatcherTypeRef
         {
             let itype = this.dispatch(target.init);
             if (result && !this.checkCompatibleTypes(result, itype))
-                this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
+                this.error(target.location, `Initialization incompatible with variable type ('${result}' and '${itype}'`);
 
             if (!result) result = itype;
         }
@@ -261,7 +261,7 @@ export class TypeInference extends DispatcherTypeRef
             {
                 entry = new ScopeEntry();
                 entry.target = stmt;
-                entry.type = new TypeRef((<ClassStmt>stmt).name, null, 0, true);
+                entry.type = new TypeRef(TypeId.OBJECT, (<ClassStmt>stmt).name, 0);
                 entry.type.ref = stmt;
             }
         }
@@ -275,22 +275,47 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     visitName(target: Name) : TypeRef {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitStringLiteral(target: StringLiteral) : TypeRef
     {
-        return TypeRef.STRING;
+        return this.createTypeRefById(TypeId.STRING);
     }
 
     visitNumberLiteral(target: NumberLiteral) : TypeRef
     {
-        return TypeRef.NUMBER;
+        if (target.value.indexOf('.') >= 0)
+        {
+            let value = Number.parseFloat(target.value);
+            if (value > 3.4028234664e+38 || value < 1.1754943508e-38)
+                return this.createTypeRefById(TypeId.DOUBLE);
+            else
+                return this.createTypeRefById(TypeId.FLOAT);
+        }
+        else
+        {
+            let value = Number.parseInt(target.value);
+            if (value > 0)
+            {
+                if (value <= 0xFF) return this.createTypeRefById(TypeId.UBYTE);
+                if (value <= 0xFFFF) return this.createTypeRefById(TypeId.USHORT);
+                if (value <= 0xFFFFFFFF) return this.createTypeRefById(TypeId.UINT);
+                return this.createTypeRefById(TypeId.ULONG);
+            }
+            else
+            {
+                if (value <= 0x7F) return this.createTypeRefById(TypeId.BYTE);
+                if (value <= 0x7FFF) return this.createTypeRefById(TypeId.SHORT);
+                if (value <= 0x7FFFFFFF) return this.createTypeRefById(TypeId.INT);
+                return this.createTypeRefById(TypeId.LONG);
+            }
+        }
     }
 
     visitBoolLiteral(target: BoolLiteral) : TypeRef
     {
-        return TypeRef.BOOLEAN;
+        return this.createTypeRefById(TypeId.BOOLEAN);
     }
 
     visitNameLiteral(target: NameLiteral) : TypeRef
@@ -304,7 +329,6 @@ export class TypeInference extends DispatcherTypeRef
             target.resolvedType_ = entry.type;
             return entry.type;
         }
-        return TypeRef.VOID;
     }
 
     visitGroup(target: Group) : TypeRef
@@ -314,7 +338,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitNullLiteral(target: NullLiteral) : TypeRef
     {
-        return TypeRef.NULL;
+        return TypeRef.VOID;
     }
 
     visitLogicalExpr(target: LogicalExpr) : TypeRef
@@ -325,42 +349,58 @@ export class TypeInference extends DispatcherTypeRef
         {
             if (!this.checkCompatibleTypes(left, right))
                 throw this.error(target.location, 'Incompatible types for logical operator');
-            return TypeRef.BOOLEAN;
+            return new TypeRef(TypeId.BOOLEAN, new Name(['boolean']), 0);
         }
         return null;
     }
 
     visitBinaryExpr(target: BinaryExpr) : TypeRef
     {
-
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (left != null && right != null)
         {
-            if ((left == TypeRef.STRING || right == TypeRef.STRING) &&
-                (left == TypeRef.NUMBER || right == TypeRef.NUMBER) &&
-                target.oper != TokenType.PLUS)
-                return TypeRef.STRING;
             if (!this.checkCompatibleTypes(left, right))
-                throw this.error(target.location, `Incompatible types for binary operator (${left} and ${right})`);
-            if (left == TypeRef.STRING && target.oper != TokenType.PLUS)
+                throw this.error(target.location, `Incompatible types for binary operator ('${left}' and '${right}')`);
+            if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS)
                 throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
             return left;
         }
         return null;
     }
 
+    isNumeric( target : TypeRef )
+    {
+        return (target.tid == TypeId.BYTE ||
+            target.tid == TypeId.UBYTE ||
+            target.tid == TypeId.SHORT ||
+            target.tid == TypeId.USHORT ||
+            target.tid == TypeId.INT ||
+            target.tid == TypeId.UINT ||
+            target.tid == TypeId.LONG ||
+            target.tid == TypeId.ULONG ||
+            target.tid == TypeId.FLOAT ||
+            target.tid == TypeId.DOUBLE ||
+            target.tid == TypeId.NUMBER);
+    }
+
     isAssignable( lhs : TypeRef, rhs : TypeRef )
     {
         if (!lhs || !rhs) return false;
-        if (lhs == TypeRef.BOOLEAN || lhs == TypeRef.NUMBER)
+        if (lhs.tid == TypeId.BOOLEAN || lhs.tid == TypeId.STRING)
             return lhs.qualified == rhs.qualified;
-        if (lhs == TypeRef.VOID)
+        if (lhs.tid == TypeId.VOID)
             return false;
-        if (rhs == TypeRef.NULL)
+
+        if (this.isNumeric(lhs))
+            return this.isNumeric(rhs); // TODO: check for possible data loss
+        else // this 'else' is important
+        if (lhs.dims == 0 && rhs.tid == TypeId.VOID)
             return true;
+
         if (lhs.qualified == rhs.qualified)
             return true;
+
         // FIXME: handle derived types
         return false;
     }
@@ -370,8 +410,8 @@ export class TypeInference extends DispatcherTypeRef
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.isAssignable(left, right))
-            throw this.error(target.location, 'Incompatible types for assignment (' + left + ' and ' + right + ')');
-        if (left == TypeRef.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
+            throw this.error(target.location, `Incompatible types for assignment ('${left}' and '${right}')`);
+        if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
             throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
         return left;
     }
@@ -395,11 +435,11 @@ export class TypeInference extends DispatcherTypeRef
         {
             let type = this.dispatch(target.values[0]);
             let name = `array_1_${type.name}`;
-            let tref = new TypeRef(new Name([name]), null, 1, true, null);
+            let tref = this.createTypeRef(name);
             tref.ref = <ClassStmt>this.unit.imports_.get(name);
             return tref;
         }
-        return TypeRef.ANY;
+        return TypeRef.INVALID;
     }
 
     visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
@@ -461,7 +501,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitAccessor(target: Accessor) : TypeRef
     {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitBlockStmt(target: BlockStmt) : TypeRef
@@ -472,7 +512,7 @@ export class TypeInference extends DispatcherTypeRef
             this.dispatch(stmt);
 
         this.pop();
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitReturnStmt(target: ReturnStmt) : TypeRef
@@ -485,13 +525,38 @@ export class TypeInference extends DispatcherTypeRef
         this.push();
         for (let stmt of target.stmts) this.dispatch(stmt);
         this.pop();
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     isPrimitiveType( type : string )
     {
-        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long','ubyte', 'ushort', 'uint', 'ulong'];
+        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string'];
         return PRIMITIVES.indexOf(type) >= 0;
+    }
+
+    createTypeRef( type : string ) : TypeRef
+    {
+        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+        const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+        let idx = PRIMITIVES.indexOf(type);
+        if (idx >= 0)
+            return new TypeRef(TYPES[idx], new Name([type]), 0);
+        return new TypeRef(TypeId.OBJECT, new Name([type]), 0);
+    }
+
+    createTypeRefById( type : TypeId ) : TypeRef
+    {
+        const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+        const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+        let idx = TYPES.indexOf(type);
+        if (idx >= 0)
+            return new TypeRef(type, new Name([PRIMITIVES[idx]]), 0);
+        return new TypeRef(TypeId.OBJECT, new Name(['Object']), 0);
     }
 
     resolveTypeByName( type : Name ) : ClassStmt
@@ -550,11 +615,11 @@ export class TypeInference extends DispatcherTypeRef
         let type = this.ctx.array_types.get(name);
         if (type == null)
         {
-            let length = new VariableStmt(new Name(['length']), TypeRef.NUMBER, null, false);
+            let length = new VariableStmt(new Name(['length']), this.createTypeRefById(TypeId.NUMBER), null, false);
             type = new ClassStmt(new Name([name]), null, null, null, [length]);
             this.ctx.array_types.set(name, type);
         }
-        let result = new TypeRef(new Name([name]), null, 0, true);
+        let result = this.createTypeRef(name);
         result.ref = type;
         return result;
     }
@@ -570,15 +635,14 @@ export class TypeInference extends DispatcherTypeRef
     {
         this.dispatch(target.expr);
         for (let stmt of target.stmts) this.dispatch(stmt);
-
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitSwitchStmt(target: SwitchStmt) : TypeRef
     {
         this.dispatch(target.expr);
         for (let stmt of target.cases) this.dispatch(stmt);
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitIfStmt(target: IfStmt) : TypeRef
@@ -586,8 +650,7 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.condition);
         if (target.thenSide) this.dispatch(target.thenSide);
         if (target.elseSide) this.dispatch(target.elseSide);
-
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitForOfStmt(target: ForOfStmt) : TypeRef
@@ -599,40 +662,39 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.expr);
         this.dispatch(target.stmt);
         this.pop();
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitDoWhileStmt(target: DoWhileStmt) : TypeRef
     {
         this.dispatch(target.condition);
         this.dispatch(target.stmt);
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitWhileStmt(target: WhileStmt) : TypeRef
     {
         this.dispatch(target.condition);
         this.dispatch(target.stmt);
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitParameter(target: Parameter) : TypeRef
     {
-        return TypeRef.VOID;
+        return target.type;
     }
 
     visitExpandExpr(target: ExpandExpr) : TypeRef
     {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitFunctionStmt(target: FunctionStmt) : TypeRef
     {
-        if (target.isGeneric) return TypeRef.VOID;
         this.push();
 
         if (!target.type)
-            target.type = TypeRef.VOID;
+            target.type.tid = TypeId.VOID;
         else
             this.dispatch(target.type);
 
@@ -643,12 +705,12 @@ export class TypeInference extends DispatcherTypeRef
         }
         if (target.parent instanceof ClassStmt)
         {
-            let type = new TypeRef(target.parent.name, null, 0, true);
+            let type = new TypeRef(TypeId.OBJECT, target.parent.name, 0);
             type.ref = target.parent;
             let variable = new VariableStmt(new Name(['this']), type, null, false);
             this.top().insert(variable.name.canonical, variable, type);
 
-            type = new TypeRef(target.parent.extended.name, null, 0, true);
+            type = new TypeRef(TypeId.OBJECT, target.parent.extended.name, 0);
             type.ref = target.parent.extended.ref;
             variable = new VariableStmt(new Name(['super']), type, null, false);
             this.top().insert(variable.name.canonical, variable, type);
@@ -676,7 +738,7 @@ export class TypeInference extends DispatcherTypeRef
             this.dispatch(stmt);
 
         this.pop();
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitExprStmt(target: ExprStmt) : TypeRef
@@ -685,29 +747,25 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     visitBreakStmt(target: BreakStmt) : TypeRef {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitContinueStmt(target: ContinueStmt) : TypeRef
     {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitImportStmt(target: ImportStmt) : TypeRef
     {
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
     {
-        if (type1 == TypeRef.BOOLEAN || type1 == TypeRef.NUMBER)
+        if (type1.tid == TypeId.BOOLEAN || type1.tid == TypeId.NUMBER)
             return type2.qualified == type1.qualified;
-        if (type1 == TypeRef.VOID || type2 == TypeRef.VOID)
+        if (type1.tid == TypeId.VOID || type2.tid == TypeId.VOID)
             return false;
-        if (type1 == TypeRef.NULL || type2 == TypeRef.NULL)
-            return true;
-        if (type1 == TypeRef.ANY || type2 == TypeRef.ANY)
-            return true;
         return type1.qualified == type2.qualified;
     }
 
@@ -720,14 +778,14 @@ export class TypeInference extends DispatcherTypeRef
         {
             let itype = this.dispatch(target.init);
             if (result && !this.isAssignable(result, itype))
-                this.error(target.location, `Initialize incompatible with variable type (${result} and ${itype}`);
+                this.error(target.location, `Initialize incompatible with variable type ('${result}' and '${itype}'`);
 
             if (!result) result = itype;
         }
         target.type = result;
 
         this.top().insert(target.name.toString(), target, result);
-        if (!result) return TypeRef.VOID;
+        if (!result) return TypeRef.VOID; // unused
         return result;
     }
 
@@ -736,13 +794,13 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.block);
         this.dispatch(target.cblock);
         this.dispatch(target.fblock);
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitThrowStmt(target: ThrowStmt) : TypeRef
     {
         this.dispatch(target.expr);
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
     visitUnit(target: Unit) : TypeRef
@@ -754,8 +812,7 @@ export class TypeInference extends DispatcherTypeRef
         {
             //this.ctx.listener.onError(error.location, error);
         }
-
-        return TypeRef.VOID;
+        return TypeRef.VOID; // unused
     }
 
 

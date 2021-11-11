@@ -23,6 +23,27 @@
 import { TokenType } from './tokenizer';
 import { SourceLocation } from './compiler';
 
+export enum TypeId
+{
+	INVALID,
+    VOID,
+    NUMBER,
+    BYTE,
+    SHORT,
+    INT,
+    LONG,
+    UBYTE,
+    USHORT,
+    UINT,
+    ULONG,
+    FLOAT,
+    DOUBLE,
+    STRING,
+    BOOLEAN,
+	CHAR,
+	OBJECT
+}
+
 export interface INode
 {
     accept( visitor : IVisitor ) : void;
@@ -54,28 +75,11 @@ export class Name extends Expr
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitName(this); }
 	className() : string { return 'Name'; }
-	toString() : string
-    {
-        let result = '';
-        let first = true;
-        for (let i of this.lexemes)
-        {
-            if (!first) result += '.';
-            first = false;
-            result += i;
-        }
-        return result;
-    }
-    get canonical() : string {
-        if (this.lexemes.length > 0)
-            return this.lexemes[ this.lexemes.length - 1 ];
-        else
-            return '';
-    }
+	toString() : string { return this.lexemes.join('.'); }
+    get canonical() : string { return this.lexemes[this.lexemes.length - 1]; }
     get qualified() : string { return this.toString(); }
-    append( name : Name ) {
-        for (let s of name.lexemes) this.lexemes.push(s);
-    }
+    get context() : string { return this.lexemes.slice(1).join('.'); }
+    append( name : Name ) { for (let s of name.lexemes) this.lexemes.push(s); }
     push( name : string ) { this.lexemes.push(name); }
     clone() : Name { return new Name([...this.lexemes], this.location); }
     get parent() : Name {
@@ -103,13 +107,11 @@ export class StringLiteral extends Expr
 export class NumberLiteral extends Expr
 {
 	value : string;
-	converted : number;
 	location : SourceLocation;
-	constructor( value : string, converted : number, location : SourceLocation = null )
+	constructor( value : string, location : SourceLocation = null )
 	{
 		super();
 		this.value = value;
-		this.converted = converted;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitNumberLiteral(this); }
@@ -393,56 +395,26 @@ export class NamespaceStmt implements IStmt
 
 export class TypeRef implements INode
 {
+	tid : TypeId;
 	name : Name;
-	generics : TypeRef[];
 	dims : number;
-	nullable : boolean;
 	ref : ClassStmt = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : TypeRef[], dims : number, nullable : boolean, location : SourceLocation = null )
+	constructor( tid : TypeId, name : Name, dims : number, location : SourceLocation = null )
 	{
+		this.tid = tid;
 		this.name = name;
-		this.generics = generics;
 		this.dims = dims;
-		this.nullable = nullable;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitTypeRef(this); }
 	className() : string { return 'TypeRef'; }
-	toString( qualified : boolean = true) : string
-    {
-        let result = '';
-        if (qualified)
-            result = this.name.qualified;
-        else
-            result = this.name.canonical;
-        if (this.generics && this.generics.length > 0)
-        {
-            result += '<';
-            let first = true;
-            for (let i of this.generics)
-            {
-                if (!first) result += ',';
-                first = false;
-                result += i.toString(qualified);
-            }
-            result += '>';
-            let i = this.dims;
-            while (i-- > 0) result += '[]';
-            return result;
-        }
-        //if (this.nullable) result += '?';
-        return result;
-    }
-    get canonical() : string { return this.toString(false); }
-    get qualified() : string { return this.toString(); }
-    static readonly VOID = new TypeRef(new Name(['void']), null, 0, false);
-    static readonly NUMBER = new TypeRef(new Name(['number']), null, 0, false);
-    static readonly STRING = new TypeRef(new Name(['string']), null, 0, true);
-    static readonly BOOLEAN = new TypeRef(new Name(['boolean']), null, 0, false);
-    static readonly NULL = new TypeRef(new Name(['null']), null, 0, false);
-    static readonly ANY = new TypeRef(new Name(['any']), null, 0, false);
-    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
+	toString() : string { return this.name.qualified; }
+    get canonical() : string { return this.name.canonical; }
+    get qualified() : string { return this.name.qualified; }
+	get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
+	static readonly VOID : TypeRef = new TypeRef(TypeId.VOID, new Name(['void']), 0);
+	static readonly INVALID : TypeRef = new TypeRef(TypeId.INVALID, new Name(['invalid']), 0);
     isDerived( qname : string ) : boolean
     {
         if (this.ref && this.ref instanceof ClassStmt)
