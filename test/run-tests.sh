@@ -1,4 +1,7 @@
 #!/bin/bash -x
 
 DIR=$(cd $(dirname "$0") && pwd)
-find $DIR -iname '*.jane' | xargs -I {} node "$DIR/../build/jane.js" generate {} > /dev/null || exit 1
+for FILENAME in $(find $DIR -iname '*.jane')
+do
+    node "$DIR/../build/jane.js" generate $FILENAME > /dev/null || exit 1
+done

@@ -295,12 +295,18 @@ export class TypeInference extends DispatcherTypeRef
         }
         else
         {
+            // TODO: set 'value' as 'ulong' when self hosting
+            // TODO: detect signal before convertion when self hosting
             let value = Number.parseInt(target.value);
             if (value > 0)
             {
+                if (value <= 0x7F) return this.createTypeRefById(TypeId.BYTE);
                 if (value <= 0xFF) return this.createTypeRefById(TypeId.UBYTE);
+                if (value <= 0x7FFF) return this.createTypeRefById(TypeId.SHORT);
                 if (value <= 0xFFFF) return this.createTypeRefById(TypeId.USHORT);
+                if (value <= 0x7FFFFFFF) return this.createTypeRefById(TypeId.INT);
                 if (value <= 0xFFFFFFFF) return this.createTypeRefById(TypeId.UINT);
+                if (value <= 0x7FFFFFFFFFFFFFFF) return this.createTypeRefById(TypeId.LONG);
                 return this.createTypeRefById(TypeId.ULONG);
             }
             else

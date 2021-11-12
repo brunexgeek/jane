@@ -16,6 +16,7 @@
  */
 
 import { CompilationContext, SourceLocation } from './compiler';
+import { Logger } from './utils';
 
 export class Scanner
 {
@@ -230,17 +231,37 @@ export class Token
     }
 }
 
+export class TokenizerError extends Error
+{
+    public location : SourceLocation;
+
+    constructor( message : string, location : SourceLocation )
+    {
+        super(`${message} at ${location.toString()}`);
+        this.location = location;
+    }
+}
+
 export class Tokenizer
 {
     ctx : CompilationContext;
     scanner : Scanner;
     stack : Token[] = [];
     end : Token = new Token(TokenType.EOF, null, null);
+    hasAborted : boolean = false;
 
     constructor( ctx : CompilationContext, scanner : Scanner )
     {
         this.ctx = ctx;
         this.scanner = scanner;
+    }
+
+    error( location : SourceLocation, message : string ) : TokenizerError
+    {
+        let result = new TokenizerError(message, location);
+        this.hasAborted = !this.ctx.listener.onError(location, result);
+        if (this.hasAborted) throw result;
+        return result;
     }
 
     next() : Token
@@ -273,6 +294,8 @@ export class Tokenizer
                         if (this.scanner.match('.')) return this.token(TokenType.SPREAD);
                         this.scanner.unget();
                     }
+                    if (this.isDigit(this.scanner.peek()))
+                        return this.number();
                     return this.token(TokenType.DOT);
                 case '-':
                     if (this.scanner.match('=')) return this.token(TokenType.MINUS_EQUAL);
@@ -410,7 +433,7 @@ export class Tokenizer
                 case '\r':
                     continue;
             }
-            throw Error('Invalid character \'' + c + '\' at ' + this.scanner.position.toString());
+            this.error(this.scanner.position, `Invalid character '${c}' at '${this.scanner.position.toString()}'`);
         }
         return this.end;
     }
@@ -429,7 +452,7 @@ export class Tokenizer
                 if (this.scanner.match('/')) return;
                 this.scanner.advance();
             }
-            throw new Error('Unterminated block comment');
+            this.error(this.scanner.position, 'Unterminated block comment');
         }
     }
 
@@ -467,7 +490,7 @@ export class Tokenizer
                         case '`':
                             break;
                         default:
-                            throw new Error('Invalid escape sequence');
+                            this.error(this.scanner.position, 'Invalid escape sequence');
                     }
                     escape = false;
                 }
@@ -496,7 +519,7 @@ export class Tokenizer
 
     private name() : Token
     {
-        // NOTE: the caller ensures the first cheracter is not a digit
+        // NOTE: the caller ensures the first character is not a digit
 
         let lexeme = this.scanner.previous();
         let location = this.scanner.position;
@@ -518,16 +541,97 @@ export class Tokenizer
         return (c >= '0' && c <= '9');
     }
 
+    private isHexDigit( c : string ) : boolean
+    {
+        return (c >= '0' && c <= '9') ||
+            (c >= 'a' && c <= 'f') ||
+            (c >= 'A' && c <= 'F');
+    }
+
+    private isBinDigit( c : string ) : boolean
+    {
+        return (c >= '0' && c <= '1');
+    }
+
+    private isOctDigit( c : string ) : boolean
+    {
+        return (c >= '0' && c <= '7');
+    }
+
     private number() : Token
     {
+        // NOTE: the caller ensures the first character is a digit
+
         let lexeme = this.scanner.previous();
         let location = this.scanner.position;
+        let base = '';
 
-        while (this.isDigit(this.scanner.peek()))
-            lexeme += this.scanner.advance();
-        if (this.scanner.match('.'))
+        // capture the integer part
+
+        if (this.scanner.previous() == '0')
+        {
+            base = this.scanner.peek();
+            // detect base
+            if (base == 'x')
+            {
+                lexeme += this.scanner.advance();
+                while (this.isHexDigit(this.scanner.peek()))
+                    lexeme += this.scanner.advance();
+            }
+            else
+            if (base == 'b')
+            {
+                lexeme += this.scanner.advance();;
+                while (this.isBinDigit(this.scanner.peek()))
+                    lexeme += this.scanner.advance();
+            }
+            else
+            if (base == 'o')
+            {
+                lexeme += this.scanner.advance();;
+                while (this.isOctDigit(this.scanner.peek()))
+                    lexeme += this.scanner.advance();
+            }
+            else
+            {
+                while (this.isDigit(this.scanner.peek()))
+                    lexeme += this.scanner.advance();
+            }
+        }
+        else
+        {
+            // decimal value
             while (this.isDigit(this.scanner.peek()))
                 lexeme += this.scanner.advance();
+        }
+
+        // capture the decimal part, if any
+        let ifp = false;
+        if (base == '' && this.scanner.peek() == '.')
+        {
+            ifp = true;
+            lexeme += this.scanner.advance();
+            while (this.isDigit(this.scanner.peek()))
+                lexeme += this.scanner.advance();
+        }
+
+        // exponent part
+        if (base == '' && this.scanner.peek() == 'e')
+        {
+            lexeme += this.scanner.advance();
+            if (this.scanner.peek() == '-' || this.scanner.peek() == '+')
+                lexeme += this.scanner.advance();
+            while (this.isDigit(this.scanner.peek()))
+                lexeme += this.scanner.advance();
+        }
+
+        // float-point suffix
+        if (this.scanner.peek() == 'f' || this.scanner.peek() == 'F')
+            lexeme += this.scanner.advance();
+        // bigint suffix
+        if (!ifp && this.scanner.peek() == 'u' || this.scanner.peek() == 'U')
+            lexeme += this.scanner.advance();
+
         return new Token(TokenType.NUMBER, lexeme, location);
     }
 
