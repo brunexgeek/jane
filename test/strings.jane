@@ -1,10 +1,10 @@
 let s_var1 = "The quick brown fox jumps";
 let s_var2 = 'over the lazy dog';
 let s_var3 = s_var1 + ' ' + s_var2;
-//let fox = 'fox';
-//let dog = `dog`;
-//let s_var4 = `The quick brown ${dog} jumps over the lazy ${fox}?`;
-//let s_var5 = `They say: "${`the ${dog} is lazy and the ${fox} is quick`}".`;
+let fox = 'fox';
+let dog = `dog`;
+let s_var4 = `The quick brown ${dog} jumps over the lazy ${fox}?`;
+let s_var5 = `They say: "${`the ${dog} is lazy and the ${fox} is quick`}".`;
 //function my_tag(strings : TemplateStringsArray, expr1 : string, expr2 : string)
 //{
 //    return `"${strings[0]}${expr1}${strings[1]}${expr2}${strings[2]}"`;

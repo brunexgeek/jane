@@ -140,6 +140,8 @@ export class TokenType
     // Literals
     static readonly NAME = new TokenType('NAME');
     static readonly TSTRING = new TokenType('TSTRING');
+    static readonly TSTRING_BEGIN = new TokenType('TSTRING_BEGIN');
+    static readonly TSTRING_END = new TokenType('TSTRING_END');
     static readonly SSTRING = new TokenType('SSTRING');
     static readonly DSTRING = new TokenType('DSTRING');
     static readonly NUMBER = new TokenType('NUMBER');
@@ -246,9 +248,10 @@ export class Tokenizer
 {
     ctx : CompilationContext;
     scanner : Scanner;
-    stack : Token[] = [];
+    fifo : Token[] = [];
     end : Token = new Token(TokenType.EOF, null, null);
     hasAborted : boolean = false;
+    tslevel = 0;
 
     constructor( ctx : CompilationContext, scanner : Scanner )
     {
@@ -266,8 +269,8 @@ export class Tokenizer
 
     next() : Token
     {
-        if (this.stack.length)
-            return this.stack.pop();
+        if (this.fifo.length)
+            return this.fifo.shift();
 
         while (!this.scanner.eof())
         {
@@ -281,6 +284,11 @@ export class Tokenizer
                 case '{':
                     return this.token(TokenType.LEFT_BRACE);
                 case '}':
+                    if (this.tslevel > 0)
+                    {
+                        this.tstring();
+                        return this.fifo.shift();
+                    }
                     return this.token(TokenType.RIGHT_BRACE);
                 case '[':
                     return this.token(TokenType.LEFT_BRACKET);
@@ -337,8 +345,12 @@ export class Tokenizer
                     return this.token(TokenType.SLASH);
                 case '\'':
                 case '"':
-                case '`':
                     return this.string();
+                case '`':
+                    this.fifo.push( new Token(TokenType.TSTRING_BEGIN, '', this.scanner.position) );
+                    ++this.tslevel;
+                    this.tstring();
+                    return this.fifo.shift();
                 case '|':
                     if (this.scanner.match('|')) return this.token(TokenType.OR);
                     return this.token(TokenType.PIPE);
@@ -502,11 +514,61 @@ export class Tokenizer
         let ttype = TokenType.SSTRING;
         if (type == '"')
             ttype = TokenType.DSTRING;
-        else
-        if (type == '`')
-            ttype = TokenType.TSTRING;
 
         return new Token(ttype, value, this.scanner.position);
+    }
+
+    private tstring() : void
+    {
+        let escape = false;
+        let value = '';
+
+        while (!this.scanner.eof() && this.scanner.peek() != '`' || escape)
+        {
+            let c = this.scanner.advance();
+            if (c == '$' && this.scanner.peek() == '{')
+            {
+                this.scanner.advance();
+                this.fifo.push( new Token(TokenType.TSTRING, value, this.scanner.position) );
+                return;
+            }
+            else
+            if (c == '\\')
+            {
+                if (escape) value += '\\';
+                escape = !escape;
+            }
+            else
+            {
+                if (escape)
+                {
+                    switch (c)
+                    {
+                        case 'n': c = '\n'; break;
+                        case 'r': c = '\r'; break;
+                        case 't': c = '\t'; break;
+                        case 'b': c = '\b'; break;
+                        case '\'':
+                        case '"':
+                        case '`':
+                            break;
+                        default:
+                            this.error(this.scanner.position, 'Invalid escape sequence');
+                    }
+                    escape = false;
+                }
+                value += c;
+            }
+        }
+
+        if (this.scanner.advance() == '`')
+        {
+            --this.tslevel;
+            this.fifo.push( new Token(TokenType.TSTRING, value, this.scanner.position) );
+            this.fifo.push( new Token(TokenType.TSTRING_END, '', this.scanner.position) );
+        }
+        else
+            this.error(this.scanner.position, 'Invalid template string');
     }
 
     private isIdentifier( c : string ) : boolean

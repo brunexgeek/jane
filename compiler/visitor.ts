@@ -57,7 +57,8 @@ import {
 	ThrowStmt,
     Unit,
     ImportStmt,
-    TypeCastExpr} from './types';
+    TypeCastExpr,
+    TemplateStringExpr} from './types';
 
 declare let require: any;
 let process = require("process");
@@ -69,7 +70,6 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor
 {
-
     visitTypeCastExpr(target: TypeCastExpr): void
     {
         let content = this.field('type', target.type.toString());
@@ -361,13 +361,29 @@ export class SvgPrinter implements IVisitor
     }
 
     visitName(target: Name): void {
-        this.parent = this.connection(this.parent, target.className(), this.nameToString(target), this.label);
+        this.parent = this.connection(this.parent, this.nameToString(target), this.label);
     }
 
     visitStringLiteral(target: StringLiteral): void {
         let content = this.field('type', target.type.name);
-        content += this.field('value', escape(target.value));
+        content += this.field('value', `'${escape(target.value)}'`, true);
         this.parent = this.connection(this.parent, target.className(), content, this.label);
+    }
+
+    visitTemplateStringExpr(target: TemplateStringExpr): void {
+        let id = this.connection(this.parent, target.className(), null, this.label);
+        if (target.value)
+        {
+            this.parent = id;
+            this.label = 'stmts';
+            let i = 0;
+            for (let expr of target.value)
+            {
+                this.parent = id;
+                this.label = `stmts[${i++}]`;
+                expr.accept(this);
+            }
+        }
     }
 
     visitNumberLiteral(target: NumberLiteral): void {
@@ -379,7 +395,8 @@ export class SvgPrinter implements IVisitor
     }
 
     visitNameLiteral(target: NameLiteral): void {
-        this.parent = this.connection(this.parent, target.className(), target.value, this.label);
+        let content = this.field('value', target.value);
+        this.parent = this.connection(this.parent, target.className(), content, this.label);
     }
 
     visitGroup(target: Group): void {
@@ -723,7 +740,7 @@ export class SvgPrinter implements IVisitor
 
     node( id : number, type : string, content : string, color : string )
     {
-        if (content.length != 0)
+        if (content && content.length != 0)
             print(`${id} [label=<{<b>${type}</b>|${content}}> fillcolor="${color}"]\n`);
         else
             print(`${id} [label=<{<b>${type}</b>}> fillcolor="${color}"]\n`);

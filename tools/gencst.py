@@ -117,6 +117,10 @@ printType('StringLiteral', [
     {'name' : 'type', 'type' : 'TokenType'}
     ], 'Expr')
 
+printType('TemplateStringExpr', [
+    {'name' : 'value', 'type' : 'IExpr[]'}
+    ], 'Expr')
+
 printType('NumberLiteral', [
     {'name' : 'value', 'type' : 'string'}
     ], 'Expr')

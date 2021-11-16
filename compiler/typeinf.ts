@@ -62,7 +62,8 @@ import {
     PropertyStmt,
     ForStmt,
     DispatcherTypeRef,
-    TypeId} from './types';
+    TypeId,
+    TemplateStringExpr} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 import { createObject, createCallable, createError, createString } from './parser';
@@ -136,6 +137,11 @@ export class TypeInference extends DispatcherTypeRef
     {
         super();
         this.ctx = ctx;
+    }
+
+    protected visitTemplateStringExpr(target: TemplateStringExpr): TypeRef
+    {
+        return null;
     }
 
     findSymbol( unit : Unit, name : string ) : IStmt

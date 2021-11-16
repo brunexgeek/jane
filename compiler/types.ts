@@ -25,7 +25,7 @@ import { SourceLocation } from './compiler';
 
 export enum TypeId
 {
-	INVALID,
+    INVALID,
     VOID,
     NUMBER,
     BYTE,
@@ -40,8 +40,8 @@ export enum TypeId
     DOUBLE,
     STRING,
     BOOLEAN,
-	CHAR,
-	OBJECT
+    CHAR,
+    OBJECT
 }
 
 export interface INode
@@ -102,6 +102,20 @@ export class StringLiteral extends Expr
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitStringLiteral(this); }
 	className() : string { return 'StringLiteral'; }
+}
+
+export class TemplateStringExpr extends Expr
+{
+	value : IExpr[];
+	location : SourceLocation;
+	constructor( value : IExpr[], location : SourceLocation = null )
+	{
+		super();
+		this.value = value;
+		this.location = location;
+	}
+	accept( visitor : IVisitor ) : void { visitor.visitTemplateStringExpr(this); }
+	className() : string { return 'TemplateStringExpr'; }
 }
 
 export class NumberLiteral extends Expr
@@ -412,9 +426,9 @@ export class TypeRef implements INode
 	toString() : string { return this.name.qualified; }
     get canonical() : string { return this.name.canonical; }
     get qualified() : string { return this.name.qualified; }
-	get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
-	static readonly VOID : TypeRef = new TypeRef(TypeId.VOID, new Name(['void']), 0);
-	static readonly INVALID : TypeRef = new TypeRef(TypeId.INVALID, new Name(['invalid']), 0);
+    get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
+    static readonly VOID : TypeRef = new TypeRef(TypeId.VOID, new Name(['void']), 0);
+    static readonly INVALID : TypeRef = new TypeRef(TypeId.INVALID, new Name(['invalid']), 0);
     isDerived( qname : string ) : boolean
     {
         if (this.ref && this.ref instanceof ClassStmt)
@@ -1006,6 +1020,7 @@ export class Unit implements INode
 export interface IVisitor {
 	visitName( target : Name) : void;
 	visitStringLiteral( target : StringLiteral) : void;
+	visitTemplateStringExpr( target : TemplateStringExpr) : void;
 	visitNumberLiteral( target : NumberLiteral) : void;
 	visitBoolLiteral( target : BoolLiteral) : void;
 	visitNameLiteral( target : NameLiteral) : void;
@@ -1051,6 +1066,7 @@ export interface IVisitor {
 export class Visitor implements IVisitor {
 	visitName( target : Name) : void {}
 	visitStringLiteral( target : StringLiteral) : void {}
+	visitTemplateStringExpr( target : TemplateStringExpr) : void {}
 	visitNumberLiteral( target : NumberLiteral) : void {}
 	visitBoolLiteral( target : BoolLiteral) : void {}
 	visitNameLiteral( target : NameLiteral) : void {}
@@ -1096,6 +1112,7 @@ export class Visitor implements IVisitor {
 export abstract class DispatcherTypeRef {
 	protected abstract visitName( target : Name) : TypeRef;
 	protected abstract visitStringLiteral( target : StringLiteral) : TypeRef;
+	protected abstract visitTemplateStringExpr( target : TemplateStringExpr) : TypeRef;
 	protected abstract visitNumberLiteral( target : NumberLiteral) : TypeRef;
 	protected abstract visitBoolLiteral( target : BoolLiteral) : TypeRef;
 	protected abstract visitNameLiteral( target : NameLiteral) : TypeRef;
@@ -1141,6 +1158,7 @@ export abstract class DispatcherTypeRef {
 		switch (node.className()) {
 			case 'Name': return this.visitName(<Name>node);
 			case 'StringLiteral': return this.visitStringLiteral(<StringLiteral>node);
+			case 'TemplateStringExpr': return this.visitTemplateStringExpr(<TemplateStringExpr>node);
 			case 'NumberLiteral': return this.visitNumberLiteral(<NumberLiteral>node);
 			case 'BoolLiteral': return this.visitBoolLiteral(<BoolLiteral>node);
 			case 'NameLiteral': return this.visitNameLiteral(<NameLiteral>node);
@@ -1189,6 +1207,7 @@ export abstract class DispatcherTypeRef {
 export abstract class DispatcherVoid {
 	protected abstract visitName( target : Name) : void;
 	protected abstract visitStringLiteral( target : StringLiteral) : void;
+	protected abstract visitTemplateStringExpr( target : TemplateStringExpr) : void;
 	protected abstract visitNumberLiteral( target : NumberLiteral) : void;
 	protected abstract visitBoolLiteral( target : BoolLiteral) : void;
 	protected abstract visitNameLiteral( target : NameLiteral) : void;
@@ -1234,6 +1253,7 @@ export abstract class DispatcherVoid {
 		switch (node.className()) {
 			case 'Name': return this.visitName(<Name>node);
 			case 'StringLiteral': return this.visitStringLiteral(<StringLiteral>node);
+			case 'TemplateStringExpr': return this.visitTemplateStringExpr(<TemplateStringExpr>node);
 			case 'NumberLiteral': return this.visitNumberLiteral(<NumberLiteral>node);
 			case 'BoolLiteral': return this.visitBoolLiteral(<BoolLiteral>node);
 			case 'NameLiteral': return this.visitNameLiteral(<NameLiteral>node);

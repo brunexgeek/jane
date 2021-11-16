@@ -61,7 +61,8 @@ import {
     DispatcherTypeRef,
     TypeCastExpr,
     PropertyStmt,
-    TypeId} from './types';
+    TypeId,
+    TemplateStringExpr} from './types';
 
 import {
     TokenType,
@@ -711,10 +712,23 @@ export class Parser
             return new NameLiteral(this.advance().lexeme, location);
         if (this.match(TokenType.NUMBER))
             return new NumberLiteral( tt.lexeme, location );
-        if (this.match(TokenType.SSTRING, TokenType.TSTRING, TokenType.DSTRING))
+        if (this.match(TokenType.SSTRING, TokenType.DSTRING, TokenType.TSTRING))
             return new StringLiteral(tt.lexeme, tt.type, location);
+        if (this.match(TokenType.TSTRING_BEGIN))
+            return this.parseTemplateString();
 
         throw this.error(this.peek().location, 'Invalid expression with ' + this.peekType().lexeme);
+    }
+
+    parseTemplateString() : IExpr
+    {
+        let entries : IExpr[] = [];
+        while (!this.match(TokenType.TSTRING_END))
+        {
+            let tmp = this.parseExpression();
+            if (tmp) entries.push(tmp);
+        }
+        return new TemplateStringExpr(entries);
     }
 
     parseNewExpr() : IExpr

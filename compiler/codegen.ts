@@ -45,7 +45,8 @@ import {
     DispatcherVoid,
     TypeCastExpr,
     PropertyStmt,
-    TypeId} from './types';
+    TypeId,
+    TemplateStringExpr} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -72,6 +73,11 @@ export class PortableGenerator extends DispatcherVoid
     protected visitStringLiteral(target: StringLiteral): void
     {
         this.write(`"${target.value}"`);
+    }
+
+    protected visitTemplateStringExpr(target: TemplateStringExpr): void
+    {
+
     }
 
     protected visitNumberLiteral(target: NumberLiteral): void

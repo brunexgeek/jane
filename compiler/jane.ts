@@ -28,7 +28,7 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
-import { Logger, realpath } from './utils';
+import { Logger, readfile, realpath } from './utils';
 import { PortableGenerator } from './codegen';
 
 class MyListener implements CompilationListener
@@ -75,9 +75,14 @@ if (process.argv.length != 4)
 let mode = process.argv[2];
 let inputFileName = process.argv[3];
 let outputFileName = process.argv[4];
+let listener = new MyListener();
 
-/*if (mode == 'tokenize')
+if (mode == 'tokenize')
 {
+	let ctx = new CompilationContext(listener);
+	let source : string = readfile(inputFileName);
+	let scanner = new Scanner(ctx, inputFileName, source);
+	let tk = new Tokenizer(ctx, scanner);
 	console.log('<html><body>');
 	let tok : Token = null;
 	while ((tok = tk.next()).type != TokenType.EOF)
@@ -100,9 +105,8 @@ let outputFileName = process.argv[4];
 	}
 	console.log('</body></html>');
 }
-else*/
+else
 {
-	let listener = new MyListener();
 	let comp = new Compiler(listener);
 	let units = comp.compile(realpath(inputFileName));
 
