@@ -63,7 +63,9 @@ import {
     ForStmt,
     DispatcherTypeRef,
     TypeId,
-    TemplateStringExpr} from './types';
+    TemplateStringExpr,
+    EnumStmt,
+    TernaryExpr} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 import { createObject, createCallable, createError, createString } from './parser';
@@ -129,6 +131,7 @@ export class SemanticError extends Error
 
 export class TypeInference extends DispatcherTypeRef
 {
+
     ctx : CompilationContext;
     stack : Scope[] = [new Scope()];
     unit : Unit = null;
@@ -137,6 +140,11 @@ export class TypeInference extends DispatcherTypeRef
     {
         super();
         this.ctx = ctx;
+    }
+
+    protected visitTernaryExpr(target: TernaryExpr): TypeRef {
+        // TODO: implement
+        return TypeRef.VOID;
     }
 
     protected visitTemplateStringExpr(target: TemplateStringExpr): TypeRef
@@ -623,7 +631,7 @@ export class TypeInference extends DispatcherTypeRef
     createArrayType( dims : number, ref : TypeRef ) : TypeRef
     {
         ref.dims = 0;
-        let name = `array_${dims}_${ref.name.toString()}`
+        let name = `array_${dims}_${ref.name.toString()}`;
         let type = this.ctx.array_types.get(name);
         if (type == null)
         {
@@ -827,5 +835,9 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID; // unused
     }
 
-
+    protected visitEnumStmt(target: EnumStmt): TypeRef
+    {
+        // TODO: implement
+        return TypeRef.VOID;
+    }
 }

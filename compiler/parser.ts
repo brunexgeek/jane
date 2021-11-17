@@ -62,7 +62,9 @@ import {
     TypeCastExpr,
     PropertyStmt,
     TypeId,
-    TemplateStringExpr} from './types';
+    TemplateStringExpr,
+    EnumStmt,
+    TernaryExpr} from './types';
 
 import {
     TokenType,
@@ -482,7 +484,7 @@ export class Parser
     parseAssignment() : IExpr
     {
         let tt = this.peek();
-        let expr = this.parseOr();
+        let expr = this.parseTernary();
 
         let location = this.peek().location;
         let operator = this.peekType();
@@ -500,6 +502,35 @@ export class Parser
                     return expr = new AssignExpr(expr, operator, right, location);
                 throw this.error(tt.location, 'Invalid assignment l-value');
             }
+        }
+
+        return expr;
+    }
+
+    parseTernary() : IExpr
+    {
+        let expr = this.parseNullish();
+        if (this.peekType() == TokenType.QUESTION)
+        {
+            this.consume(TokenType.QUESTION);
+            let tside = this.parseNullish();
+            this.consume(TokenType.COLON);
+            let eside = this.parseExpression();
+            return new TernaryExpr(expr, tside, eside);
+        }
+        return expr;
+    }
+
+    parseNullish() : IExpr
+    {
+        let expr = this.parseOr();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        while (this.match(TokenType.NULLISH))
+        {
+            let right = this.parseAnd();
+            expr = new LogicalExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -541,7 +572,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.INEQUALITY, TokenType.EQUALITY)) // should be 'if', not 'while' (we cannot use sequencial equalities like && and ||)
+        if (this.match(TokenType.INEQUALITY, TokenType.EQUALITY))
         {
             let right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -556,7 +587,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
+        if (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
             TokenType.LESS_EQUAL, TokenType.IN, TokenType.INSTANCEOF))
         {
             let right = this.parseAddition();
@@ -772,6 +803,21 @@ export class Parser
             return this.parseStatement();
     }
 
+    parseEnumStmt( accessor : Accessor ) : IStmt
+    {
+        let values : Name[] = [];
+        this.consume(TokenType.ENUM);
+        let name = this.parseName();
+        this.consume(TokenType.LEFT_BRACE);
+        while (this.peekType() == TokenType.NAME)
+        {
+            values.push( this.parseName() );
+            if (!this.match(TokenType.COMMA)) break;
+        }
+        this.consume(TokenType.RIGHT_BRACE);
+        return new EnumStmt(name, values);
+    }
+
     // used by top-level and namespaces
     parseDeclationStmt( accessor : Accessor ) : IStmt
     {
@@ -805,6 +851,11 @@ export class Parser
                     //this.ctx.types.set(qname, stmt);
                 }
                 return stmt;
+            }
+            case TokenType.ENUM:
+            {
+                return this.parseEnumStmt(accessor);
+                // TODO: store somewhere
             }
         }
 

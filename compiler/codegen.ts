@@ -46,7 +46,9 @@ import {
     TypeCastExpr,
     PropertyStmt,
     TypeId,
-    TemplateStringExpr} from './types';
+    TemplateStringExpr,
+    EnumStmt,
+    TernaryExpr} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -830,4 +832,12 @@ export class PortableGenerator extends DispatcherVoid
         return this.buffer.toString();
     }
 
+    protected visitEnumStmt(target: EnumStmt): void
+    {
+        // TODO: implement
+    }
+
+    protected visitTernaryExpr(target: TernaryExpr): void {
+        // TODO: implement
+    }
 }

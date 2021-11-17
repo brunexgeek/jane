@@ -58,7 +58,9 @@ import {
     Unit,
     ImportStmt,
     TypeCastExpr,
-    TemplateStringExpr} from './types';
+    TemplateStringExpr,
+    EnumStmt,
+    TernaryExpr} from './types';
 
 declare let require: any;
 let process = require("process");
@@ -70,6 +72,14 @@ function print( value : string )
 
 export class SvgPrinter implements IVisitor
 {
+    visitTernaryExpr(target: TernaryExpr): void {
+        // TODO: implement
+    }
+    visitEnumStmt(target: EnumStmt): void
+    {
+        // TODO: implement
+    }
+
     visitTypeCastExpr(target: TypeCastExpr): void
     {
         let content = this.field('type', target.type.toString());

@@ -147,6 +147,7 @@ export class TokenType
     static readonly NUMBER = new TokenType('NUMBER');
 
     // Keywords
+    static readonly ENUM = new TokenType('ENUM', 'enum', true);
     static readonly GET = new TokenType('GET', 'get');
     static readonly SET = new TokenType('SET', 'set');
     static readonly ELSE = new TokenType('ELSE', 'else', true);
@@ -189,8 +190,8 @@ export class TokenType
     static readonly FROM = new TokenType('FROM', 'from', true);
     static readonly DECLARE = new TokenType('DECLARE', 'declare', true);
     static readonly ABSTRACT = new TokenType('ABSTRACT', 'abstract', true);
-    static readonly TYPE = new TokenType('TYPE', 'type', true);
-    static readonly TYPEOF = new TokenType('TYPEOF', 'typeof', true);
+    static readonly TYPE = new TokenType('TYPE', 'type', false);
+    static readonly TYPEOF = new TokenType('TYPEOF', 'typeof', false);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -643,14 +644,14 @@ export class Tokenizer
             else
             if (base == 'b')
             {
-                lexeme += this.scanner.advance();;
+                lexeme += this.scanner.advance();
                 while (this.isBinDigit(this.scanner.peek()))
                     lexeme += this.scanner.advance();
             }
             else
             if (base == 'o')
             {
-                lexeme += this.scanner.advance();;
+                lexeme += this.scanner.advance();
                 while (this.isOctDigit(this.scanner.peek()))
                     lexeme += this.scanner.advance();
             }

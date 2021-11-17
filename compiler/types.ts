@@ -486,7 +486,25 @@ export class IfStmt implements IStmt
 	className() : string { return 'IfStmt'; }
 }
 
-export class ForOfStmt extends Expr
+export class TernaryExpr extends Expr
+{
+	condition : IExpr;
+	thenSide : IExpr;
+	elseSide : IExpr;
+	location : SourceLocation;
+	constructor( condition : IExpr, thenSide : IExpr, elseSide : IExpr, location : SourceLocation = null )
+	{
+		super();
+		this.condition = condition;
+		this.thenSide = thenSide;
+		this.elseSide = elseSide;
+		this.location = location;
+	}
+	accept( visitor : IVisitor ) : void { visitor.visitTernaryExpr(this); }
+	className() : string { return 'TernaryExpr'; }
+}
+
+export class ForOfStmt implements IStmt
 {
 	variable : VariableStmt;
 	expr : IExpr;
@@ -494,7 +512,6 @@ export class ForOfStmt extends Expr
 	location : SourceLocation;
 	constructor( variable : VariableStmt, expr : IExpr, stmt : IStmt, location : SourceLocation = null )
 	{
-		super();
 		this.variable = variable;
 		this.expr = expr;
 		this.stmt = stmt;
@@ -504,7 +521,7 @@ export class ForOfStmt extends Expr
 	className() : string { return 'ForOfStmt'; }
 }
 
-export class ForStmt extends Expr
+export class ForStmt implements IStmt
 {
 	init : IStmt;
 	condition : IExpr;
@@ -513,7 +530,6 @@ export class ForStmt extends Expr
 	location : SourceLocation;
 	constructor( init : IStmt, condition : IExpr, fexpr : IExpr, stmt : IStmt, location : SourceLocation = null )
 	{
-		super();
 		this.init = init;
 		this.condition = condition;
 		this.fexpr = fexpr;
@@ -828,6 +844,21 @@ export class ThrowStmt implements IStmt
 	className() : string { return 'ThrowStmt'; }
 }
 
+export class EnumStmt implements IStmt
+{
+	name : Name;
+	values : Name[];
+	location : SourceLocation;
+	constructor( name : Name, values : Name[], location : SourceLocation = null )
+	{
+		this.name = name;
+		this.values = values;
+		this.location = location;
+	}
+	accept( visitor : IVisitor ) : void { visitor.visitEnumStmt(this); }
+	className() : string { return 'EnumStmt'; }
+}
+
 export class StrIStmtMap{
 	private keys : string[] = [];
 	private items : IStmt[] = [];
@@ -1044,6 +1075,7 @@ export interface IVisitor {
 	visitCaseStmt( target : CaseStmt) : void;
 	visitSwitchStmt( target : SwitchStmt) : void;
 	visitIfStmt( target : IfStmt) : void;
+	visitTernaryExpr( target : TernaryExpr) : void;
 	visitForOfStmt( target : ForOfStmt) : void;
 	visitForStmt( target : ForStmt) : void;
 	visitDoWhileStmt( target : DoWhileStmt) : void;
@@ -1060,6 +1092,7 @@ export interface IVisitor {
 	visitPropertyStmt( target : PropertyStmt) : void;
 	visitTryCatchStmt( target : TryCatchStmt) : void;
 	visitThrowStmt( target : ThrowStmt) : void;
+	visitEnumStmt( target : EnumStmt) : void;
 	visitUnit( target : Unit) : void;
 }
 
@@ -1090,6 +1123,7 @@ export class Visitor implements IVisitor {
 	visitCaseStmt( target : CaseStmt) : void {}
 	visitSwitchStmt( target : SwitchStmt) : void {}
 	visitIfStmt( target : IfStmt) : void {}
+	visitTernaryExpr( target : TernaryExpr) : void {}
 	visitForOfStmt( target : ForOfStmt) : void {}
 	visitForStmt( target : ForStmt) : void {}
 	visitDoWhileStmt( target : DoWhileStmt) : void {}
@@ -1106,6 +1140,7 @@ export class Visitor implements IVisitor {
 	visitPropertyStmt( target : PropertyStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}
+	visitEnumStmt( target : EnumStmt) : void {}
 	visitUnit( target : Unit) : void {}
 }
 
@@ -1136,6 +1171,7 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitCaseStmt( target : CaseStmt) : TypeRef;
 	protected abstract visitSwitchStmt( target : SwitchStmt) : TypeRef;
 	protected abstract visitIfStmt( target : IfStmt) : TypeRef;
+	protected abstract visitTernaryExpr( target : TernaryExpr) : TypeRef;
 	protected abstract visitForOfStmt( target : ForOfStmt) : TypeRef;
 	protected abstract visitForStmt( target : ForStmt) : TypeRef;
 	protected abstract visitDoWhileStmt( target : DoWhileStmt) : TypeRef;
@@ -1152,6 +1188,7 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitPropertyStmt( target : PropertyStmt) : TypeRef;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : TypeRef;
 	protected abstract visitThrowStmt( target : ThrowStmt) : TypeRef;
+	protected abstract visitEnumStmt( target : EnumStmt) : TypeRef;
 	protected abstract visitUnit( target : Unit) : TypeRef;
 	protected dispatch( node : INode ) : TypeRef {
 		if (!node) return;
@@ -1182,6 +1219,7 @@ export abstract class DispatcherTypeRef {
 			case 'CaseStmt': return this.visitCaseStmt(<CaseStmt>node);
 			case 'SwitchStmt': return this.visitSwitchStmt(<SwitchStmt>node);
 			case 'IfStmt': return this.visitIfStmt(<IfStmt>node);
+			case 'TernaryExpr': return this.visitTernaryExpr(<TernaryExpr>node);
 			case 'ForOfStmt': return this.visitForOfStmt(<ForOfStmt>node);
 			case 'ForStmt': return this.visitForStmt(<ForStmt>node);
 			case 'DoWhileStmt': return this.visitDoWhileStmt(<DoWhileStmt>node);
@@ -1198,6 +1236,7 @@ export abstract class DispatcherTypeRef {
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'EnumStmt': return this.visitEnumStmt(<EnumStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
 		throw new Error(`Unable to dispatch an object of '${node.className()}'`);
@@ -1231,6 +1270,7 @@ export abstract class DispatcherVoid {
 	protected abstract visitCaseStmt( target : CaseStmt) : void;
 	protected abstract visitSwitchStmt( target : SwitchStmt) : void;
 	protected abstract visitIfStmt( target : IfStmt) : void;
+	protected abstract visitTernaryExpr( target : TernaryExpr) : void;
 	protected abstract visitForOfStmt( target : ForOfStmt) : void;
 	protected abstract visitForStmt( target : ForStmt) : void;
 	protected abstract visitDoWhileStmt( target : DoWhileStmt) : void;
@@ -1247,6 +1287,7 @@ export abstract class DispatcherVoid {
 	protected abstract visitPropertyStmt( target : PropertyStmt) : void;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : void;
 	protected abstract visitThrowStmt( target : ThrowStmt) : void;
+	protected abstract visitEnumStmt( target : EnumStmt) : void;
 	protected abstract visitUnit( target : Unit) : void;
 	protected dispatch( node : INode ) : void {
 		if (!node) return;
@@ -1277,6 +1318,7 @@ export abstract class DispatcherVoid {
 			case 'CaseStmt': return this.visitCaseStmt(<CaseStmt>node);
 			case 'SwitchStmt': return this.visitSwitchStmt(<SwitchStmt>node);
 			case 'IfStmt': return this.visitIfStmt(<IfStmt>node);
+			case 'TernaryExpr': return this.visitTernaryExpr(<TernaryExpr>node);
 			case 'ForOfStmt': return this.visitForOfStmt(<ForOfStmt>node);
 			case 'ForStmt': return this.visitForStmt(<ForStmt>node);
 			case 'DoWhileStmt': return this.visitDoWhileStmt(<DoWhileStmt>node);
@@ -1293,6 +1335,7 @@ export abstract class DispatcherVoid {
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'EnumStmt': return this.visitEnumStmt(<EnumStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
 		throw new Error(`Unable to dispatch an object of '${node.className()}'`);

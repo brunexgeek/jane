@@ -248,18 +248,24 @@ printType('IfStmt', [
     {'name' : 'elseSide', 'type' : 'IStmt'}
     ], 'IStmt')
 
+printType('TernaryExpr', [
+    {'name' : 'condition', 'type' : 'IExpr'},
+    {'name' : 'thenSide', 'type' : 'IExpr'},
+    {'name' : 'elseSide', 'type' : 'IExpr'}
+    ], 'Expr')
+
 printType('ForOfStmt', [
     {'name' : 'variable', 'type' : 'VariableStmt'},
     {'name' : 'expr', 'type' : 'IExpr'},
     {'name' : 'stmt', 'type' : 'IStmt'}
-    ], 'Expr')
+    ], 'IStmt')
 
 printType('ForStmt', [
     {'name' : 'init', 'type' : 'IStmt'},
     {'name' : 'condition', 'type' : 'IExpr'},
     {'name' : 'fexpr', 'type' : 'IExpr'},
     {'name' : 'stmt', 'type' : 'IStmt'}
-    ], 'Expr')
+    ], 'IStmt')
 
 printType('DoWhileStmt', [
     {'name' : 'stmt', 'type' : 'IStmt'},
@@ -424,6 +430,11 @@ printType('TryCatchStmt', [
 
 printType('ThrowStmt', [
     {'name' : 'expr', 'type' : 'IExpr'}
+    ], 'IStmt')
+
+printType('EnumStmt', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'values', 'type' : 'Name[]'}
     ], 'IStmt')
 
 map.createMap('StrIStmtMap', 'string', 'IStmt')
