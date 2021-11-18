@@ -352,7 +352,7 @@ export class NewExpr extends Expr
 	className() : string { return 'NewExpr'; }
 }
 
-export class Accessor implements INode
+export class Modifier implements INode
 {
 	values : TokenType[];
 	location : SourceLocation;
@@ -361,8 +361,8 @@ export class Accessor implements INode
 		this.values = values;
 		this.location = location;
 	}
-	accept( visitor : IVisitor ) : void { visitor.visitAccessor(this); }
-	className() : string { return 'Accessor'; }
+	accept( visitor : IVisitor ) : void { visitor.visitModifier(this); }
+	className() : string { return 'Modifier'; }
 get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
 }export class BlockStmt implements IStmt
 {
@@ -394,13 +394,13 @@ export class NamespaceStmt implements IStmt
 {
 	name : Name;
 	stmts : IStmt[];
-	accessor : Accessor;
+	modifier : Modifier;
 	location : SourceLocation;
-	constructor( name : Name, stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, stmts : IStmt[], modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.stmts = stmts;
-		this.accessor = accessor;
+		this.modifier = modifier;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitNamespaceStmt(this); }
@@ -612,19 +612,19 @@ export class FunctionStmt implements IStmt
 	params : Parameter[];
 	type : TypeRef;
 	body : BlockStmt;
-	accessor : Accessor;
-	property : TokenType = null;
+	modifier : Modifier;
+	accessor : TokenType = null;
 	unit : Unit = null;
 	parent : INode = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.generics = generics;
 		this.params = params;
 		this.type = type;
 		this.body = body;
-		this.accessor = accessor;
+		this.modifier = modifier;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitFunctionStmt(this); }
@@ -633,10 +633,10 @@ export class FunctionStmt implements IStmt
     toString(): string
     {
         let result = '';
-        if (this.property == TokenType.SET)
+        if (this.accessor == TokenType.SET)
             result += 'set ';
         else
-        if (this.property == TokenType.GET)
+        if (this.accessor == TokenType.GET)
             result += 'get ';
         result += `${this.name.toString()}(`;
         let first = true;
@@ -651,7 +651,7 @@ export class FunctionStmt implements IStmt
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
     get isAbstract() : boolean { return this.body == null; }
 }
 export class ClassStmt implements IStmt
@@ -661,19 +661,19 @@ export class ClassStmt implements IStmt
 	extended : TypeRef;
 	implemented : TypeRef[];
 	stmts : IStmt[];
-	accessor : Accessor;
+	modifier : Modifier;
 	isInterface : boolean = false;
 	unit : Unit = null;
 	parent : Unit = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.generics = generics;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
-		this.accessor = accessor;
+		this.modifier = modifier;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitClassStmt(this); }
@@ -762,17 +762,17 @@ export class VariableStmt implements IStmt
 	type : TypeRef;
 	init : IExpr;
 	constant : boolean;
-	accessor : Accessor;
+	modifier : Modifier;
 	unit : Unit = null;
 	parent : INode = null;
 	location : SourceLocation;
-	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, type : TypeRef, init : IExpr, constant : boolean, modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.type = type;
 		this.init = init;
 		this.constant = constant;
-		this.accessor = accessor;
+		this.modifier = modifier;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitVariableStmt(this); }
@@ -786,21 +786,21 @@ export class VariableStmt implements IStmt
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
 }
 export class PropertyStmt implements IStmt
 {
 	name : Name;
 	type : TypeRef;
 	init : IExpr;
-	accessor : Accessor;
+	modifier : Modifier;
 	location : SourceLocation;
-	constructor( name : Name, type : TypeRef, init : IExpr, accessor : Accessor = null, location : SourceLocation = null )
+	constructor( name : Name, type : TypeRef, init : IExpr, modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
 		this.type = type;
 		this.init = init;
-		this.accessor = accessor;
+		this.modifier = modifier;
 		this.location = location;
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitPropertyStmt(this); }
@@ -812,7 +812,7 @@ export class PropertyStmt implements IStmt
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
 }
 export class TryCatchStmt implements IStmt
 {
@@ -1069,7 +1069,7 @@ export interface IVisitor {
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void;
 	visitFieldExpr( target : FieldExpr) : void;
 	visitNewExpr( target : NewExpr) : void;
-	visitAccessor( target : Accessor) : void;
+	visitModifier( target : Modifier) : void;
 	visitBlockStmt( target : BlockStmt) : void;
 	visitReturnStmt( target : ReturnStmt) : void;
 	visitNamespaceStmt( target : NamespaceStmt) : void;
@@ -1117,7 +1117,7 @@ export class Visitor implements IVisitor {
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void {}
 	visitFieldExpr( target : FieldExpr) : void {}
 	visitNewExpr( target : NewExpr) : void {}
-	visitAccessor( target : Accessor) : void {}
+	visitModifier( target : Modifier) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}
 	visitReturnStmt( target : ReturnStmt) : void {}
 	visitNamespaceStmt( target : NamespaceStmt) : void {}
@@ -1165,7 +1165,7 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : TypeRef;
 	protected abstract visitFieldExpr( target : FieldExpr) : TypeRef;
 	protected abstract visitNewExpr( target : NewExpr) : TypeRef;
-	protected abstract visitAccessor( target : Accessor) : TypeRef;
+	protected abstract visitModifier( target : Modifier) : TypeRef;
 	protected abstract visitBlockStmt( target : BlockStmt) : TypeRef;
 	protected abstract visitReturnStmt( target : ReturnStmt) : TypeRef;
 	protected abstract visitNamespaceStmt( target : NamespaceStmt) : TypeRef;
@@ -1213,7 +1213,7 @@ export abstract class DispatcherTypeRef {
 			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
 			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
 			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
-			case 'Accessor': return this.visitAccessor(<Accessor>node);
+			case 'Modifier': return this.visitModifier(<Modifier>node);
 			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
 			case 'ReturnStmt': return this.visitReturnStmt(<ReturnStmt>node);
 			case 'NamespaceStmt': return this.visitNamespaceStmt(<NamespaceStmt>node);
@@ -1264,7 +1264,7 @@ export abstract class DispatcherVoid {
 	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : void;
 	protected abstract visitFieldExpr( target : FieldExpr) : void;
 	protected abstract visitNewExpr( target : NewExpr) : void;
-	protected abstract visitAccessor( target : Accessor) : void;
+	protected abstract visitModifier( target : Modifier) : void;
 	protected abstract visitBlockStmt( target : BlockStmt) : void;
 	protected abstract visitReturnStmt( target : ReturnStmt) : void;
 	protected abstract visitNamespaceStmt( target : NamespaceStmt) : void;
@@ -1312,7 +1312,7 @@ export abstract class DispatcherVoid {
 			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
 			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
 			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
-			case 'Accessor': return this.visitAccessor(<Accessor>node);
+			case 'Modifier': return this.visitModifier(<Modifier>node);
 			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
 			case 'ReturnStmt': return this.visitReturnStmt(<ReturnStmt>node);
 			case 'NamespaceStmt': return this.visitNamespaceStmt(<NamespaceStmt>node);

@@ -33,7 +33,7 @@ import {
 	ArrayAccessExpr,
 	FieldExpr,
 	NewExpr,
-	Accessor,
+	Modifier,
 	BlockStmt,
 	ReturnStmt,
 	NamespaceStmt,
@@ -236,11 +236,11 @@ export class SvgPrinter implements IVisitor
         this.label = '<next>';
     }
 
-    visitAccessor(target: Accessor): void {
+    visitModifier(target: Modifier): void {
         throw new Error("Method not implemented.");
     }
 
-    accessorToString( target : Accessor ) : string
+    modifierToString( target : Modifier ) : string
     {
         if (target == null) return '';
 
@@ -607,10 +607,10 @@ export class SvgPrinter implements IVisitor
     visitFunctionStmt(target: FunctionStmt): void {
         let content = this.field('name', this.nameToString(target.name));
         content += this.field('type', this.typerefToString(target.type));
+        if (target.modifier)
+            content += this.field('modifier', this.modifierToString(target.modifier));
         if (target.accessor)
-            content += this.field('accessor', this.accessorToString(target.accessor));
-        if (target.property)
-            content += this.field('property', target.property.name);
+            content += this.field('accessor', target.accessor.name);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.FUNC_COLOR);
 
         if (target.params)
@@ -650,8 +650,8 @@ export class SvgPrinter implements IVisitor
         let content = this.field('name', this.nameToString(target.name));
         content += this.field('constant', target.constant.toString());
         content += this.field('type', this.typerefToString(target.type));
-        if (target.accessor)
-            content += this.field('accessor', this.accessorToString(target.accessor), true);
+        if (target.modifier)
+            content += this.field('modifier', this.modifierToString(target.modifier), true);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
 
         if (target.init)
@@ -668,8 +668,8 @@ export class SvgPrinter implements IVisitor
     visitPropertyStmt(target: import("./types").PropertyStmt): void {
         let content = this.field('name', this.nameToString(target.name));
         content += this.field('type', this.typerefToString(target.type));
-        if (target.accessor)
-            content += this.field('accessor', this.accessorToString(target.accessor), true);
+        if (target.modifier)
+            content += this.field('modifier', this.modifierToString(target.modifier), true);
         let id = this.connection(this.parent, target.className(), content, this.label, SvgPrinter.STMT_COLOR);
 
         if (target.init)

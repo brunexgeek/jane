@@ -286,7 +286,7 @@ printType('NewExpr', [
     {'name' : 'args', 'type' : 'IExpr[]'}
     ], 'Expr')
 
-printType('Accessor', [
+printType('Modifier', [
     {'name' : 'values', 'type' : 'TokenType[]'}
     ], None, True)
 sys.stdout.write('''get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
@@ -303,7 +303,7 @@ printType('ReturnStmt', [
 printType('NamespaceStmt', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     ], 'IStmt')
 
 printType('TypeRef', [
@@ -396,8 +396,8 @@ printType('FunctionStmt', [
     {'name' : 'params', 'type' : 'Parameter[]'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'body', 'type' : 'BlockStmt'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
-    {'name' : 'property', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
+    {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
+    {'name' : 'accessor', 'type' : 'TokenType', 'init' : 'null', 'ctor' : False},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
@@ -405,10 +405,10 @@ sys.stdout.write('''
     toString(): string
     {
         let result = '';
-        if (this.property == TokenType.SET)
+        if (this.accessor == TokenType.SET)
             result += 'set ';
         else
-        if (this.property == TokenType.GET)
+        if (this.accessor == TokenType.GET)
             result += 'get ';
         result += `${this.name.toString()}(`;
         let first = true;
@@ -423,7 +423,7 @@ sys.stdout.write('''
         return result;
     }
     get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
     get isAbstract() : boolean { return this.body == null; }
 }
 ''')
@@ -434,7 +434,7 @@ printType('ClassStmt', [
     {'name' : 'extended', 'type' : 'TypeRef'},
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     {'name' : 'isInterface', 'type' : 'boolean', 'init' : 'false', 'ctor' : False},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
     {'name' : 'parent', 'type' : 'Unit', 'init' : 'null', 'ctor' : False, 'copy' : False},
@@ -487,7 +487,7 @@ printType('VariableStmt', [
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'init', 'type' : 'IExpr'},
     {'name' : 'constant', 'type' : 'boolean'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
     ], 'IStmt', True)
@@ -500,7 +500,7 @@ sys.stdout.write('''
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
 }
 ''')
 
@@ -508,7 +508,7 @@ printType('PropertyStmt', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'init', 'type' : 'IExpr'},
-    {'name' : 'accessor', 'type' : 'Accessor', 'init' : 'null'},
+    {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     ], 'IStmt', True)
 sys.stdout.write('''
     toString() : string
@@ -517,7 +517,7 @@ sys.stdout.write('''
         if (this.type) result += ` : ${this.type.toString()}`;
         return result;
     }
-    get isStatic() : boolean { return this.accessor && this.accessor.isStatic; }
+    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
 }
 ''')
 

@@ -18,7 +18,7 @@ import {
 	ArrayAccessExpr,
 	FieldExpr,
 	NewExpr,
-	Accessor,
+	Modifier,
 	BlockStmt,
 	ReturnStmt,
 	NamespaceStmt,
@@ -202,7 +202,7 @@ export class PortableGenerator extends DispatcherVoid
         this.write(`new ${this.nativeType(target.type)}`)
     }
 
-    protected visitAccessor(target: Accessor): void
+    protected visitModifier(target: Modifier): void
     {
     }
 
@@ -770,7 +770,7 @@ export class PortableGenerator extends DispatcherVoid
 
     protected visitVariableStmt(target: VariableStmt): void
     {
-        if (!target.accessor || (target.accessor && target.accessor.values.indexOf(TokenType.EXPORT) < 0))
+        if (!target.modifier || (target.modifier && target.modifier.values.indexOf(TokenType.EXPORT) < 0))
             this.write('static ');
         this.writeln(`${this.nativeType(target.type)} ${target.name.canonical};`);
     }

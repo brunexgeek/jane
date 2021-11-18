@@ -34,7 +34,7 @@ import {
 	ArrayAccessExpr,
 	FieldExpr,
 	NewExpr,
-	Accessor,
+	Modifier,
 	BlockStmt,
 	ReturnStmt,
 	NamespaceStmt,
@@ -333,15 +333,15 @@ export class Parser
 
     parseNamespaceOrDeclaration()
     {
-        let accessor = this.parseAccessor();
+        let modifier = this.parseModifier();
 
         if (this.peekType() == TokenType.NAMESPACE)
-            return this.parseNamespace(accessor);
+            return this.parseNamespace(modifier);
         else
-            return this.parseDeclationStmt(accessor);
+            return this.parseDeclationStmt(modifier);
     }
 
-    parseNamespace( accessor : Accessor ) : IStmt
+    parseNamespace( modifier : Modifier ) : IStmt
     {
         let stmts : IStmt[] = [];
         let location = this.consume(TokenType.NAMESPACE).location;
@@ -364,12 +364,12 @@ export class Parser
 
         this.ctx.namespaceStack.pop();
 
-        return new NamespaceStmt(name, stmts, accessor, location);
+        return new NamespaceStmt(name, stmts, modifier, location);
     }
 
     parseArgument() : Parameter
     {
-        let accessor = this.match(TokenType.PUBLIC);
+        let modifier = this.match(TokenType.PUBLIC);
         let vararg = this.match(TokenType.SPREAD);
 
         let name = this.consumeEx('Missing argument name', TokenType.NAME);
@@ -407,13 +407,14 @@ export class Parser
         return generics;
     }
 
-    parseFunction( accessor : Accessor ) : FunctionStmt
+    parseFunction( modifier : Modifier ) : FunctionStmt
     {
         this.consumeEx('Missing function keyword', TokenType.FUNCTION);
         let name = this.ctx.currentNamespace;
         name.push( this.consumeEx('Missing function name', TokenType.NAME).lexeme );
 
-        let generics = this.parseGenerics();
+        //let generics = this.parseGenerics();
+        let generics = null;
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -436,7 +437,7 @@ export class Parser
 
         let block = this.parseBlock();
 
-        return new FunctionStmt(name, generics, args, type, block, accessor, name.location);
+        return new FunctionStmt(name, generics, args, type, block, modifier, name.location);
     }
 
     parseName( qualified : boolean = false ) : Name
@@ -803,7 +804,7 @@ export class Parser
             return this.parseStatement();
     }
 
-    parseEnumStmt( accessor : Accessor ) : IStmt
+    parseEnumStmt( modifier : Modifier ) : IStmt
     {
         let values : Name[] = [];
         this.consume(TokenType.ENUM);
@@ -819,7 +820,7 @@ export class Parser
     }
 
     // used by top-level and namespaces
-    parseDeclationStmt( accessor : Accessor ) : IStmt
+    parseDeclationStmt( modifier : Modifier ) : IStmt
     {
         let cur = this.peekType();
         switch (cur)
@@ -827,13 +828,13 @@ export class Parser
             case TokenType.LET:
             case TokenType.CONST:
             {
-                let stmt = this.parseVariableStmt(accessor);
+                let stmt = this.parseVariableStmt(modifier);
                 this.unit.variables.set(stmt.name.qualified, stmt);
                 return stmt;
             }
             case TokenType.FUNCTION:
             {
-                let stmt = this.parseFunction(accessor);
+                let stmt = this.parseFunction(modifier);
                 Logger.writeln(`Adding function ${stmt.name.qualified}`);
                 this.unit.functions.set(stmt.name.qualified, stmt);
                 return stmt;
@@ -841,7 +842,7 @@ export class Parser
             case TokenType.CLASS:
             case TokenType.INTERFACE:
                 {
-                let stmt = this.parseClass(accessor);
+                let stmt = this.parseClass(modifier);
                 let qname = stmt.name.qualified;
                 if (stmt.isGeneric)
                     this.unit.generics.set(qname, stmt);
@@ -854,7 +855,7 @@ export class Parser
             }
             case TokenType.ENUM:
             {
-                return this.parseEnumStmt(accessor);
+                return this.parseEnumStmt(modifier);
                 // TODO: store somewhere
             }
         }
@@ -865,7 +866,7 @@ export class Parser
         //return this.parseStatement();
     }
 
-    parsePropertyPrefix() : Token
+    parseAccessorPrefix() : Token
     {
         let value = this.peek();
 
@@ -889,11 +890,12 @@ export class Parser
         return null;
     }
 
-    parseClass( accessor : Accessor ) : ClassStmt
+    parseClass( modifier : Modifier ) : ClassStmt
     {
         let type = this.advance().type;
         let name = this.parseName();
-        let generics = this.parseGenerics();
+        //let generics = this.parseGenerics();
+        let generics = null;
         let extended : TypeRef = null;
         let implemented : TypeRef[] = null;
 
@@ -915,8 +917,8 @@ export class Parser
         let stmts : IStmt[] = [];
         while (!this.eof() && this.peekType() != TokenType.RIGHT_BRACE)
         {
-            let accessor = this.parseAccessor();
-            let property = this.parsePropertyPrefix();
+            let modifier = this.parseModifier();
+            let accessor = this.parseAccessorPrefix();
 
             if (this.peekType() == TokenType.NAME)
             {
@@ -927,15 +929,15 @@ export class Parser
                 if (this.peekType() == TokenType.LEFT_PAREN || this.peekType() == TokenType.LESS)
                 {
                     let func = this.parseMethod(temp);
-                    func.accessor = accessor;
-                    if (property) func.property = property.type;
+                    func.modifier = modifier;
+                    if (accessor) func.accessor = accessor.type;
                     stmts.push(func);
                 }
                 else
                 {
-                    if (property) this.error(property.location, 'Property or signature expected');
-                    let vari = this.parseProperty(temp, accessor);
-                    vari.accessor = accessor;
+                    if (accessor) this.error(accessor.location, 'Accessor or signature expected');
+                    let vari = this.parseProperty(temp, modifier);
+                    vari.modifier = modifier;
                     stmts.push(vari);
                 }
             }
@@ -944,7 +946,7 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        let result = new ClassStmt(name, generics, extended, implemented, stmts, accessor);
+        let result = new ClassStmt(name, generics, extended, implemented, stmts, modifier);
         result.isInterface = type.lexeme == 'interface';
         for (let stmt of stmts)
             if (stmt instanceof VariableStmt || stmt instanceof FunctionStmt) stmt.parent = result;
@@ -953,7 +955,8 @@ export class Parser
 
     parseMethod( name : Name ) : FunctionStmt
     {
-        let generics = this.parseGenerics();
+        //let generics = this.parseGenerics();
+        let generics = null;
 
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
@@ -983,7 +986,7 @@ export class Parser
         return new FunctionStmt(name, generics, args, type, block);
     }
 
-    parseAccessor() : Accessor
+    parseModifier() : Modifier
     {
         let values : TokenType[] = [];
         while (true)
@@ -996,7 +999,7 @@ export class Parser
             values.push(cur);
         }
         if (values.length == 0) return null;
-        return new Accessor(values);
+        return new Modifier(values);
     }
 
     parseVariableStmtOrStatement() : IStmt
@@ -1155,7 +1158,7 @@ export class Parser
         throw this.error(this.peek().location, `Invalid for statement ${this.peek().lexeme}`);
     }
 
-    parseProperty( name : Name, accessor : Accessor ) : PropertyStmt
+    parseProperty( name : Name, modifier : Modifier ) : PropertyStmt
     {
         let type : TypeRef = null;
         let value : IExpr = null;
@@ -1168,10 +1171,10 @@ export class Parser
             throw this.error(name.location, 'Missing argument type');
         this.consume(TokenType.SEMICOLON);
 
-        return new PropertyStmt(name, type, value, accessor, name.location);
+        return new PropertyStmt(name, type, value, modifier, name.location);
     }
 
-    parseVariableStmt( accessor : Accessor ) : VariableStmt
+    parseVariableStmt( modifier : Modifier ) : VariableStmt
     {
         let constant : boolean = false;
 
@@ -1191,7 +1194,7 @@ export class Parser
 
         this.consume(TokenType.SEMICOLON);
 
-        return new VariableStmt(name, type, value, constant, accessor, tname.location);
+        return new VariableStmt(name, type, value, constant, modifier, tname.location);
     }
 
     parseThrow() : IStmt
@@ -1243,14 +1246,14 @@ export class NodePromoter
 
     protected promote( target : FunctionStmt ) : ClassStmt
     {
-        // TODO: remove 'static' accessor from 'target.accessor'
+        // TODO: remove 'static' modifier from 'target.modifier'
         Logger.writeln(`Promoting function ${target.name.qualified}`);
 
         let name = target.name.clone();
         name.lexemes[ name.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
         target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
-        let clazz = new ClassStmt(name, null, NodePromoter.parent, null, [target], target.accessor, target.location);
-        target.accessor = new Accessor([TokenType.STATIC]);
+        let clazz = new ClassStmt(name, null, NodePromoter.parent, null, [target], target.modifier, target.location);
+        target.modifier = new Modifier([TokenType.STATIC]);
         return clazz;
     }
 
@@ -1289,7 +1292,7 @@ let stringName = new Name(['string']);
 
 export function createObject() : ClassStmt
 {
-    return new ClassStmt(objectName, null, null, null, [], new Accessor([TokenType.EXPORT]));
+    return new ClassStmt(objectName, null, null, null, [], new Modifier([TokenType.EXPORT]));
 }
 
 export function createString() : ClassStmt
@@ -1301,15 +1304,15 @@ export function createString() : ClassStmt
         new TypeRef(TypeId.NUMBER, new Name(['number']), 0),
         null);
     let stmt2 = new VariableStmt(new Name(['length'], null), new TypeRef(TypeId.NUMBER, new Name(['number']), 0), null, false);
-    return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Accessor([TokenType.EXPORT]));
+    return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Modifier([TokenType.EXPORT]));
 }
 
 export function createCallable() : ClassStmt
 {
-    return new ClassStmt(callableName, null, objectRef, null, [], new Accessor([TokenType.EXPORT]));
+    return new ClassStmt(callableName, null, objectRef, null, [], new Modifier([TokenType.EXPORT]));
 }
 
 export function createError() : ClassStmt
 {
-    return new ClassStmt(errorName, null, null, null, [], new Accessor([TokenType.EXPORT]));
+    return new ClassStmt(errorName, null, null, null, [], new Modifier([TokenType.EXPORT]));
 }

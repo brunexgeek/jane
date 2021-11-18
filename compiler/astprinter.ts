@@ -1,4 +1,4 @@
-import { Accessor, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid } from './types';
+import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid } from './types';
 import { basename, Logger } from './utils';
 
 declare let require: any;
@@ -341,7 +341,7 @@ export class WebAstPrinter extends DispatcherVoid
 
         close_entity(true);
     }
-    protected visitAccessor(target: Accessor): void {
+    protected visitModifier(target: Modifier): void {
         open_entity(target.className(), true);
 
         open_entity('values', true);
@@ -628,10 +628,10 @@ export class WebAstPrinter extends DispatcherVoid
     protected visitPropertyStmt(target: PropertyStmt): void {
         open_entity(target.className(), true);
 
-        if (target.accessor?.values.length > 0)
+        if (target.modifier?.values.length > 0)
         {
-            open_entity('accessor', true);
-            this.dispatch(target.accessor);
+            open_entity('modifier', true);
+            this.dispatch(target.modifier);
             close_entity(true);
         }
 
@@ -707,12 +707,15 @@ export class WebAstPrinter extends DispatcherVoid
     }
 
     visitFunctionStmt(target: FunctionStmt): void {
-        open_entity(target.className(), true);
+        let content : Field[] = [];
+        if (target.accessor)
+            content.push({ name:'accessor', value:target.accessor.name});
+        open_entity(target.className(), true, content);
 
-        if (target.accessor?.values.length > 0)
+        if (target.modifier?.values.length > 0)
         {
-            open_entity('accessor', true);
-            this.dispatch(target.accessor);
+            open_entity('modifier', true);
+            this.dispatch(target.modifier);
             close_entity(true);
         }
 

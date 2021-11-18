@@ -34,7 +34,7 @@ import {
 	ArrayAccessExpr,
 	FieldExpr,
 	NewExpr,
-	Accessor,
+	Modifier,
 	BlockStmt,
 	ReturnStmt,
 	NamespaceStmt,
@@ -519,7 +519,7 @@ export class TypeInference extends DispatcherTypeRef
         return target.type = this.dispatch(target.type);
     }
 
-    visitAccessor(target: Accessor) : TypeRef
+    visitModifier(target: Modifier) : TypeRef
     {
         return TypeRef.VOID; // unused
     }
