@@ -17,6 +17,16 @@ export function dirname( fileName : string ) : string
     return path.substr(0, path.lastIndexOf('/') + 1 );
 }
 
+export function basename( fileName : string ) : string
+{
+    let path = realpath(fileName);
+    let pos = path.lastIndexOf('/');
+    if (pos >= 0)
+        return path.substr(pos + 1);
+    else
+        return path;
+}
+
 export class Logger
 {
     static content : string[] = [];

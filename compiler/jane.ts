@@ -28,6 +28,7 @@ import {
 import { Unit } from './types';
 import { Parser } from './parser';
 import { SvgPrinter } from './visitor';
+import { WebAstPrinter } from './astprinter';
 import { Logger, readfile, realpath } from './utils';
 import { PortableGenerator } from './codegen';
 
@@ -144,8 +145,8 @@ else
 	if (mode == 'ast' && comp.ctx.units.size > 0)
 	{
 		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-		let visitor = new SvgPrinter();
-		visitor.visitUnit(comp.ctx.units.values()[0]);
+		let visitor = new WebAstPrinter();
+		visitor.renderModule(comp.ctx.units.values());
 	}
 	else
 	if (mode == 'generate' && comp.ctx.units.size > 0)

@@ -435,8 +435,10 @@ export class TypeRef implements INode
             return this.ref.isDerived(qname);
         return false;
     }
+    private readonly PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
     isPrimitive() : boolean {
-        return this.name.qualified == 'boolean' || this.name.qualified == 'number';
+        return this.PRIMITIVES.indexOf(this.name.qualified) >= 0;
     }
 }
 export class CaseStmt implements IStmt

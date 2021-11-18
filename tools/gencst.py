@@ -226,8 +226,10 @@ sys.stdout.write('''\ttoString() : string { return this.name.qualified; }
             return this.ref.isDerived(qname);
         return false;
     }
+    private readonly PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
+            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
     isPrimitive() : boolean {
-        return this.name.qualified == 'boolean' || this.name.qualified == 'number';
+        return this.PRIMITIVES.indexOf(this.name.qualified) >= 0;
     }
 }
 ''')
