@@ -129,8 +129,8 @@ export class Compiler
         let inf = new TypeInference(this.ctx);
         for (let unit of this.ctx.units.values())
             inf.processImports(unit);
-        for (let unit of this.ctx.units.values())
-            inf.visitUnit(unit);
+        //for (let unit of this.ctx.units.values())
+        //    inf.visitUnit(unit);
     }
 
     compile( fileName : string ) : boolean
