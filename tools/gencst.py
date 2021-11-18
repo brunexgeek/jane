@@ -25,7 +25,105 @@
 
 import sys
 import map
-from genbasic import *
+
+types = []
+
+def printType(name, fields, parent = None, keep_open = False ):
+    types.append(name)
+    sys.stdout.write('export class ' + name)
+    if parent == None: parent = 'INode';
+    if parent.startswith('I'):
+        sys.stdout.write(' implements ' + parent)
+    else:
+        sys.stdout.write(' extends ' + parent)
+    sys.stdout.write('\n{\n')
+
+    fields.append( {'name' : 'location', 'type' : 'SourceLocation', 'ctor' : True, 'init' : 'null'} )
+
+    # fields
+    for f in fields:
+        sys.stdout.write('\t' + f['name'] + ' : ' + f['type'])
+        if 'init' in f and ('ctor' in f and f['ctor'] == False):
+            sys.stdout.write(' = ')
+            if f['type'] == 'string':
+                sys.stdout.write('\'' + f['init'] + '\'')
+            else:
+                sys.stdout.write(f['init'])
+        sys.stdout.write(';\n')
+
+    # constructor
+    first = True;
+    hasSuper = False;
+    sys.stdout.write('\tconstructor( ')
+    for f in fields:
+        if 'super' in f and f['super'] == True: hasSuper = True
+        if 'ctor' in f and f['ctor'] == False: continue
+        if not first: sys.stdout.write(', ')
+        first = False
+        sys.stdout.write(f['name'] + ' : ' + f['type'])
+        if 'init' in f:
+            sys.stdout.write(' = ')
+            if f['type'] == 'string':
+                sys.stdout.write('\'' + f['init'] + '\'')
+            else:
+                sys.stdout.write(f['init'])
+    sys.stdout.write(' )\n\t{\n')
+    if hasSuper:
+        sys.stdout.write('\t\tsuper(')
+        first = True
+        for f in fields:
+            if not 'super' in f or f['super'] == False: continue
+            if not first: sys.stdout.write(',')
+            first = False
+            sys.stdout.write(f['name'])
+        sys.stdout.write(')\n')
+    else:
+        if not parent.startswith('I'):
+            sys.stdout.write('\t\tsuper();\n')
+    for f in fields:
+        if 'super' in f and f['super'] == True: continue
+        if 'ctor' in f and f['ctor'] == False: continue
+        sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
+
+    # clone()
+    #sys.stdout.write('\t\tclone() : ' + name + ' {\n');
+    #for f in fields:
+    #    if 'copy' in f and f['copy'] == False: continue
+    #    sys.stdout.write('\t\tthis.' + f['name'] + ' = ' + f['name'] + ';\n')
+    #sys.stdout.write('\t\t}\n');
+
+    sys.stdout.write('\t}\n')
+
+    # visitor caller
+    sys.stdout.write('\taccept( visitor : IVisitor ) : void { visitor.visit' + name + '(this); }\n')
+
+    # class name helper
+    sys.stdout.write('\tclassName() : string { return \'' + name + '\'; }\n')
+
+    if (not keep_open): sys.stdout.write('}\n\n')
+
+def printVisitor():
+    # interface
+    sys.stdout.write('''export interface IVisitor {\n''')
+    for t in types:
+        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void;\n')
+    sys.stdout.write('}\n\n')
+
+    # class
+    sys.stdout.write('''export class Visitor implements IVisitor {\n''')
+    for t in types:
+        sys.stdout.write('\tvisit' + t + '( target : ' + t + ') : void {}\n')
+    sys.stdout.write('}\n\n')
+
+def printDispatcher(type):
+    name = type[0].upper() + type[1:];
+    sys.stdout.write('export abstract class Dispatcher' + name + ' {\n')
+    for t in types:
+        sys.stdout.write('\tprotected abstract visit' + t + '( target : ' + t + ') : ' + type + ';\n')
+    sys.stdout.write('\tprotected dispatch( node : INode ) : ' + type + ' {\n\t\tif (!node) return;\n\t\tswitch (node.className()) {\n')
+    for t in types:
+        sys.stdout.write('\t\t\tcase \'' + t + '\': return this.visit' + t + '(<' + t + '>node);\n')
+    sys.stdout.write('\t\t}\n\t\tthrow new Error(`Unable to dispatch an object of \'${node.className()}\'`);\n\t}\n}\n\n')
 
 sys.stdout.write('''
 /*
