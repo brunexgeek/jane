@@ -111,23 +111,38 @@ export class TokenType
     static readonly STAR = new TokenType('STAR', '*');
     static readonly COLON = new TokenType('COLON', ':');
     static readonly QUESTION = new TokenType('QUESTION', '?');
-    static readonly PERCENT = new TokenType('PERCENT', '%');
+    static readonly MOD = new TokenType('MOD', '%');
+    static readonly MOD_EQUAL = new TokenType('MOD_EQUAL', '%=');
     static readonly AND = new TokenType('AND', '&&');
+    static readonly AND_EQUAL = new TokenType('AND', '&&=');
+    static readonly BAND = new TokenType('BAND', '&');
+    static readonly BAND_EQUAL = new TokenType('BAND_EQUAL', '&=');
     static readonly OR = new TokenType('OR', '||');
+    static readonly OR_EQUAL = new TokenType('OR', '||=');
     static readonly EOF = new TokenType('EOF');
-    static readonly PIPE = new TokenType('|');
-    static readonly CHAINING = new TokenType('?.');
-    static readonly NULLISH = new TokenType('??');
+    static readonly BOR = new TokenType('|');
+    static readonly BOR_EQUAL = new TokenType('BOR_EQUAL', '|=');
+    static readonly CHAINING = new TokenType('CHAINING', '?.');
+    static readonly NULLISH = new TokenType('NULLISH', '??');
+    static readonly NULLISH_EQUAL = new TokenType('NULLISH_EQUAL', '??=');
+    static readonly XOR = new TokenType('XOR', '^');
+    static readonly XOR_EQUAL = new TokenType('XOR_EQUAL', '^=');
 
     static readonly BANG = new TokenType('BANG', '!');
     static readonly INEQUALITY = new TokenType('INEQUALITY', '!=');
     static readonly S_INEQUALITY = new TokenType('S_INEQUALITY', '!==');
     static readonly EQUAL = new TokenType('EQUAL', '=');
     static readonly EQUALITY = new TokenType('EQUALITY', '==');
-    static readonly S_EQUALITY = new TokenType('S_EQUALITY', '==');
+    static readonly S_EQUALITY = new TokenType('S_EQUALITY', '===');
     static readonly GREATER = new TokenType('GREATER', '>');
+    static readonly SHR = new TokenType('SHR', '>>');
+    static readonly SHR_EQUAL = new TokenType('SHR_EQUAL', '>>=');
+    static readonly USHR = new TokenType('USHR', '>>>');
+    static readonly USHR_EQUAL = new TokenType('USHR_EQUAL', '>>>=');
     static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL', '>=');
     static readonly LESS = new TokenType('LESS', '<');
+    static readonly SHL = new TokenType('SHL', '<<');
+    static readonly SHL_EQUAL = new TokenType('SHL_EQUAL', '<<=');
     static readonly LESS_EQUAL = new TokenType('LESS_EQUAL', '<=');
     static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL', '+=');
     static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL', '-=');
@@ -136,6 +151,7 @@ export class TokenType
     static readonly INCREMENT = new TokenType('INCREMENT', '++');
     static readonly DECREMENT = new TokenType('DECREMENT', '--');
     static readonly EXPONENT = new TokenType('EXPONENT', '**');
+    static readonly EXPONENT_EQUAL = new TokenType('EXPONENT_EQUAL', '**=');
 
     // Literals
     static readonly NAME = new TokenType('NAME');
@@ -333,7 +349,11 @@ export class Tokenizer
                     }
                     return this.token(TokenType.EQUAL);
                 case '*':
-                    if (this.scanner.match('*')) return this.token(TokenType.EXPONENT);
+                    if (this.scanner.match('*'))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.EXPONENT_EQUAL);
+                        return this.token(TokenType.EXPONENT);
+                    }
                     if (this.scanner.match('=')) return this.token(TokenType.MUL_EQUAL);
                     return this.token(TokenType.STAR);
                 case '/':
@@ -353,27 +373,56 @@ export class Tokenizer
                     this.tstring();
                     return this.fifo.shift();
                 case '|':
-                    if (this.scanner.match('|')) return this.token(TokenType.OR);
-                    return this.token(TokenType.PIPE);
+                    if (this.scanner.match('|'))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.OR_EQUAL);
+                        return this.token(TokenType.OR);
+                    }
+                    if (this.scanner.match('=')) return this.token(TokenType.BOR_EQUAL);
+                    return this.token(TokenType.BOR);
                 case '?':
+                    if (this.scanner.match('?'))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.NULLISH_EQUAL);
+                        return this.token(TokenType.NULLISH);
+                    }
                     if (this.scanner.match('.')) return this.token(TokenType.CHAINING);
-                    if (this.scanner.match('?')) return this.token(TokenType.NULLISH);
                     return this.token(TokenType.QUESTION);
                 case '%':
-                    return this.token(TokenType.PERCENT);
+                    if (this.scanner.match('=')) return this.token(TokenType.MOD_EQUAL);
+                    return this.token(TokenType.MOD);
                 case '<':
+                    if (this.scanner.match('<'))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.SHL_EQUAL);
+                        return this.token(TokenType.SHL);
+                    }
                     if (this.scanner.match('=')) return this.token(TokenType.LESS_EQUAL);
                     return this.token(TokenType.LESS);
                 case '>':
-                    if (this.scanner.match('='))
+                    if (this.scanner.match('>'))
                     {
-                        this.scanner.match('='); // strict equality (i.e. ===)
-                        return this.token(TokenType.GREATER_EQUAL);
+                        if (this.scanner.match('>'))
+                        {
+                            if (this.scanner.match('=')) return this.token(TokenType.USHR_EQUAL);
+                            return this.token(TokenType.USHR);
+                        }
+                        if (this.scanner.match('=')) return this.token(TokenType.SHR_EQUAL);
+                        return this.token(TokenType.SHR);
                     }
+                    if (this.scanner.match('=')) return this.token(TokenType.GREATER_EQUAL);
                     return this.token(TokenType.GREATER);
                 case '&':
-                    if (this.scanner.match('&')) return this.token(TokenType.AND);
-                    break;
+                    if (this.scanner.match('&'))
+                    {
+                        if (this.scanner.match('=')) return this.token(TokenType.AND_EQUAL);
+                        return this.token(TokenType.AND);
+                    }
+                    if (this.scanner.match('=')) return this.token(TokenType.BAND_EQUAL);
+                    return this.token(TokenType.BAND);
+                case '^':
+                    if (this.scanner.match('=')) return this.token(TokenType.XOR_EQUAL);
+                    return this.token(TokenType.XOR);
                 case '0':
                 case '1':
                 case '2':

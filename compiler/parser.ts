@@ -496,6 +496,17 @@ export class Parser
             case TokenType.MINUS_EQUAL:
             case TokenType.DIV_EQUAL:
             case TokenType.MUL_EQUAL:
+            case TokenType.MOD_EQUAL:
+            case TokenType.BAND_EQUAL:
+            case TokenType.BOR_EQUAL:
+            case TokenType.XOR_EQUAL:
+            case TokenType.SHL_EQUAL:
+            case TokenType.SHR_EQUAL:
+            case TokenType.USHR_EQUAL:
+            case TokenType.OR_EQUAL:
+            case TokenType.AND_EQUAL:
+            case TokenType.NULLISH_EQUAL:
+            case TokenType.EXPONENT_EQUAL:
             {
                 this.advance();
                 let right = this.parseAssignment();
@@ -530,7 +541,7 @@ export class Parser
         let operator = this.peekType();
         while (this.match(TokenType.NULLISH))
         {
-            let right = this.parseAnd();
+            let right = this.parseOr();
             expr = new LogicalExpr(expr, operator, right, location);
         }
 
@@ -554,14 +565,59 @@ export class Parser
 
     parseAnd() : IExpr
     {
-        let expr = this.parseEquality();
+        let expr = this.parseBitwiseOr();
 
         let location = this.peek().location;
         let operator = this.peekType();
         while (this.match(TokenType.AND))
         {
-            let right = this.parseEquality();
+            let right = this.parseBitwiseOr();
             expr = new LogicalExpr(expr, operator, right, location);
+        }
+
+        return expr;
+    }
+
+    parseBitwiseOr() : IExpr
+    {
+        let expr = this.parseBitwiseXor();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        if (this.match(TokenType.BOR))
+        {
+            let right = this.parseBitwiseXor();
+            expr = new BinaryExpr(expr, operator, right, location);
+        }
+
+        return expr;
+    }
+
+    parseBitwiseXor() : IExpr
+    {
+        let expr = this.parseBitwiseAnd();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        if (this.match(TokenType.XOR))
+        {
+            let right = this.parseBitwiseAnd();
+            expr = new BinaryExpr(expr, operator, right, location);
+        }
+
+        return expr;
+    }
+
+    parseBitwiseAnd() : IExpr
+    {
+        let expr = this.parseEquality();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        if (this.match(TokenType.BAND))
+        {
+            let right = this.parseEquality();
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
@@ -573,7 +629,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        if (this.match(TokenType.INEQUALITY, TokenType.EQUALITY))
+        if (this.match(TokenType.INEQUALITY, TokenType.EQUALITY, TokenType.S_EQUALITY))
         {
             let right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -619,7 +675,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        while (this.match(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT))
+        while (this.match(TokenType.STAR, TokenType.SLASH, TokenType.MOD))
         {
             let right = this.parsePreUnary();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -693,7 +749,7 @@ export class Parser
             else
             if (this.match(TokenType.DOT))
             {
-                let tname = this.consumeEx(/*'Expect name after \'.\'.'*/null, TokenType.NAME);
+                let tname = this.consume(TokenType.NAME);
                 let name = new Name([tname.lexeme], tname.location);
                 expr = new FieldExpr(expr, name, name.location);
             }

@@ -244,7 +244,10 @@ export class WebAstPrinter extends DispatcherVoid
         close_entity(true);
     }
     protected visitAssignExpr(target: AssignExpr): void {
-        open_entity(target.className(), true);
+        let content : Field[] = [
+            {name:'oper',value:target.oper.name},
+        ];
+        open_entity(target.className(), true, content);
 
         open_entity('left', true);
         this.dispatch(target.left);
@@ -511,9 +514,9 @@ export class WebAstPrinter extends DispatcherVoid
         close_entity(true);
     }
     protected visitParameter(target: Parameter): void {
-        let content : Field[] = [
-            { name:'varargs', value:target.vararg?'true':'false' }
-        ];
+        let content : Field[];
+        if (target.vararg)
+            content.push({ name:'varargs', value:'true' });
         open_entity(target.className(), true, content);
 
         open_entity('name', true);
