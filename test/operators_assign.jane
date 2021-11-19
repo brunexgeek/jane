@@ -1,0 +1,47 @@
+function test_unsigned()
+{
+    let test : uint = 1;
+    test += 1;
+    test -= 1;
+    test *= 1;
+    test /= 1;
+    test %= 1;
+    test &= 1;
+    test |= 1;
+    test <<= 1;
+    test >>= 1;
+    test >>>= 1;
+    test ^= 1;
+    test **= 2;
+}
+
+function test_signed()
+{
+    let test : int = 1;
+    test += 1;
+    test -= 1;
+    test *= 1;
+    test /= 1;
+    test %= 1;
+    test &= 1;
+    test |= 1;
+    test <<= 1;
+    test >>= 1;
+    test >>>= 1;
+    test ^= 1;
+    test **= 2;
+}
+
+function test_bool()
+{
+    let test : boolean = true;
+    test &&= true;
+    test ||= false;
+}
+
+function test_string()
+{
+    let test : string = 'test';
+    test += ' string';
+    test ??= 'OK';
+}
