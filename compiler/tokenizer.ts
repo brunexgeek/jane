@@ -706,6 +706,7 @@ export class Tokenizer
             }
             else
             {
+                base = '';
                 while (this.isDigit(this.scanner.peek()))
                     lexeme += this.scanner.advance();
             }

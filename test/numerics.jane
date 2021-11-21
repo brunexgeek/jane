@@ -34,3 +34,4 @@ let n_var33 = 0x7F; // byte
 let n_var34 = 0x7FFF; // short
 let n_var35 = 0x7FFFFFFF; // int
 let n_var36 = 0x7FFFFFFFFFFFFFFF; // long
+let n_var37 = 0.0000000010;
