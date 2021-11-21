@@ -363,7 +363,7 @@ export class Modifier implements INode
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitModifier(this); }
 	className() : string { return 'Modifier'; }
-get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+get isStatic() : boolean { return this.values && this.values.indexOf(TokenType.STATIC) >= 0; }
 }export class BlockStmt implements IStmt
 {
 	stmts : IStmt[];
@@ -756,7 +756,7 @@ export class ImportStmt implements IStmt
 	className() : string { return 'ImportStmt'; }
 }
 
-export class VariableStmt implements IStmt
+export class VariableDecl implements IStmt
 {
 	name : Name;
 	type : TypeRef;
@@ -775,20 +775,26 @@ export class VariableStmt implements IStmt
 		this.modifier = modifier;
 		this.location = location;
 	}
+	accept( visitor : IVisitor ) : void { visitor.visitVariableDecl(this); }
+	className() : string { return 'VariableDecl'; }
+}
+
+export class VariableStmt implements IStmt
+{
+	decls : VariableDecl[];
+	location : SourceLocation;
+	constructor( decls : VariableDecl[], location : SourceLocation = null )
+	{
+		this.decls = decls;
+		this.location = location;
+	}
 	accept( visitor : IVisitor ) : void { visitor.visitVariableStmt(this); }
 	className() : string { return 'VariableStmt'; }
 
-    toString() : string
-    {
-        let result : string;
-        if (this.constant) result = 'const '; else result = 'let ';
-        result += this.name.toString();
-        if (this.type) result += ` : ${this.type.toString()}`;
-        return result;
+    set parent( ref : INode ) {
+        for (let decl of this.decls) decl.parent = ref;
     }
-    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
-}
-export class PropertyStmt implements IStmt
+}export class PropertyStmt implements IStmt
 {
 	name : Name;
 	type : TypeRef;
@@ -934,13 +940,13 @@ export class StrUnitMap{
 }
 export class StrVarMap{
 	private keys : string[] = [];
-	private items : VariableStmt[] = [];
-	get( key : string ) : VariableStmt {
+	private items : VariableDecl[] = [];
+	get( key : string ) : VariableDecl {
 		let i = this.keys.indexOf(key);
 		if (i < 0) return null;
 		return this.items[i];
 	}
-	set( key : string, value : VariableStmt ) {
+	set( key : string, value : VariableDecl ) {
 		let i = this.keys.indexOf(key);
 		if (i >= 0) this.items[i] = value;
 		else { this.keys.push(key); this.items.push(value); }
@@ -958,7 +964,7 @@ export class StrVarMap{
 		this.keys.pop();
 		this.items.pop();
 	}
-	values() : VariableStmt[] { return this.items; }
+	values() : VariableDecl[] { return this.items; }
 }
 export class StrClassMap{
 	private keys : string[] = [];
@@ -1134,6 +1140,7 @@ export interface IVisitor {
 	visitBreakStmt( target : BreakStmt) : void;
 	visitContinueStmt( target : ContinueStmt) : void;
 	visitImportStmt( target : ImportStmt) : void;
+	visitVariableDecl( target : VariableDecl) : void;
 	visitVariableStmt( target : VariableStmt) : void;
 	visitPropertyStmt( target : PropertyStmt) : void;
 	visitTryCatchStmt( target : TryCatchStmt) : void;
@@ -1183,6 +1190,7 @@ export class Visitor implements IVisitor {
 	visitBreakStmt( target : BreakStmt) : void {}
 	visitContinueStmt( target : ContinueStmt) : void {}
 	visitImportStmt( target : ImportStmt) : void {}
+	visitVariableDecl( target : VariableDecl) : void {}
 	visitVariableStmt( target : VariableStmt) : void {}
 	visitPropertyStmt( target : PropertyStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
@@ -1232,6 +1240,7 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitBreakStmt( target : BreakStmt) : TypeRef;
 	protected abstract visitContinueStmt( target : ContinueStmt) : TypeRef;
 	protected abstract visitImportStmt( target : ImportStmt) : TypeRef;
+	protected abstract visitVariableDecl( target : VariableDecl) : TypeRef;
 	protected abstract visitVariableStmt( target : VariableStmt) : TypeRef;
 	protected abstract visitPropertyStmt( target : PropertyStmt) : TypeRef;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : TypeRef;
@@ -1281,6 +1290,7 @@ export abstract class DispatcherTypeRef {
 			case 'BreakStmt': return this.visitBreakStmt(<BreakStmt>node);
 			case 'ContinueStmt': return this.visitContinueStmt(<ContinueStmt>node);
 			case 'ImportStmt': return this.visitImportStmt(<ImportStmt>node);
+			case 'VariableDecl': return this.visitVariableDecl(<VariableDecl>node);
 			case 'VariableStmt': return this.visitVariableStmt(<VariableStmt>node);
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
@@ -1333,6 +1343,7 @@ export abstract class DispatcherVoid {
 	protected abstract visitBreakStmt( target : BreakStmt) : void;
 	protected abstract visitContinueStmt( target : ContinueStmt) : void;
 	protected abstract visitImportStmt( target : ImportStmt) : void;
+	protected abstract visitVariableDecl( target : VariableDecl) : void;
 	protected abstract visitVariableStmt( target : VariableStmt) : void;
 	protected abstract visitPropertyStmt( target : PropertyStmt) : void;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : void;
@@ -1382,6 +1393,7 @@ export abstract class DispatcherVoid {
 			case 'BreakStmt': return this.visitBreakStmt(<BreakStmt>node);
 			case 'ContinueStmt': return this.visitContinueStmt(<ContinueStmt>node);
 			case 'ImportStmt': return this.visitImportStmt(<ImportStmt>node);
+			case 'VariableDecl': return this.visitVariableDecl(<VariableDecl>node);
 			case 'VariableStmt': return this.visitVariableStmt(<VariableStmt>node);
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);

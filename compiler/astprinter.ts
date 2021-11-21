@@ -1,4 +1,4 @@
-import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl } from './types';
+import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl, VariableDecl } from './types';
 import { basename, Logger } from './utils';
 
 declare let require: any;
@@ -605,7 +605,7 @@ export class WebAstPrinter extends DispatcherVoid
 
         close_entity(true);
     }
-    protected visitVariableStmt(target: VariableStmt): void {
+    protected visitVariableDecl(target: VariableDecl): void {
         open_entity(target.className(), true);
 
         open_entity('name', true);
@@ -625,6 +625,16 @@ export class WebAstPrinter extends DispatcherVoid
             this.dispatch(target.init);
             close_entity(true);
         }
+
+        close_entity(true);
+    }
+    protected visitVariableStmt(target: VariableStmt): void {
+        open_entity(target.className(), true);
+
+        open_entity('decls', true);
+        for (let item of target.decls)
+            this.dispatch(item);
+        close_entity(true);
 
         close_entity(true);
     }

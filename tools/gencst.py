@@ -289,7 +289,7 @@ printType('NewExpr', [
 printType('Modifier', [
     {'name' : 'values', 'type' : 'TokenType[]'}
     ], None, True)
-sys.stdout.write('''get isStatic() : boolean { return this.values.indexOf(TokenType.STATIC) >= 0; }
+sys.stdout.write('''get isStatic() : boolean { return this.values && this.values.indexOf(TokenType.STATIC) >= 0; }
 }''')
 
 printType('BlockStmt', [
@@ -482,7 +482,7 @@ printType('ImportStmt', [
     {'name' : 'source', 'type' : 'string'}
     ], 'IStmt')
 
-printType('VariableStmt', [
+printType('VariableDecl', [
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'init', 'type' : 'IExpr'},
@@ -490,19 +490,16 @@ printType('VariableStmt', [
     {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
+    ], 'IStmt')
+
+printType('VariableStmt', [
+    {'name' : 'decls', 'type' : 'VariableDecl[]'},
     ], 'IStmt', True)
 sys.stdout.write('''
-    toString() : string
-    {
-        let result : string;
-        if (this.constant) result = 'const '; else result = 'let ';
-        result += this.name.toString();
-        if (this.type) result += ` : ${this.type.toString()}`;
-        return result;
+    set parent( ref : INode ) {
+        for (let decl of this.decls) decl.parent = ref;
     }
-    get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
-}
-''')
+}''')
 
 printType('PropertyStmt', [
     {'name' : 'name', 'type' : 'Name'},
@@ -544,7 +541,7 @@ printType('EnumStmt', [
 
 map.createMap('StrIStmtMap', 'string', 'IStmt')
 map.createMap('StrUnitMap', 'string', 'Unit')
-map.createMap('StrVarMap', 'string', 'VariableStmt')
+map.createMap('StrVarMap', 'string', 'VariableDecl')
 map.createMap('StrClassMap', 'string', 'ClassStmt')
 map.createMap('StrFuncMap', 'string', 'FunctionStmt')
 map.createMap('StrEnumMap', 'string', 'EnumStmt')

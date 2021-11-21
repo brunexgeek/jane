@@ -27,7 +27,6 @@ import {
 	SourceLocation } from './compiler';
 import { Unit } from './types';
 import { Parser } from './parser';
-import { SvgPrinter } from './visitor';
 import { WebAstPrinter } from './astprinter';
 import { Logger, readfile, realpath } from './utils';
 import { PortableGenerator } from './codegen';

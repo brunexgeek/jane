@@ -1,7 +1,7 @@
 import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap, StrClassStmtMap } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
-import { Parser, NodePromoter, createObject, createCallable, createError, createString } from './parser';
+import { Parser, createObject, createCallable, createError, createString } from './parser';
 import { TypeInference } from './typeinf';
 
 export class SourceLocation

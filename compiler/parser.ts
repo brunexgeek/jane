@@ -65,7 +65,8 @@ import {
     TemplateStringExpr,
     EnumStmt,
     TernaryExpr,
-    EnumDecl} from './types';
+    EnumDecl,
+    VariableDecl} from './types';
 
 import {
     TokenType,
@@ -890,7 +891,8 @@ export class Parser
             case TokenType.CONST:
             {
                 let stmt = this.parseVariableStmt(modifier);
-                this.unit.variables.set(stmt.name.qualified, stmt);
+                for (let decl of stmt.decls)
+                    this.unit.variables.set(decl.name.qualified, decl);
                 return stmt;
             }
             case TokenType.FUNCTION:
@@ -1177,15 +1179,7 @@ export class Parser
             // is it a variable declaration?
             if (this.peekType() == TokenType.LET || this.peekType() == TokenType.CONST)
             {
-                let cosntant = this.advance().type == TokenType.CONST;
-                let name = this.parseName();
-                let type : TypeRef = null;
-                let value : IExpr = null;
-                if (this.match(TokenType.COLON))
-                    type = this.parseTypeRef();
-                if (this.match(TokenType.EQUAL))
-                    value = this.parseExpression();
-                init = new VariableStmt(name, type, value, cosntant);
+                init = this.parseVariableStmt(null);
             }
             else
                 // only accept expression statements
@@ -1209,7 +1203,10 @@ export class Parser
             // for (variable of iterable) statement
             if (!init || !(init instanceof VariableStmt))
                 throw this.error(this.peek().location, 'Missing variable declaration');
-            if (init.init) throw this.error(this.peek().location, 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
+            if (init.decls == null || init.decls.length != 1)
+                throw this.error(this.peek().location, 'Invalid variable declaration');
+            if (init.decls[0].init)
+                throw this.error(this.peek().location, 'The variable declaration of a \'for...of\' statement cannot have an initializer.');
             this.consume(TokenType.OF,TokenType.IN);
             expr = this.parseExpression();
             this.consume(TokenType.RIGHT_PAREN);
@@ -1236,11 +1233,8 @@ export class Parser
         return new PropertyStmt(name, type, value, modifier, name.location);
     }
 
-    parseVariableStmt( modifier : Modifier ) : VariableStmt
+    parseVariableDecl( constant : boolean, modifier : Modifier ) : VariableDecl
     {
-        let constant : boolean = false;
-
-        constant = this.advance().type == TokenType.CONST;
         let tname = this.consumeEx('Missing variable name', TokenType.NAME);
 
         let name = this.ctx.currentNamespace;
@@ -1253,10 +1247,19 @@ export class Parser
             value = this.parseExpression();
         if (type == null && value == null)
             throw this.error(tname.location, 'Missing argument type');
+        return new VariableDecl(name, type, value, constant, modifier);
+    }
 
+    parseVariableStmt( modifier : Modifier ) : VariableStmt
+    {
+        let decls : VariableDecl[] = [];
+        let constant = this.advance().type == TokenType.CONST;
+        let loc = this.peek().location;
+        do {
+            decls.push( this.parseVariableDecl(constant, modifier) );
+        } while(this.match(TokenType.COMMA));
         this.consume(TokenType.SEMICOLON);
-
-        return new VariableStmt(name, type, value, constant, modifier, tname.location);
+        return new VariableStmt(decls, loc);
     }
 
     parseThrow() : IStmt
@@ -1295,57 +1298,6 @@ export class Parser
     }
 }
 
-/**
- * Transform functions into classes and replace the original functions by static calls.
- */
-export class NodePromoter
-{
-    protected visitNamespaceStmt(target: NamespaceStmt): void {
-        throw new Error("Method not implemented.");
-    }
-
-    static readonly parent = new TypeRef(TypeId.OBJECT, new Name(['ICallable'], null), 0);
-
-    protected promote( target : FunctionStmt ) : ClassStmt
-    {
-        // TODO: remove 'static' modifier from 'target.modifier'
-        Logger.writeln(`Promoting function ${target.name.qualified}`);
-
-        let name = target.name.clone();
-        name.lexemes[ name.lexemes.length - 1 ] = `__fn_${target.name.canonical}__`;
-        target.name.lexemes[ target.name.lexemes.length - 1 ] = 'call';
-        let clazz = new ClassStmt(name, null, NodePromoter.parent, null, [target], target.modifier, target.location);
-        target.modifier = new Modifier([TokenType.STATIC]);
-        return clazz;
-    }
-
-    protected processStatements( unit : Unit, stmts : IStmt[] ): void {
-        for (let i = 0; i < stmts.length; ++i)
-        {
-            if (stmts[i] instanceof FunctionStmt)
-            {
-                let fun = <FunctionStmt> stmts[i];
-                let name = fun.name.clone();
-                stmts[i] = this.promote(fun);
-                let clazz = <ClassStmt> stmts[i];
-                unit.types.set(clazz.name.qualified, clazz);
-                unit.functions.delete(name.qualified);
-                unit.variables.set( name.qualified,
-                    new VariableStmt(name, new TypeRef(TypeId.OBJECT, clazz.name, 0),
-                        new CallExpr( new FieldExpr( new NameLiteral(clazz.name.qualified), new Name(['call'])), []), false) );
-            }
-            else
-            if (stmts[i] instanceof NamespaceStmt)
-                this.processStatements(unit, (<NamespaceStmt>stmts[i]).stmts);
-        }
-    }
-
-    process( unit : Unit )
-    {
-        if (unit) this.processStatements(unit, unit.stmts);
-    }
-}
-
 let errorName = new Name(['Error']);
 let objectName = new Name(['Object']);
 let objectRef = new TypeRef(TypeId.OBJECT, objectName, 0);
@@ -1365,7 +1317,9 @@ export function createString() : ClassStmt
         [new Parameter(new Name(['value']), new TypeRef(TypeId.STRING, new Name(['string']), 0), null, false)],
         new TypeRef(TypeId.NUMBER, new Name(['number']), 0),
         null);
-    let stmt2 = new VariableStmt(new Name(['length'], null), new TypeRef(TypeId.NUMBER, new Name(['number']), 0), null, false);
+    let stmt2 = new VariableStmt(
+        [ new VariableDecl(new Name(['length'], null), new TypeRef(TypeId.NUMBER, new Name(['number']), 0), null, false) ]
+        );
     return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Modifier([TokenType.EXPORT]));
 }
 

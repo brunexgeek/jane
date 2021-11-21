@@ -66,7 +66,8 @@ import {
     TemplateStringExpr,
     EnumStmt,
     TernaryExpr,
-    EnumDecl} from './types';
+    EnumDecl,
+    VariableDecl} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 import { createObject, createCallable, createError, createString } from './parser';
@@ -637,7 +638,7 @@ export class TypeInference extends DispatcherTypeRef
         let type = this.ctx.array_types.get(name);
         if (type == null)
         {
-            let length = new VariableStmt(new Name(['length']), this.createTypeRefById(TypeId.NUMBER), null, false);
+            let length = new VariableStmt([ new VariableDecl(new Name(['length']), this.createTypeRefById(TypeId.NUMBER), null, false)]);
             type = new ClassStmt(new Name([name]), null, null, null, [length]);
             this.ctx.array_types.set(name, type);
         }
@@ -679,7 +680,7 @@ export class TypeInference extends DispatcherTypeRef
     {
         this.push();
         let type = this.dispatch(target.expr);
-        target.variable.type = type;
+        target.variable.decls[0].type = type;
         type = this.dispatch(target.variable);
         this.dispatch(target.expr);
         this.dispatch(target.stmt);
@@ -729,13 +730,13 @@ export class TypeInference extends DispatcherTypeRef
         {
             let type = new TypeRef(TypeId.OBJECT, target.parent.name, 0);
             type.ref = target.parent;
-            let variable = new VariableStmt(new Name(['this']), type, null, false);
-            this.top().insert(variable.name.canonical, variable, type);
+            let variable = new VariableStmt([new VariableDecl(new Name(['this']), type, null, false)]);
+            this.top().insert('this', variable, type);
 
             type = new TypeRef(TypeId.OBJECT, target.parent.extended.name, 0);
             type.ref = target.parent.extended.ref;
-            variable = new VariableStmt(new Name(['super']), type, null, false);
-            this.top().insert(variable.name.canonical, variable, type);
+            variable = new VariableStmt([new VariableDecl(new Name(['super']), type, null, false)]);
+            this.top().insert('super', variable, type);
         }
 
         if (target.body) this.dispatch(target.body);
@@ -791,7 +792,7 @@ export class TypeInference extends DispatcherTypeRef
         return type1.qualified == type2.qualified;
     }
 
-    visitVariableStmt(target: VariableStmt) : TypeRef
+    visitVariableDecl(target: VariableDecl) : TypeRef
     {
         let result : TypeRef = null;
         if (target.type)
@@ -809,6 +810,13 @@ export class TypeInference extends DispatcherTypeRef
         this.top().insert(target.name.toString(), target, result);
         if (!result) return TypeRef.VOID; // unused
         return result;
+    }
+
+    visitVariableStmt(target: VariableStmt) : TypeRef
+    {
+        for (let decl of target.decls)
+            this.visitVariableDecl(decl);
+        return TypeRef.VOID; // unused
     }
 
     visitTryCatchStmt(target: TryCatchStmt) : TypeRef

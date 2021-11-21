@@ -49,7 +49,8 @@ import {
     TemplateStringExpr,
     EnumStmt,
     TernaryExpr,
-    EnumDecl} from './types';
+    EnumDecl,
+    VariableDecl} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -769,11 +770,17 @@ export class PortableGenerator extends DispatcherVoid
 
     }
 
-    protected visitVariableStmt(target: VariableStmt): void
+    protected visitVariableDecl(target: VariableDecl): void
     {
         if (!target.modifier || (target.modifier && target.modifier.values.indexOf(TokenType.EXPORT) < 0))
             this.write('static ');
         this.writeln(`${this.nativeType(target.type)} ${target.name.canonical};`);
+    }
+
+    protected visitVariableStmt(target: VariableStmt): void
+    {
+        for (let decl of target.decls)
+            this.dispatch(decl);
     }
 
     protected visitTryCatchStmt(target: TryCatchStmt): void {
