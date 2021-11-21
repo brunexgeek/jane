@@ -48,7 +48,8 @@ import {
     TypeId,
     TemplateStringExpr,
     EnumStmt,
-    TernaryExpr} from './types';
+    TernaryExpr,
+    EnumDecl} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -838,6 +839,10 @@ export class PortableGenerator extends DispatcherVoid
     }
 
     protected visitTernaryExpr(target: TernaryExpr): void {
+        // TODO: implement
+    }
+
+    protected visitEnumDecl(target: EnumDecl): void {
         // TODO: implement
     }
 }

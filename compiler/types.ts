@@ -846,12 +846,27 @@ export class ThrowStmt implements IStmt
 	className() : string { return 'ThrowStmt'; }
 }
 
+export class EnumDecl implements INode
+{
+	name : Name;
+	init : IExpr;
+	location : SourceLocation;
+	constructor( name : Name, init : IExpr, location : SourceLocation = null )
+	{
+		this.name = name;
+		this.init = init;
+		this.location = location;
+	}
+	accept( visitor : IVisitor ) : void { visitor.visitEnumDecl(this); }
+	className() : string { return 'EnumDecl'; }
+}
+
 export class EnumStmt implements IStmt
 {
 	name : Name;
-	values : Name[];
+	values : EnumDecl[];
 	location : SourceLocation;
-	constructor( name : Name, values : Name[], location : SourceLocation = null )
+	constructor( name : Name, values : EnumDecl[], location : SourceLocation = null )
 	{
 		this.name = name;
 		this.values = values;
@@ -1001,6 +1016,34 @@ export class StrFuncMap{
 	}
 	values() : FunctionStmt[] { return this.items; }
 }
+export class StrEnumMap{
+	private keys : string[] = [];
+	private items : EnumStmt[] = [];
+	get( key : string ) : EnumStmt {
+		let i = this.keys.indexOf(key);
+		if (i < 0) return null;
+		return this.items[i];
+	}
+	set( key : string, value : EnumStmt ) {
+		let i = this.keys.indexOf(key);
+		if (i >= 0) this.items[i] = value;
+		else { this.keys.push(key); this.items.push(value); }
+	}
+	has( key : string ) : boolean { return this.get(key) != null; }
+	get size() : number { return this.keys.length; }
+	delete( key : string ) {
+		let i = this.keys.indexOf(key);
+		if (i < 0 || this.size == 0) return false;
+		let last = this.keys.length - 1;
+		if (i != last) {
+			this.keys[i] = this.keys[last];
+			this.items[i] = this.items[last];
+		}
+		this.keys.pop();
+		this.items.pop();
+	}
+	values() : EnumStmt[] { return this.items; }
+}
 export class StrClassStmtMap{
 	private keys : string[] = [];
 	private items : ClassStmt[] = [];
@@ -1038,6 +1081,7 @@ export class Unit implements INode
 	types : StrClassMap = new StrClassMap();
 	generics : StrClassMap = new StrClassMap();
 	functions : StrFuncMap = new StrFuncMap();
+	enums : StrEnumMap = new StrEnumMap();
 	imports_ : StrIStmtMap = new StrIStmtMap();
 	location : SourceLocation;
 	constructor( stmts : IStmt[], imports : ImportStmt[], location : SourceLocation = null )
@@ -1094,6 +1138,7 @@ export interface IVisitor {
 	visitPropertyStmt( target : PropertyStmt) : void;
 	visitTryCatchStmt( target : TryCatchStmt) : void;
 	visitThrowStmt( target : ThrowStmt) : void;
+	visitEnumDecl( target : EnumDecl) : void;
 	visitEnumStmt( target : EnumStmt) : void;
 	visitUnit( target : Unit) : void;
 }
@@ -1142,6 +1187,7 @@ export class Visitor implements IVisitor {
 	visitPropertyStmt( target : PropertyStmt) : void {}
 	visitTryCatchStmt( target : TryCatchStmt) : void {}
 	visitThrowStmt( target : ThrowStmt) : void {}
+	visitEnumDecl( target : EnumDecl) : void {}
 	visitEnumStmt( target : EnumStmt) : void {}
 	visitUnit( target : Unit) : void {}
 }
@@ -1190,6 +1236,7 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitPropertyStmt( target : PropertyStmt) : TypeRef;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : TypeRef;
 	protected abstract visitThrowStmt( target : ThrowStmt) : TypeRef;
+	protected abstract visitEnumDecl( target : EnumDecl) : TypeRef;
 	protected abstract visitEnumStmt( target : EnumStmt) : TypeRef;
 	protected abstract visitUnit( target : Unit) : TypeRef;
 	protected dispatch( node : INode ) : TypeRef {
@@ -1238,6 +1285,7 @@ export abstract class DispatcherTypeRef {
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'EnumDecl': return this.visitEnumDecl(<EnumDecl>node);
 			case 'EnumStmt': return this.visitEnumStmt(<EnumStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}
@@ -1289,6 +1337,7 @@ export abstract class DispatcherVoid {
 	protected abstract visitPropertyStmt( target : PropertyStmt) : void;
 	protected abstract visitTryCatchStmt( target : TryCatchStmt) : void;
 	protected abstract visitThrowStmt( target : ThrowStmt) : void;
+	protected abstract visitEnumDecl( target : EnumDecl) : void;
 	protected abstract visitEnumStmt( target : EnumStmt) : void;
 	protected abstract visitUnit( target : Unit) : void;
 	protected dispatch( node : INode ) : void {
@@ -1337,6 +1386,7 @@ export abstract class DispatcherVoid {
 			case 'PropertyStmt': return this.visitPropertyStmt(<PropertyStmt>node);
 			case 'TryCatchStmt': return this.visitTryCatchStmt(<TryCatchStmt>node);
 			case 'ThrowStmt': return this.visitThrowStmt(<ThrowStmt>node);
+			case 'EnumDecl': return this.visitEnumDecl(<EnumDecl>node);
 			case 'EnumStmt': return this.visitEnumStmt(<EnumStmt>node);
 			case 'Unit': return this.visitUnit(<Unit>node);
 		}

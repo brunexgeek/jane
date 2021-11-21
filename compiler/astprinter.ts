@@ -1,4 +1,4 @@
-import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid } from './types';
+import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl } from './types';
 import { basename, Logger } from './utils';
 
 declare let require: any;
@@ -684,6 +684,23 @@ export class WebAstPrinter extends DispatcherVoid
     protected visitThrowStmt(target: ThrowStmt): void {
         open_entity(target.className(), true);
         this.dispatch(target.expr);
+        close_entity(true);
+    }
+
+    protected visitEnumDecl(target: EnumDecl): void {
+        open_entity(target.className(), true);
+
+        open_entity('name', true);
+        this.dispatch(target.name);
+        close_entity(true);
+
+        if (target.init)
+        {
+            open_entity('init', true);
+            this.dispatch(target.init);
+            close_entity(true);
+        }
+
         close_entity(true);
     }
 

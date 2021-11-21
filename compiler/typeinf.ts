@@ -65,7 +65,8 @@ import {
     TypeId,
     TemplateStringExpr,
     EnumStmt,
-    TernaryExpr} from './types';
+    TernaryExpr,
+    EnumDecl} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
 import { createObject, createCallable, createError, createString } from './parser';
@@ -131,7 +132,6 @@ export class SemanticError extends Error
 
 export class TypeInference extends DispatcherTypeRef
 {
-
     ctx : CompilationContext;
     stack : Scope[] = [new Scope()];
     unit : Unit = null;
@@ -159,6 +159,8 @@ export class TypeInference extends DispatcherTypeRef
         stmt = <IStmt> unit.functions.get(name);
         if (stmt) return stmt;
         stmt = <IStmt> unit.types.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.enums.get(name);
         if (stmt) return stmt;
         stmt = <IStmt> unit.generics.get(name);
         if (stmt) return stmt;
@@ -839,5 +841,9 @@ export class TypeInference extends DispatcherTypeRef
     {
         // TODO: implement
         return TypeRef.VOID;
+    }
+
+    protected visitEnumDecl(target: EnumDecl): TypeRef {
+        throw new Error('Method not implemented.');
     }
 }

@@ -64,7 +64,8 @@ import {
     TypeId,
     TemplateStringExpr,
     EnumStmt,
-    TernaryExpr} from './types';
+    TernaryExpr,
+    EnumDecl} from './types';
 
 import {
     TokenType,
@@ -860,15 +861,19 @@ export class Parser
             return this.parseStatement();
     }
 
-    parseEnumStmt( modifier : Modifier ) : IStmt
+    parseEnumStmt( modifier : Modifier ) : EnumStmt
     {
-        let values : Name[] = [];
+        let values : EnumDecl[] = [];
         this.consume(TokenType.ENUM);
         let name = this.parseName();
         this.consume(TokenType.LEFT_BRACE);
         while (this.peekType() == TokenType.NAME)
         {
-            values.push( this.parseName() );
+            let name = this.parseName();
+            let init : IExpr = null;
+            if (this.match(TokenType.EQUAL))
+                init = this.parseExpression();
+            values.push( new EnumDecl(name, init) );
             if (!this.match(TokenType.COMMA)) break;
         }
         this.consume(TokenType.RIGHT_BRACE);
@@ -911,8 +916,9 @@ export class Parser
             }
             case TokenType.ENUM:
             {
-                return this.parseEnumStmt(modifier);
-                // TODO: store somewhere
+                let stmt = this.parseEnumStmt(modifier);
+                this.unit.enums.set(stmt.name.qualified, stmt);
+                return stmt;
             }
         }
 

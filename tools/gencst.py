@@ -532,9 +532,14 @@ printType('ThrowStmt', [
     {'name' : 'expr', 'type' : 'IExpr'}
     ], 'IStmt')
 
+printType('EnumDecl', [
+    {'name' : 'name', 'type' : 'Name'},
+    {'name' : 'init', 'type' : 'IExpr'}
+    ], None)
+
 printType('EnumStmt', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'values', 'type' : 'Name[]'}
+    {'name' : 'values', 'type' : 'EnumDecl[]'}
     ], 'IStmt')
 
 map.createMap('StrIStmtMap', 'string', 'IStmt')
@@ -542,6 +547,7 @@ map.createMap('StrUnitMap', 'string', 'Unit')
 map.createMap('StrVarMap', 'string', 'VariableStmt')
 map.createMap('StrClassMap', 'string', 'ClassStmt')
 map.createMap('StrFuncMap', 'string', 'FunctionStmt')
+map.createMap('StrEnumMap', 'string', 'EnumStmt')
 map.createMap('StrClassStmtMap', 'string', 'ClassStmt')
 
 printType('Unit', [
@@ -552,6 +558,7 @@ printType('Unit', [
     {'name' : 'types', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
     {'name' : 'generics', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
     {'name' : 'functions', 'type' : 'StrFuncMap', 'init' : 'new StrFuncMap()', 'ctor' : False},
+    {'name' : 'enums', 'type' : 'StrEnumMap', 'init' : 'new StrEnumMap()', 'ctor' : False},
     # map full qualified names to statements
     {'name' : 'imports_', 'type' : 'StrIStmtMap', 'init' : 'new StrIStmtMap()', 'ctor' : False}
     ])

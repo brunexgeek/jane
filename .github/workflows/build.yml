@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Jane CI
 
 on: [push]
 
