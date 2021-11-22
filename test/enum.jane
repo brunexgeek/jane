@@ -1,0 +1,7 @@
+export enum Colors
+{
+    BLUE = 0,
+    RED = 0x01,
+    GREEN,
+    BROWN
+}
