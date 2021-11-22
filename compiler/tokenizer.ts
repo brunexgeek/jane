@@ -152,6 +152,7 @@ export class TokenType
     static readonly DECREMENT = new TokenType('DECREMENT', '--');
     static readonly EXPONENT = new TokenType('EXPONENT', '**');
     static readonly EXPONENT_EQUAL = new TokenType('EXPONENT_EQUAL', '**=');
+    static readonly TILDE = new TokenType('TILDE', '~');
 
     // Literals
     static readonly NAME = new TokenType('NAME');
@@ -339,6 +340,8 @@ export class Tokenizer
                     return this.token(TokenType.BANG);
                 case ';':
                     return this.token(TokenType.SEMICOLON);
+                case '~':
+                    return this.token(TokenType.TILDE);
                 case ':':
                     return this.token(TokenType.COLON);
                 case '=':

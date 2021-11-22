@@ -586,7 +586,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        if (this.match(TokenType.BOR))
+        while (this.match(TokenType.BOR))
         {
             let right = this.parseBitwiseXor();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -642,12 +642,27 @@ export class Parser
 
     parseComparison() : IExpr
     {
-        let expr = this.parseAddition();
+        let expr = this.parseBitShift();
 
         let location = this.peek().location;
         let operator = this.peekType();
         if (this.match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS,
             TokenType.LESS_EQUAL, TokenType.IN, TokenType.INSTANCEOF))
+        {
+            let right = this.parseBitShift();
+            expr = new BinaryExpr(expr, operator, right, location);
+        }
+
+        return expr;
+    }
+
+    parseBitShift() : IExpr
+    {
+        let expr = this.parseAddition();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        if (this.match(TokenType.SHL, TokenType.SHR, TokenType.USHR))
         {
             let right = this.parseAddition();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -693,7 +708,8 @@ export class Parser
             TokenType.MINUS,
             TokenType.DECREMENT,
             TokenType.PLUS,
-            TokenType.INCREMENT
+            TokenType.INCREMENT,
+            TokenType.TILDE
             ))
         {
             let expr = this.parsePreUnary();
@@ -1179,7 +1195,7 @@ export class Parser
             // is it a variable declaration?
             if (this.peekType() == TokenType.LET || this.peekType() == TokenType.CONST)
             {
-                init = this.parseVariableStmt(null);
+                init = this.parseVariableStmt(null, false);
             }
             else
                 // only accept expression statements
@@ -1250,7 +1266,7 @@ export class Parser
         return new VariableDecl(name, type, value, constant, modifier);
     }
 
-    parseVariableStmt( modifier : Modifier ) : VariableStmt
+    parseVariableStmt( modifier : Modifier, semicolon : boolean = true ) : VariableStmt
     {
         let decls : VariableDecl[] = [];
         let constant = this.advance().type == TokenType.CONST;
@@ -1258,7 +1274,7 @@ export class Parser
         do {
             decls.push( this.parseVariableDecl(constant, modifier) );
         } while(this.match(TokenType.COMMA));
-        this.consume(TokenType.SEMICOLON);
+        if (semicolon) this.consume(TokenType.SEMICOLON);
         return new VariableStmt(decls, loc);
     }
 
