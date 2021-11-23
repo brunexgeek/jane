@@ -276,7 +276,12 @@ printType('ArrayAccessExpr', [
     {'name' : 'index', 'type' : 'IExpr'}
     ], 'Expr')
 
-printType('FieldExpr', [
+printType('ChainingExpr', [
+    {'name' : 'callee', 'type' : 'IExpr'},
+    {'name' : 'name', 'type' : 'Name'},
+    ], 'Expr')
+
+printType('OptChainingExpr', [
     {'name' : 'callee', 'type' : 'IExpr'},
     {'name' : 'name', 'type' : 'Name'},
     ], 'Expr')

@@ -1,7 +1,15 @@
+// numeric enum
 export enum Colors
 {
     BLUE = 0,
     RED = 0x01,
     GREEN,
     BROWN
+}
+
+// string enum
+enum States
+{
+    IDLE = 'Idle',
+    RUNNING = 'Running'
 }

@@ -32,7 +32,7 @@ import {
 	CallExpr,
 	ArrayExpr,
 	ArrayAccessExpr,
-	FieldExpr,
+	ChainingExpr,
 	NewExpr,
 	Modifier,
 	BlockStmt,
@@ -58,7 +58,6 @@ import {
     Unit,
     ImportStmt,
     ForStmt,
-    DispatcherTypeRef,
     TypeCastExpr,
     PropertyStmt,
     TypeId,
@@ -66,7 +65,8 @@ import {
     EnumStmt,
     TernaryExpr,
     EnumDecl,
-    VariableDecl} from './types';
+    VariableDecl,
+    OptChainingExpr} from './types';
 
 import {
     TokenType,
@@ -512,7 +512,7 @@ export class Parser
             {
                 this.advance();
                 let right = this.parseAssignment();
-                if (expr instanceof NameLiteral || expr instanceof FieldExpr || expr instanceof ArrayAccessExpr)
+                if (expr instanceof NameLiteral || expr instanceof ChainingExpr || expr instanceof ArrayAccessExpr)
                     return expr = new AssignExpr(expr, operator, right, location);
                 throw this.error(tt.location, 'Invalid assignment l-value');
             }
@@ -631,7 +631,7 @@ export class Parser
 
         let location = this.peek().location;
         let operator = this.peekType();
-        if (this.match(TokenType.INEQUALITY, TokenType.EQUALITY, TokenType.S_EQUALITY))
+        if (this.match(TokenType.INEQUALITY, TokenType.S_INEQUALITY, TokenType.EQUALITY, TokenType.S_EQUALITY))
         {
             let right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right, location);
@@ -769,7 +769,14 @@ export class Parser
             {
                 let tname = this.consume(TokenType.NAME);
                 let name = new Name([tname.lexeme], tname.location);
-                expr = new FieldExpr(expr, name, name.location);
+                expr = new ChainingExpr(expr, name, name.location);
+            }
+            else
+            if (this.match(TokenType.CHAINING))
+            {
+                let tname = this.consume(TokenType.NAME);
+                let name = new Name([tname.lexeme], tname.location);
+                expr = new OptChainingExpr(expr, name, name.location);
             }
             else
                 break;

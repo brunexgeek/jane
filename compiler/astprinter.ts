@@ -1,4 +1,4 @@
-import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, FieldExpr, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl, VariableDecl } from './types';
+import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl, VariableDecl, ChainingExpr, OptChainingExpr } from './types';
 import { basename, Logger } from './utils';
 
 declare let require: any;
@@ -322,7 +322,20 @@ export class WebAstPrinter extends DispatcherVoid
 
         close_entity(true);
     }
-    protected visitFieldExpr(target: FieldExpr): void {
+    protected visitChainingExpr(target: ChainingExpr): void {
+        open_entity(target.className(), true);
+
+        open_entity('callee', true);
+        this.dispatch(target.callee);
+        close_entity(true);
+
+        open_entity('name', true);
+        this.dispatch(target.name);
+        close_entity(true);
+
+        close_entity(true);
+    }
+    protected visitOptChainingExpr(target: OptChainingExpr): void {
         open_entity(target.className(), true);
 
         open_entity('callee', true);

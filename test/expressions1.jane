@@ -1,0 +1,92 @@
+function expressions1()
+{
+    let value : ulong = 15;
+    value |= 1;
+    value ^= 1;
+    value &= 1;
+    value >>>= 1;
+    value >>= 1;
+    value <<= 1;
+    value %= 1;
+    value /= 1;
+    value *= 1;
+    value **= 1;
+    value -= 1;
+    value += 1;
+    value = 10;
+}
+
+function expressions2()
+{
+    let value : boolean = true;
+    value = false;
+    value &&= true;
+    value ||= false;
+}
+
+class MyClass
+{
+    public value : string = "test";
+    public run() : string { return value; }
+}
+
+function expressions3( cond : boolean )
+{
+    let value : MyClass;
+    value = new MyClass();
+    value ??= new MyClass();
+    value.value = cond ? "OK" : "Nope";
+    value = value ?? new MyClass();
+}
+
+function expressions4()
+{
+    let value : boolean = true;
+    value = value == true && value && true ;
+    value = value == true || value || true ;
+}
+
+function expressions5() : boolean
+{
+    let value : ulong = 15;
+    value = value | 1;
+    value = value ^ 1;
+    value = value & 1;
+    if (value !== 8) value = 8;
+    if (value === 8) value = 2 * 8;
+    if (value != 9) value = 9;
+    if (value == 9) value = 3 * 9;
+    let tmp : ulong[] = [5, 10, 15, 20];
+    if (value in tmp) value = value + 2;
+    if (value >= 1) value = value + 2;
+    if (value > 1) value = value + 2;
+    if (value <= 1) value = value + 2;
+    if (value < 1) value = value + 2;
+    value = value >>> 1;
+    value = value >> 1;
+    value = value << 1;
+    value = value - 1;
+    value = value + 1;
+    value = value % 1;
+    value = value / 1;
+    value = value * 1;
+    value = ++value;
+    value = --value;
+    value = + value;
+    value = - value;
+    value = ~ value;
+    let valid = !(value > 10);
+    value = value++;
+    value = value--;
+    return valid;
+}
+
+function expressions6( cond : boolean ) : char
+{
+    let value : MyClass;
+    value = new MyClass();
+    // optional chaining and function call
+    value?.run();
+    // member access, computed member access and grouping
+    return (value.value[0]);
+}

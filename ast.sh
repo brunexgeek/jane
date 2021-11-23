@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 BASEDIR=$(cd $(dirname $0) && pwd)
-OUTFILE="./ast.html"
+OUTFILE="./jane-ast.html"
 
 if [ -f "$OUTFILE" ]; then
     mv "$OUTFILE" "$OUTFILE.bak"

@@ -320,7 +320,7 @@ export class ArrayAccessExpr extends Expr
 	className() : string { return 'ArrayAccessExpr'; }
 }
 
-export class FieldExpr extends Expr
+export class ChainingExpr extends Expr
 {
 	callee : IExpr;
 	name : Name;
@@ -332,8 +332,24 @@ export class FieldExpr extends Expr
 		this.name = name;
 		this.location = location;
 	}
-	accept( visitor : IVisitor ) : void { visitor.visitFieldExpr(this); }
-	className() : string { return 'FieldExpr'; }
+	accept( visitor : IVisitor ) : void { visitor.visitChainingExpr(this); }
+	className() : string { return 'ChainingExpr'; }
+}
+
+export class OptChainingExpr extends Expr
+{
+	callee : IExpr;
+	name : Name;
+	location : SourceLocation;
+	constructor( callee : IExpr, name : Name, location : SourceLocation = null )
+	{
+		super();
+		this.callee = callee;
+		this.name = name;
+		this.location = location;
+	}
+	accept( visitor : IVisitor ) : void { visitor.visitOptChainingExpr(this); }
+	className() : string { return 'OptChainingExpr'; }
 }
 
 export class NewExpr extends Expr
@@ -1117,7 +1133,8 @@ export interface IVisitor {
 	visitCallExpr( target : CallExpr) : void;
 	visitArrayExpr( target : ArrayExpr) : void;
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void;
-	visitFieldExpr( target : FieldExpr) : void;
+	visitChainingExpr( target : ChainingExpr) : void;
+	visitOptChainingExpr( target : OptChainingExpr) : void;
 	visitNewExpr( target : NewExpr) : void;
 	visitModifier( target : Modifier) : void;
 	visitBlockStmt( target : BlockStmt) : void;
@@ -1167,7 +1184,8 @@ export class Visitor implements IVisitor {
 	visitCallExpr( target : CallExpr) : void {}
 	visitArrayExpr( target : ArrayExpr) : void {}
 	visitArrayAccessExpr( target : ArrayAccessExpr) : void {}
-	visitFieldExpr( target : FieldExpr) : void {}
+	visitChainingExpr( target : ChainingExpr) : void {}
+	visitOptChainingExpr( target : OptChainingExpr) : void {}
 	visitNewExpr( target : NewExpr) : void {}
 	visitModifier( target : Modifier) : void {}
 	visitBlockStmt( target : BlockStmt) : void {}
@@ -1217,7 +1235,8 @@ export abstract class DispatcherTypeRef {
 	protected abstract visitCallExpr( target : CallExpr) : TypeRef;
 	protected abstract visitArrayExpr( target : ArrayExpr) : TypeRef;
 	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : TypeRef;
-	protected abstract visitFieldExpr( target : FieldExpr) : TypeRef;
+	protected abstract visitChainingExpr( target : ChainingExpr) : TypeRef;
+	protected abstract visitOptChainingExpr( target : OptChainingExpr) : TypeRef;
 	protected abstract visitNewExpr( target : NewExpr) : TypeRef;
 	protected abstract visitModifier( target : Modifier) : TypeRef;
 	protected abstract visitBlockStmt( target : BlockStmt) : TypeRef;
@@ -1267,7 +1286,8 @@ export abstract class DispatcherTypeRef {
 			case 'CallExpr': return this.visitCallExpr(<CallExpr>node);
 			case 'ArrayExpr': return this.visitArrayExpr(<ArrayExpr>node);
 			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
-			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
+			case 'ChainingExpr': return this.visitChainingExpr(<ChainingExpr>node);
+			case 'OptChainingExpr': return this.visitOptChainingExpr(<OptChainingExpr>node);
 			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
 			case 'Modifier': return this.visitModifier(<Modifier>node);
 			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);
@@ -1320,7 +1340,8 @@ export abstract class DispatcherVoid {
 	protected abstract visitCallExpr( target : CallExpr) : void;
 	protected abstract visitArrayExpr( target : ArrayExpr) : void;
 	protected abstract visitArrayAccessExpr( target : ArrayAccessExpr) : void;
-	protected abstract visitFieldExpr( target : FieldExpr) : void;
+	protected abstract visitChainingExpr( target : ChainingExpr) : void;
+	protected abstract visitOptChainingExpr( target : OptChainingExpr) : void;
 	protected abstract visitNewExpr( target : NewExpr) : void;
 	protected abstract visitModifier( target : Modifier) : void;
 	protected abstract visitBlockStmt( target : BlockStmt) : void;
@@ -1370,7 +1391,8 @@ export abstract class DispatcherVoid {
 			case 'CallExpr': return this.visitCallExpr(<CallExpr>node);
 			case 'ArrayExpr': return this.visitArrayExpr(<ArrayExpr>node);
 			case 'ArrayAccessExpr': return this.visitArrayAccessExpr(<ArrayAccessExpr>node);
-			case 'FieldExpr': return this.visitFieldExpr(<FieldExpr>node);
+			case 'ChainingExpr': return this.visitChainingExpr(<ChainingExpr>node);
+			case 'OptChainingExpr': return this.visitOptChainingExpr(<OptChainingExpr>node);
 			case 'NewExpr': return this.visitNewExpr(<NewExpr>node);
 			case 'Modifier': return this.visitModifier(<Modifier>node);
 			case 'BlockStmt': return this.visitBlockStmt(<BlockStmt>node);

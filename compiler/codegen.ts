@@ -16,7 +16,7 @@ import {
 	CallExpr,
 	ArrayExpr,
 	ArrayAccessExpr,
-	FieldExpr,
+	ChainingExpr,
 	NewExpr,
 	Modifier,
 	BlockStmt,
@@ -50,7 +50,8 @@ import {
     EnumStmt,
     TernaryExpr,
     EnumDecl,
-    VariableDecl} from './types';
+    VariableDecl,
+    OptChainingExpr} from './types';
 import { StringBuffer } from "./utils";
 import { TokenType } from "./tokenizer";
 
@@ -193,7 +194,13 @@ export class PortableGenerator extends DispatcherVoid
         this.write(']');
     }
 
-    protected visitFieldExpr(target: FieldExpr): void
+    protected visitChainingExpr(target: ChainingExpr): void
+    {
+        this.dispatch(target.callee);
+        this.write(`->${target.name}`)
+    }
+
+    protected visitOptChainingExpr(target: OptChainingExpr): void
     {
         this.dispatch(target.callee);
         this.write(`->${target.name}`)

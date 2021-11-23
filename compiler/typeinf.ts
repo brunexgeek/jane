@@ -32,7 +32,8 @@ import {
 	CallExpr,
 	ArrayExpr,
 	ArrayAccessExpr,
-	FieldExpr,
+	ChainingExpr,
+	OptChainingExpr,
 	NewExpr,
 	Modifier,
 	BlockStmt,
@@ -500,7 +501,24 @@ export class TypeInference extends DispatcherTypeRef
         return null;
     }
 
-    visitFieldExpr(target: FieldExpr) : TypeRef
+    visitChainingExpr(target: ChainingExpr) : TypeRef
+    {
+        //Logger.writeln('---- visitFieldExpr -> ' + target.callee.className());
+        let type = this.dispatch(target.callee);
+        //Logger.writeln('---- visitFieldExpr -> ' + type.ref.name.qualified);
+        if (type.ref && type.ref instanceof ClassStmt)
+        {
+            let stmt = this.findMember(target.name.canonical, type.ref);
+            if (stmt instanceof PropertyStmt)
+                return target.resolvedType_ = stmt.type;
+            else
+            if (stmt instanceof FunctionStmt)
+                return target.resolvedType_ = stmt.type;
+        }
+        throw this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
+    }
+
+    visitOptChainingExpr(target: OptChainingExpr) : TypeRef
     {
         //Logger.writeln('---- visitFieldExpr -> ' + target.callee.className());
         let type = this.dispatch(target.callee);
