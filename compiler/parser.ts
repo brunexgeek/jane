@@ -982,6 +982,7 @@ export class Parser
         if (this.match(TokenType.EXTENDS))
             extended = this.parseTypeRef();
         else
+        if(type != TokenType.INTERFACE)
             extended = objectRef;
 
         if (this.match(TokenType.IMPLEMENTS))
