@@ -688,13 +688,28 @@ export class Parser
 
     parseMultiplication() : IExpr
     {
-        let expr = this.parsePreUnary();
+        let expr = this.parseExponentiation();
 
         let location = this.peek().location;
         let operator = this.peekType();
         while (this.match(TokenType.STAR, TokenType.SLASH, TokenType.MOD))
         {
-            let right = this.parsePreUnary();
+            let right = this.parseExponentiation();
+            expr = new BinaryExpr(expr, operator, right, location);
+        }
+
+        return expr;
+    }
+
+    parseExponentiation() : IExpr
+    {
+        let expr = this.parsePreUnary();
+
+        let location = this.peek().location;
+        let operator = this.peekType();
+        while (this.match(TokenType.EXPONENT))
+        {
+            let right = this.parseExponentiation();
             expr = new BinaryExpr(expr, operator, right, location);
         }
 

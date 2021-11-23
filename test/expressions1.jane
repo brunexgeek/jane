@@ -27,7 +27,7 @@ function expressions2()
 class MyClass
 {
     public value : string = "test";
-    public run() : string { return value; }
+    public run() : string { return this.value; }
 }
 
 function expressions3( cond : boolean )
@@ -35,7 +35,7 @@ function expressions3( cond : boolean )
     let value : MyClass;
     value = new MyClass();
     value ??= new MyClass();
-    value.value = cond ? "OK" : "Nope";
+    value.value = cond ? "OK" : !cond ? "Nope" : "OK";
     value = value ?? new MyClass();
 }
 
@@ -70,6 +70,7 @@ function expressions5() : boolean
     value = value % 1;
     value = value / 1;
     value = value * 1;
+    value = value ** 1 ** 2;
     value = ++value;
     value = --value;
     value = + value;
