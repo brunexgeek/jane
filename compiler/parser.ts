@@ -1,5 +1,5 @@
 /*
- *   Copyright 2020 Bruno Ribeiro
+ *   Copyright 2019-2021 Bruno Ribeiro
  *   <https://github.com/brunexgeek/jane>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
