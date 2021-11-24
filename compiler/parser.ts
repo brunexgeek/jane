@@ -1284,8 +1284,8 @@ export class Parser
             type = this.parseTypeRef();
         if (this.match(TokenType.EQUAL))
             value = this.parseExpression();
-        if (type == null && value == null)
-            throw this.error(tname.location, 'Missing argument type');
+        //if (type == null && value == null)
+        //    throw this.error(tname.location, 'Missing argument type');
         return new VariableDecl(name, type, value, constant, modifier);
     }
 
