@@ -1,15 +1,76 @@
-import { Modifier, ArrayAccessExpr, ArrayExpr, AssignExpr, BinaryExpr, BlockStmt, BoolLiteral, BreakStmt, CallExpr, CaseStmt, ClassStmt, ContinueStmt, DoWhileStmt, EnumStmt, ExpandExpr, ExprStmt, ForOfStmt, ForStmt, FunctionStmt, Group, IfStmt, ImportStmt, IVisitor, LogicalExpr, Name, NameLiteral, NamespaceStmt, NewExpr, NullLiteral, NumberLiteral, Parameter, PropertyStmt, ReturnStmt, StringLiteral, SwitchStmt, TemplateStringExpr, TernaryExpr, ThrowStmt, TryCatchStmt, TypeCastExpr, TypeRef, UnaryExpr, Unit, VariableStmt, Visitor, WhileStmt, DispatcherVoid, EnumDecl, VariableDecl, ChainingExpr, OptChainingExpr } from './types';
-import { basename, Logger } from './utils';
 
-declare let require: any;
-let process = require("process");
-let ccol = 0;
-let crow = 0;
+/*
+ *   Copyright 2019-2021 Bruno Ribeiro
+ *   <https://github.com/brunexgeek/jane>
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
+
+import { Modifier,
+    ArrayAccessExpr,
+    ArrayExpr,
+    AssignExpr,
+    BinaryExpr,
+    BlockStmt,
+    BoolLiteral,
+    BreakStmt,
+    CallExpr,
+    CaseStmt,
+    ClassStmt,
+    ContinueStmt,
+    DoWhileStmt,
+    EnumStmt,
+    ExpandExpr,
+    ExprStmt,
+    ForOfStmt,
+    ForStmt,
+    FunctionStmt,
+    Group,
+    IfStmt,
+    ImportStmt,
+    LogicalExpr,
+    Name,
+    NameLiteral,
+    NamespaceStmt,
+    NewExpr,
+    NullLiteral,
+    NumberLiteral,
+    Parameter,
+    PropertyStmt,
+    ReturnStmt,
+    StringLiteral,
+    SwitchStmt,
+    TemplateStringExpr,
+    TernaryExpr,
+    ThrowStmt,
+    TryCatchStmt,
+    TypeCastExpr,
+    TypeRef,
+    UnaryExpr,
+    Unit,
+    VariableStmt,
+    Visitor,
+    WhileStmt,
+    DispatcherVoid,
+    EnumDecl,
+    VariableDecl,
+    ChainingExpr,
+    OptChainingExpr } from './types';
+import { basename,
+    Logger,
+    StringBuffer } from './utils';
+
 let current_id = 0;
-const LINE_WIDTH = 8;
-const FONT_SIZE = 14;
-const LINE_HEIGHT_SPACED = FONT_SIZE;//2 + LINE_HEIGHT + 2;
-const LINE_HALF_SPACED = LINE_HEIGHT_SPACED / 2;
 
 class Field
 {
@@ -105,290 +166,292 @@ function toggle(id)
     if (e) e.style.display = ((e.style.display!='none')?'none':'block');
 }
 `;
-function print( value : string )
-{
-    process.stdout.write(value);
-    process.stdout.write('\n');
-}
-
-function open_entity(title : string, children : boolean = false, fields : Field[] = [] )
-{
-    let css = `node __${title}`;
-    if (title.indexOf('Stmt') > 0)
-        css += ' stmt';
-    else
-    if (title.indexOf('Literal') > 0)
-        css += ' lit';
-    else
-    if (title[0] == title[0].toUpperCase())
-        css += ' expr';
-
-    let script = '';
-    if (children)
-    {
-        script = `onclick="javascript:toggle('c${current_id}')"`;
-        css += ' btn';
-    }
-
-    print(`<li><div id="n${current_id}" class="${css}" ${script}><div class='title'><span>${title}</span></div>`);
-    if (fields.length > 0)
-    {
-        print("<div class='fields'>");
-        for (let cur of fields)
-            print(`<p><span class='k'>${cur.name}:</span> <span class='v'${ cur.tooltip ? ` title='${cur.tooltip}'` : ''}>${cur.value}</span></p>`);
-        print('</div>');
-    }
-    print('</div>');
-    if (children) print(`<ul id="c${current_id}">`);
-    ++current_id;
-}
-
-function close_entity( children : boolean = false )
-{
-    if (children) print('</ul>');
-    print('</li>');
-}
-
-function empty_entity( title : string, fields : Field[] = [] )
-{
-    open_entity(title, false, fields);
-    close_entity(false);
-}
 
 export class WebAstPrinter extends DispatcherVoid
 {
+    sbuf : StringBuffer = new StringBuffer();
+
+    private print( value : string )
+    {
+        this.sbuf.writeln(value);
+    }
+
+    private open_entity(title : string, children : boolean = false, fields : Field[] = [] )
+    {
+        let css = `node __${title}`;
+        if (title.indexOf('Stmt') > 0)
+            css += ' stmt';
+        else
+        if (title.indexOf('Literal') > 0)
+            css += ' lit';
+        else
+        if (title[0] == title[0].toUpperCase())
+            css += ' expr';
+
+        let script = '';
+        if (children)
+        {
+            script = `onclick="javascript:toggle('c${current_id}')"`;
+            css += ' btn';
+        }
+
+        this.print(`<li><div id="n${current_id}" class="${css}" ${script}><div class='title'><span>${title}</span></div>`);
+        if (fields.length > 0)
+        {
+            this.print("<div class='fields'>");
+            for (let cur of fields)
+                this.print(`<p><span class='k'>${cur.name}:</span> <span class='v'${ cur.tooltip ? ` title='${cur.tooltip}'` : ''}>${cur.value}</span></p>`);
+            this.print('</div>');
+        }
+        this.print('</div>');
+        if (children) this.print(`<ul id="c${current_id}">`);
+        ++current_id;
+    }
+
+    private close_entity( children : boolean = false )
+    {
+        if (children) this.print('</ul>');
+        this.print('</li>');
+    }
+
+    private empty_entity( title : string, fields : Field[] = [] )
+    {
+        this.open_entity(title, false, fields);
+        this.close_entity(false);
+    }
+
     protected visitName(target: Name): void {
         let content : Field[] = [
             {name:'canonical',value:`"${target.canonical}"`}
         ];
         if (target.canonical != target.qualified)
             content.push({name:'qualified',value:`"${target.qualified}"`});
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitStringLiteral(target: StringLiteral): void {
         let content : Field[] = [
             {name:'value',value:`"${target.value}"`}
         ];
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitTemplateStringExpr(target: TemplateStringExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('value', true);
+        this.open_entity('value', true);
         for (let item of target.value)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitNumberLiteral(target: NumberLiteral): void {
         let content : Field[] = [
             {name:'value',value:target.value}
         ];
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitBoolLiteral(target: BoolLiteral): void {
         let content : Field[] = [
             {name:'value',value:target.converted?'true':'false'}
         ];
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitNameLiteral(target: NameLiteral): void {
         let content : Field[] = [
             {name:'value',value:target.value}
         ];
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitGroup(target: Group): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitNullLiteral(target: NullLiteral): void {
-        empty_entity(target.className());
+        this.empty_entity(target.className());
     }
     protected visitLogicalExpr(target: LogicalExpr): void {
         let content : Field[] = [
             {name:'oper',value:target.oper.name}
         ];
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('left', true);
+        this.open_entity('left', true);
         this.dispatch(target.left);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('right', true);
+        this.open_entity('right', true);
         this.dispatch(target.right);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitBinaryExpr(target: BinaryExpr): void {
         let content : Field[] = [
             {name:'oper',value:target.oper.name},
         ];
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('left', true);
+        this.open_entity('left', true);
         this.dispatch(target.left);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('right', true);
+        this.open_entity('right', true);
         this.dispatch(target.right);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitAssignExpr(target: AssignExpr): void {
         let content : Field[] = [
             {name:'oper',value:target.oper.name},
         ];
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('left', true);
+        this.open_entity('left', true);
         this.dispatch(target.left);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('right', true);
+        this.open_entity('right', true);
         this.dispatch(target.right);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitUnaryExpr(target: UnaryExpr): void {
         let content : Field[] = [
             {name:'oper',value:target.oper.name},
             {name:'style',value:target.post?'post':'pre'}
         ];
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitTypeCastExpr(target: TypeCastExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('type', true);
+        this.open_entity('type', true);
         this.dispatch(target.type);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitCallExpr(target: CallExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('callee', true);
+        this.open_entity('callee', true);
         this.dispatch(target.callee);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('args', true);
+        this.open_entity('args', true);
         for (let item of target.args)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitArrayExpr(target: ArrayExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('values', true);
+        this.open_entity('values', true);
         for (let item of target.values)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitArrayAccessExpr(target: ArrayAccessExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('callee', true);
+        this.open_entity('callee', true);
         this.dispatch(target.callee);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('index', true);
+        this.open_entity('index', true);
         this.dispatch(target.index);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitChainingExpr(target: ChainingExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('callee', true);
+        this.open_entity('callee', true);
         this.dispatch(target.callee);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitOptChainingExpr(target: OptChainingExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('callee', true);
+        this.open_entity('callee', true);
         this.dispatch(target.callee);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitNewExpr(target: NewExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('type', true);
+        this.open_entity('type', true);
         this.dispatch(target.type);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitModifier(target: Modifier): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('values', true);
+        this.open_entity('values', true);
         for (let item of target.values)
-            empty_entity(item.name);
-        close_entity(true);
+            this.empty_entity(item.name);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitReturnStmt(target: ReturnStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitNamespaceStmt(target: NamespaceStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('stmts', true);
+        this.open_entity('stmts', true);
         for (let item of target.stmts)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitTypeRef(target: TypeRef): void {
         let content : Field[] = [
@@ -398,419 +461,427 @@ export class WebAstPrinter extends DispatcherVoid
             content.push({name:'dims', value:target.dims.toString()});
         if (target.isPrimitive())
             content.push({name:'isPrimitive', value:'true'});
-        empty_entity(target.className(), content);
+        this.empty_entity(target.className(), content);
     }
     protected visitCaseStmt(target: CaseStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('stmts', true);
+        this.open_entity('stmts', true);
         for (let item of target.stmts)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitSwitchStmt(target: SwitchStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('cases', true);
+        this.open_entity('cases', true);
         for (let item of target.cases)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitIfStmt(target: IfStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('condition', true);
+        this.open_entity('condition', true);
         this.dispatch(target.condition);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('thenSize', true);
+        this.open_entity('thenSize', true);
         this.dispatch(target.thenSide);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('elseSide', true);
+        this.open_entity('elseSide', true);
         this.dispatch(target.elseSide);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitTernaryExpr(target: TernaryExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('condition', true);
+        this.open_entity('condition', true);
         this.dispatch(target.condition);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('thenSize', true);
+        this.open_entity('thenSize', true);
         this.dispatch(target.thenSide);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('elseSide', true);
+        this.open_entity('elseSide', true);
         this.dispatch(target.elseSide);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitForOfStmt(target: ForOfStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('variable', true);
+        this.open_entity('variable', true);
         this.dispatch(target.variable);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('stmt', true);
+        this.open_entity('stmt', true);
         this.dispatch(target.stmt);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitForStmt(target: ForStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('init', true);
+        this.open_entity('init', true);
         this.dispatch(target.init);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('condition', true);
+        this.open_entity('condition', true);
         this.dispatch(target.condition);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('fexpr', true);
+        this.open_entity('fexpr', true);
         this.dispatch(target.fexpr);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('stmt', true);
+        this.open_entity('stmt', true);
         this.dispatch(target.stmt);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitDoWhileStmt(target: DoWhileStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('stmt', true);
+        this.open_entity('stmt', true);
         this.dispatch(target.stmt);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('condition', true);
+        this.open_entity('condition', true);
         this.dispatch(target.condition);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitWhileStmt(target: WhileStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('condition', true);
+        this.open_entity('condition', true);
         this.dispatch(target.condition);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('stmt', true);
+        this.open_entity('stmt', true);
         this.dispatch(target.stmt);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitParameter(target: Parameter): void {
-        let content : Field[];
+        let content : Field[] = [];
         if (target.vararg)
             content.push({ name:'varargs', value:'true' });
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('type', true);
+        this.open_entity('type', true);
         this.dispatch(target.type);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.init)
         {
-            open_entity('init', true);
+            this.open_entity('init', true);
             this.dispatch(target.init);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitExpandExpr(target: ExpandExpr): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitClassStmt(target: ClassStmt): void {
-        open_entity(target.className(), true);
+        let content : Field[] = [];
+        if (target.isInterface)
+            content.push({ name:'interface', value: 'true' });
+        this.open_entity(target.className(), true, content);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.extended)
         {
-            open_entity('extended', true);
+            this.open_entity('extended', true);
             this.dispatch(target.extended);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.implemented && target.implemented.length > 0)
         {
-            open_entity('implemented', true);
+            this.open_entity('implemented', true);
             for (let item of target.implemented)
             this.dispatch(item);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.stmts && target.stmts.length > 0)
         {
-            open_entity('stmts', true);
+            this.open_entity('stmts', true);
             for (let item of target.stmts)
             this.dispatch(item);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitExprStmt(target: ExprStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('expr', true);
+        this.open_entity('expr', true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitBreakStmt(target: BreakStmt): void {
-        empty_entity(target.className());
+        this.empty_entity(target.className());
     }
     protected visitContinueStmt(target: ContinueStmt): void {
-        empty_entity(target.className());
+        this.empty_entity(target.className());
     }
     protected visitImportStmt(target: ImportStmt): void {
         let content : Field[] = [
             { name:'source', value:target.source }
         ];
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
-        open_entity('names', true);
+        this.open_entity('names', true);
         for (let item of target.names)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitVariableDecl(target: VariableDecl): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.type)
         {
-            open_entity('type', true);
+            this.open_entity('type', true);
             this.dispatch(target.type);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.init)
         {
-            open_entity('init', true);
+            this.open_entity('init', true);
             this.dispatch(target.init);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitVariableStmt(target: VariableStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('decls', true);
+        this.open_entity('decls', true);
         for (let item of target.decls)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitPropertyStmt(target: PropertyStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
         if (target.modifier?.values.length > 0)
         {
-            open_entity('modifier', true);
+            this.open_entity('modifier', true);
             this.dispatch(target.modifier);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.type)
         {
-            open_entity('type', true);
+            this.open_entity('type', true);
             this.dispatch(target.type);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.init)
         {
-            open_entity('init', true);
+            this.open_entity('init', true);
             this.dispatch(target.init);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitTryCatchStmt(target: TryCatchStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('try', true);
+        this.open_entity('try', true);
         this.dispatch(target.block);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.cblock)
         {
-            open_entity('catch', true);
+            this.open_entity('catch', true);
             this.dispatch(target.cblock);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.fblock)
         {
-            open_entity('finally', true);
+            this.open_entity('finally', true);
             this.dispatch(target.fblock);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
     protected visitThrowStmt(target: ThrowStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
         this.dispatch(target.expr);
-        close_entity(true);
+        this.close_entity(true);
     }
 
     protected visitEnumDecl(target: EnumDecl): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.init)
         {
-            open_entity('init', true);
+            this.open_entity('init', true);
             this.dispatch(target.init);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
 
     protected visitEnumStmt(target: EnumStmt): void {
-        open_entity(target.className(), true);
+        this.open_entity(target.className(), true);
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('values', true);
+        this.open_entity('values', true);
         for (let item of target.values)
             this.dispatch(item);
-        close_entity(true);
+        this.close_entity(true);
 
-        close_entity(true);
+        this.close_entity(true);
     }
 
     visitBlockStmt(target: BlockStmt): void {
-        open_entity(target.className(), target.stmts.length > 0);
+        this.open_entity(target.className(), target.stmts.length > 0);
         for (let stmt of target.stmts)
             this.dispatch(stmt);
-        close_entity(target.stmts.length > 0);
+        this.close_entity(target.stmts.length > 0);
     }
 
     visitFunctionStmt(target: FunctionStmt): void {
         let content : Field[] = [];
         if (target.accessor)
             content.push({ name:'accessor', value:target.accessor.name});
-        open_entity(target.className(), true, content);
+        this.open_entity(target.className(), true, content);
 
         if (target.modifier?.values.length > 0)
         {
-            open_entity('modifier', true);
+            this.open_entity('modifier', true);
             this.dispatch(target.modifier);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        open_entity('name', true);
+        this.open_entity('name', true);
         this.dispatch(target.name);
-        close_entity(true);
+        this.close_entity(true);
 
-        open_entity('type', true);
+        this.open_entity('type', true);
         this.dispatch(target.type);
-        close_entity(true);
+        this.close_entity(true);
 
         if (target.params.length > 0)
         {
-            open_entity('params', true);
+            this.open_entity('params', true);
             for (let item of target.params)
                 this.dispatch(item);
-            close_entity(true);
+            this.close_entity(true);
         }
 
         if (target.body)
         {
-            open_entity('body', true);
+            this.open_entity('body', true);
             this.dispatch(target.body);
-            close_entity(true);
+            this.close_entity(true);
         }
 
-        close_entity(true);
+        this.close_entity(true);
     }
 
     visitUnit(target: Unit): void {
-        open_entity('Unit', target.stmts.length > 0,
+        this.open_entity('Unit', target.stmts.length > 0,
             [{name:'fileName', value: basename(target.fileName), tooltip: target.fileName}]);
         for (let stmt of target.stmts)
             this.dispatch(stmt);
-        close_entity(target.stmts.length > 0);
-    }
-    renderUnit( target : Unit ) : void
-    {
-        print(`<html><head><style>${CSS}</style><title></title></head>
-        <script>${SCRIPT}</script><body><ul class="ast">`);
-        this.visitUnit(target);
-        print('</ul></body></html>');
+        this.close_entity(target.stmts.length > 0);
     }
 
-    renderModule( targets : Unit[] ) : void
+    renderUnit( target : Unit ) : void
     {
-        print(`<html><head><style>${CSS}</style><title></title></head>
+        this.print(`<html><head><style>${CSS}</style><title></title></head>
         <script>${SCRIPT}</script><body><ul class="ast">`);
-        open_entity('Module', true);
+        this.visitUnit(target);
+        this.print('</ul></body></html>');
+    }
+
+    renderModule( targets : Unit[] ) : string
+    {
+        this.print(`<html><head><style>${CSS}</style><title></title></head>
+        <script>${SCRIPT}</script><body><ul class="ast">`);
+        this.open_entity('Module', true);
         for (let item of targets)
             this.visitUnit(item);
-        close_entity(true);
-        print('</ul></body></html>');
+        this.close_entity(true);
+        this.print('</ul></body></html>');
+        let output = this.sbuf.toString();
+        console.log(output.length);
+        this.sbuf.clear();
+        return output;
     }
 }

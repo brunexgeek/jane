@@ -1,5 +1,5 @@
 /*
- *   Copyright 2020 Bruno Ribeiro
+ *   Copyright 2019-2021 Bruno Ribeiro
  *   <https://github.com/brunexgeek/jane>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,147 +16,203 @@
  */
 
 import {
-	Tokenizer,
-	Scanner,
-	Token,
-	TokenType } from './tokenizer';
+    Tokenizer,
+    Scanner,
+    Token,
+    TokenType } from './tokenizer';
 import {
-	Compiler,
-	CompilationListener,
-	CompilationContext,
-	SourceLocation } from './compiler';
+    Compiler,
+    CompilationListener,
+    CompilationContext,
+    SourceLocation } from './compiler';
 import { Unit } from './types';
 import { Parser } from './parser';
 import { WebAstPrinter } from './astprinter';
-import { Logger, readfile, realpath } from './utils';
+import { Logger, readfile, realpath, StringBuffer } from './utils';
 import { PortableGenerator } from './codegen';
-
-class MyListener implements CompilationListener
-{
-	failed = false;
-
-	onStart() {
-	}
-
-	onError(location: SourceLocation, error : Error): boolean {
-		if (location)
-			Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
-		else
-			Logger.writeln('<unkown source>:0:0: ERROR - ' + error.message);
-		//Logger.writeln(error.stack);
-		//process.exit(1);
-		this.failed = true;
-		return false;
-	}
-
-	onWarning(location: SourceLocation, message: string): boolean {
-		Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
-		return true;
-	}
-
-	onFinish() {
-	}
-
-}
-
 
 declare let require: any;
 require('source-map-support').install();
 let fs = require("fs");
-let util = require("util");
 let process = require("process");
+const yargs = require('yargs');
 
-if (process.argv.length != 4)
+class MyListener implements CompilationListener
 {
-	console.log('Usage: node jane.js (generate | tokenize | ast) <input file>');
-	process.exit(1);
+    failed = false;
+
+    onStart() {
+    }
+
+    onError(location: SourceLocation, error : Error): boolean {
+        if (location)
+            Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': ERROR - ' + error.message);
+        else
+            Logger.writeln('<unkown source>:0:0: ERROR - ' + error.message);
+        //Logger.writeln(error.stack);
+        //process.exit(1);
+        this.failed = true;
+        return false;
+    }
+
+    onWarning(location: SourceLocation, message: string): boolean {
+        Logger.writeln(location.fileName + ':' + location.line + ":" + location.column + ': WARN - ' + message);
+        return true;
+    }
+
+    onFinish() {
+    }
+
 }
 
-let mode = process.argv[2];
-let inputFileName = process.argv[3];
-let outputFileName = process.argv[4];
-let listener = new MyListener();
-
-if (mode == 'tokenize')
+function parse_arguments( args : string[] )
 {
-	let ctx = new CompilationContext(listener);
-	let source : string = readfile(inputFileName);
-	let scanner = new Scanner(ctx, inputFileName, source);
-	let tk = new Tokenizer(ctx, scanner);
-	console.log('<html><body>');
-	let tok : Token = null;
-	while ((tok = tk.next()).type != TokenType.EOF)
-	{
-		let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.name) + '</strong> ';
-		if (tok.lexeme)
-		{
-			let color = '#070';
-			if (tok.type == TokenType.SSTRING ||
-				tok.type == TokenType.DSTRING ||
-				tok.type == TokenType.TSTRING)
-			 	color = '#f70';
-			text += `<span style='color: ${color}'><i>${tok.lexeme}</i></span>`;
-		}
-		if (tok.location) text += ' at ' + tok.location.line + ':' + tok.location.column;
-		console.log('<p>' + text + '</p>');
-		///let tmp = document.createElement("span");
-		//tmp.innerHTML = tok.value;
-		//body.appendChild(tmp);
-	}
-	console.log('</body></html>');
+    return yargs
+    .command('generate', 'Transpiles Jane to ANSI C89', {
+        input: {
+            description: 'Source filename',
+            alias: 'i',
+            type: 'string',
+            demandOption: true
+        },
+        output: {
+            description: 'Output C89 file',
+            alias: 'o',
+            type: 'string',
+            demandOption: true
+        }
+    })
+    .command('ast', 'Generate an HTML representation of the AST', {
+        input: {
+            description: 'Source filename',
+            alias: 'i',
+            type: 'string',
+            demandOption: true
+        },
+        output: {
+            description: 'Output HTML file',
+            alias: 'o',
+            type: 'string',
+            demandOption: true
+        }
+    })
+    .command('tokenize', 'Generate an HTML file with every token', {
+        input: {
+            description: 'Source filename',
+            alias: 'i',
+            type: 'string',
+            demandOption: true
+        },
+        output: {
+            description: 'Output HTML file',
+            alias: 'o',
+            type: 'string',
+            demandOption: true
+        }
+    })
+    .demandCommand(1, 'No command specified')
+    .help()
+    .alias('help', 'h')
+    .argv;
 }
-else
+
+function main( args : string[] )
 {
-	let comp = new Compiler(listener);
-	let units = comp.compile(realpath(inputFileName));
+    let config = parse_arguments(args);
+    let listener = new MyListener();
 
-	//for (let type of comp.ctx.types.values())
-	//	Logger.writeln(`Defined type '${type.name}'`);
-	for (let unit of comp.ctx.units.values())
-	{
-		Logger.writeln(`Unit ${unit.fileName}`);
-		if (unit.variables.size > 0)
-		{
-			Logger.writeln(`   Variables`);
-			for (let item of unit.variables.values())
-				Logger.writeln(`      ${item.toString()}`);
-		}
-		if (unit.functions.size > 0)
-		{
-			Logger.writeln(`   Functions`);
-			for (let item of unit.functions.values())
-				Logger.writeln(`      ${item.toString()}`);
-		}
-		if (unit.types.size > 0)
-		{
-			Logger.writeln(`   Types`);
-			for (let item of unit.types.values())
-				Logger.writeln(`      ${item.toString()}`);
-		}
-		if (unit.generics.size > 0)
-		{
-			Logger.writeln(`   Generics`);
-			for (let item of unit.generics.values())
-				Logger.writeln(`      ${item.toString()}`);
-		}
-	}
+    if (config._ == 'tokenize')
+    {
+        let ctx = new CompilationContext(listener);
+        let source : string = readfile(config.input);
+        let scanner = new Scanner(ctx, config.input, source);
+        let tk = new Tokenizer(ctx, scanner);
+        let sbuf : StringBuffer = new StringBuffer();
+        let tok : Token = null;
 
-	if (mode == 'ast' && comp.ctx.units.size > 0)
-	{
-		//console.log(util.inspect(unit, {showHidden: false, depth: null}))
-		let visitor = new WebAstPrinter();
-		visitor.renderModule(comp.ctx.units.values());
-	}
-	else
-	if (mode == 'generate' && comp.ctx.units.size > 0)
-	{
-		let codegen = new PortableGenerator(comp.ctx);
-		let code = codegen.generate(comp.ctx.units.values()[0]);
-		console.log(code);
-	}
-	console.error(Logger.toString());
-	if (listener.failed)
-		process.exit(1);
-	else
-		process.exit(0);
+        sbuf.writeln('<html><body>');
+        while ((tok = tk.next()).type != TokenType.EOF)
+        {
+            let text = '<strong>' + ((tok.type === null) ? "???" : tok.type.name) + '</strong> ';
+            if (tok.lexeme)
+            {
+                let color = '#070';
+                if (tok.type == TokenType.SSTRING ||
+                    tok.type == TokenType.DSTRING ||
+                    tok.type == TokenType.TSTRING)
+                    color = '#f70';
+                text += `<span style='color: ${color}'><i>${tok.lexeme}</i></span>`;
+            }
+            if (tok.location) text += ' at ' + tok.location.line + ':' + tok.location.column;
+            sbuf.writeln('<p>' + text + '</p>');
+            ///let tmp = document.createElement("span");
+            //tmp.innerHTML = tok.value;
+            //body.appendChild(tmp);
+        }
+        sbuf.writeln('</body></html>');
+
+        fs.writeFileSync(config.output, sbuf.toString(), {flags:'w'});
+    }
+    else
+    {
+        let comp = new Compiler(listener);
+        let units = comp.compile(realpath(config.input));
+
+        //for (let type of comp.ctx.types.values())
+        //	Logger.writeln(`Defined type '${type.name}'`);
+        for (let unit of comp.ctx.units.values())
+        {
+            Logger.writeln(`Unit ${unit.fileName}`);
+            if (unit.variables.size > 0)
+            {
+                Logger.writeln(`   Variables`);
+                for (let item of unit.variables.values())
+                    Logger.writeln(`      ${item.toString()}`);
+            }
+            if (unit.functions.size > 0)
+            {
+                Logger.writeln(`   Functions`);
+                for (let item of unit.functions.values())
+                    Logger.writeln(`      ${item.toString()}`);
+            }
+            if (unit.types.size > 0)
+            {
+                Logger.writeln(`   Types`);
+                for (let item of unit.types.values())
+                    Logger.writeln(`      ${item.toString()}`);
+            }
+            if (unit.generics.size > 0)
+            {
+                Logger.writeln(`   Generics`);
+                for (let item of unit.generics.values())
+                    Logger.writeln(`      ${item.toString()}`);
+            }
+        }
+
+        if (config._ == 'ast' && comp.ctx.units.size > 0)
+        {
+            //console.log(util.inspect(unit, {showHidden: false, depth: null}))
+            let visitor = new WebAstPrinter();
+            let html = visitor.renderModule(comp.ctx.units.values());
+            fs.writeFileSync(config.output, html, {flags:'w'});
+        }
+        else
+        if (config._ == 'generate' && comp.ctx.units.size > 0)
+        {
+            let codegen = new PortableGenerator(comp.ctx);
+            let i = 0;
+            for (let unit of comp.ctx.units.values())
+            {
+                let code = codegen.generate(unit);
+                fs.writeFileSync(`${config.output}-${i++}.c`, code, {flags:'w'});
+            }
+        }
+        console.error(Logger.toString());
+        if (listener.failed)
+            process.exit(1);
+        else
+            process.exit(0);
+    }
 }
+
+main(process.argv);
