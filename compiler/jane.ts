@@ -181,12 +181,6 @@ function main( args : string[] )
                 for (let item of unit.types.values())
                     Logger.writeln(`      ${item.toString()}`);
             }
-            if (unit.generics.size > 0)
-            {
-                Logger.writeln(`   Generics`);
-                for (let item of unit.generics.values())
-                    Logger.writeln(`      ${item.toString()}`);
-            }
         }
 
         if (config._ == 'ast' && comp.ctx.units.size > 0)

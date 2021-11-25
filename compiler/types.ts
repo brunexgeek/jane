@@ -1,6 +1,6 @@
 
 /*
- *   Copyright 2019-2021 Bruno Ribeiro
+ *   Copyright 2021 Bruno Ribeiro
  *   <https://github.com/brunexgeek/jane>
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
@@ -624,7 +624,6 @@ export class ExpandExpr extends Expr
 export class FunctionStmt implements IStmt
 {
 	name : Name;
-	generics : Name[];
 	params : Parameter[];
 	type : TypeRef;
 	body : BlockStmt;
@@ -633,10 +632,9 @@ export class FunctionStmt implements IStmt
 	unit : Unit = null;
 	parent : INode = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], params : Parameter[], type : TypeRef, body : BlockStmt, modifier : Modifier = null, location : SourceLocation = null )
+	constructor( name : Name, params : Parameter[], type : TypeRef, body : BlockStmt, modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
-		this.generics = generics;
 		this.params = params;
 		this.type = type;
 		this.body = body;
@@ -666,14 +664,12 @@ export class FunctionStmt implements IStmt
         result += `):${this.type.toString()}`;
         return result;
     }
-    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
     get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
     get isAbstract() : boolean { return this.body == null; }
 }
 export class ClassStmt implements IStmt
 {
 	name : Name;
-	generics : Name[];
 	extended : TypeRef;
 	implemented : TypeRef[];
 	stmts : IStmt[];
@@ -682,10 +678,9 @@ export class ClassStmt implements IStmt
 	unit : Unit = null;
 	parent : Unit = null;
 	location : SourceLocation;
-	constructor( name : Name, generics : Name[], extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], modifier : Modifier = null, location : SourceLocation = null )
+	constructor( name : Name, extended : TypeRef, implemented : TypeRef[], stmts : IStmt[], modifier : Modifier = null, location : SourceLocation = null )
 	{
 		this.name = name;
-		this.generics = generics;
 		this.extended = extended;
 		this.implemented = implemented;
 		this.stmts = stmts;
@@ -711,7 +706,6 @@ toString() : string
         }
         return result;
     }
-    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
     isDerived( qname : string ) : boolean
     {
         if (this.extended && this.extended.name.qualified == qname)
@@ -1101,7 +1095,6 @@ export class Unit implements INode
 	imports : ImportStmt[];
 	variables : StrVarMap = new StrVarMap();
 	types : StrClassMap = new StrClassMap();
-	generics : StrClassMap = new StrClassMap();
 	functions : StrFuncMap = new StrFuncMap();
 	enums : StrEnumMap = new StrEnumMap();
 	imports_ : StrIStmtMap = new StrIStmtMap();

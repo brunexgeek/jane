@@ -260,8 +260,6 @@ export class Parser
             this.unit.imports = imports;
             this.unit.stmts = stmts;
 
-            for (let stmt of this.unit.generics.values())
-                stmt.parent = this.unit;
             for (let stmt of this.unit.types.values())
                 stmt.parent = this.unit;
             for (let stmt of this.unit.functions.values())
@@ -415,9 +413,6 @@ export class Parser
         let name = this.ctx.currentNamespace;
         name.push( this.consumeEx('Missing function name', TokenType.NAME).lexeme );
 
-        //let generics = this.parseGenerics();
-        let generics = null;
-
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
         if (this.peekType() != TokenType.RIGHT_PAREN)
@@ -439,7 +434,7 @@ export class Parser
 
         let block = this.parseBlock();
 
-        return new FunctionStmt(name, generics, args, type, block, modifier, name.location);
+        return new FunctionStmt(name, args, type, block, modifier, name.location);
     }
 
     parseName( qualified : boolean = false ) : Name
@@ -945,13 +940,7 @@ export class Parser
                 {
                 let stmt = this.parseClass(modifier);
                 let qname = stmt.name.qualified;
-                if (stmt.isGeneric)
-                    this.unit.generics.set(qname, stmt);
-                else
-                {
-                    this.unit.types.set(qname, stmt);
-                    //this.ctx.types.set(qname, stmt);
-                }
+                this.unit.types.set(qname, stmt);
                 return stmt;
             }
             case TokenType.ENUM:
@@ -1049,7 +1038,7 @@ export class Parser
         }
         this.consume(TokenType.RIGHT_BRACE);
 
-        let result = new ClassStmt(name, generics, extended, implemented, stmts, modifier);
+        let result = new ClassStmt(name, extended, implemented, stmts, modifier);
         result.isInterface = type.lexeme == 'interface';
         for (let stmt of stmts)
             if (stmt instanceof VariableStmt || stmt instanceof FunctionStmt) stmt.parent = result;
@@ -1058,9 +1047,6 @@ export class Parser
 
     parseMethod( name : Name ) : FunctionStmt
     {
-        //let generics = this.parseGenerics();
-        let generics = null;
-
         let args : Parameter[] = [];
         this.consume(TokenType.LEFT_PAREN);
         if (this.peekType() != TokenType.RIGHT_PAREN)
@@ -1086,7 +1072,7 @@ export class Parser
         else
             this.consume(TokenType.SEMICOLON);
 
-        return new FunctionStmt(name, generics, args, type, block);
+        return new FunctionStmt(name, args, type, block);
     }
 
     parseModifier() : Modifier
@@ -1345,29 +1331,28 @@ let stringName = new Name(['string']);
 
 export function createObject() : ClassStmt
 {
-    return new ClassStmt(objectName, null, null, null, [], new Modifier([TokenType.EXPORT]));
+    return new ClassStmt(objectName, null, null, [], new Modifier([TokenType.EXPORT]));
 }
 
 export function createString() : ClassStmt
 {
     let stmt1 = new FunctionStmt(
         new Name(['indexOf']),
-        null,
         [new Parameter(new Name(['value']), new TypeRef(TypeId.STRING, new Name(['string']), 0), null, false)],
         new TypeRef(TypeId.NUMBER, new Name(['number']), 0),
         null);
     let stmt2 = new VariableStmt(
         [ new VariableDecl(new Name(['length'], null), new TypeRef(TypeId.NUMBER, new Name(['number']), 0), null, false) ]
         );
-    return new ClassStmt(stringName, null, null, null, [stmt1, stmt2], new Modifier([TokenType.EXPORT]));
+    return new ClassStmt(stringName, null, null, [stmt1, stmt2], new Modifier([TokenType.EXPORT]));
 }
 
 export function createCallable() : ClassStmt
 {
-    return new ClassStmt(callableName, null, objectRef, null, [], new Modifier([TokenType.EXPORT]));
+    return new ClassStmt(callableName, objectRef, null, [], new Modifier([TokenType.EXPORT]));
 }
 
 export function createError() : ClassStmt
 {
-    return new ClassStmt(errorName, null, null, null, [], new Modifier([TokenType.EXPORT]));
+    return new ClassStmt(errorName, null, null, [], new Modifier([TokenType.EXPORT]));
 }

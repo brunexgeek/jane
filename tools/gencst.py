@@ -397,7 +397,6 @@ printType('ExpandExpr', [
 
 printType('FunctionStmt', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'params', 'type' : 'Parameter[]'},
     {'name' : 'type', 'type' : 'TypeRef'},
     {'name' : 'body', 'type' : 'BlockStmt'},
@@ -427,7 +426,6 @@ sys.stdout.write('''
         result += `):${this.type.toString()}`;
         return result;
     }
-    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
     get isStatic() : boolean { return this.modifier && this.modifier.isStatic; }
     get isAbstract() : boolean { return this.body == null; }
 }
@@ -435,7 +433,6 @@ sys.stdout.write('''
 
 printType('ClassStmt', [
     {'name' : 'name', 'type' : 'Name'},
-    {'name' : 'generics', 'type' : 'Name[]'},
     {'name' : 'extended', 'type' : 'TypeRef'},
     {'name' : 'implemented', 'type' : 'TypeRef[]'},
     {'name' : 'stmts', 'type' : 'IStmt[]'},
@@ -461,7 +458,6 @@ sys.stdout.write('''toString() : string
         }
         return result;
     }
-    get isGeneric() : boolean { return this.generics && this.generics.length > 0; }
     isDerived( qname : string ) : boolean
     {
         if (this.extended && this.extended.name.qualified == qname)
@@ -558,7 +554,6 @@ printType('Unit', [
     {'name' : 'imports', 'type' : 'ImportStmt[]'},
     {'name' : 'variables', 'type' : 'StrVarMap', 'init' : 'new StrVarMap()', 'ctor' : False},
     {'name' : 'types', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
-    {'name' : 'generics', 'type' : 'StrClassMap', 'init' : 'new StrClassMap()', 'ctor' : False},
     {'name' : 'functions', 'type' : 'StrFuncMap', 'init' : 'new StrFuncMap()', 'ctor' : False},
     {'name' : 'enums', 'type' : 'StrEnumMap', 'init' : 'new StrEnumMap()', 'ctor' : False},
     # map full qualified names to statements

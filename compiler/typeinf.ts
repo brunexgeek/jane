@@ -164,8 +164,6 @@ export class TypeInference extends DispatcherTypeRef
         if (stmt) return stmt;
         stmt = <IStmt> unit.enums.get(name);
         if (stmt) return stmt;
-        stmt = <IStmt> unit.generics.get(name);
-        if (stmt) return stmt;
         return null;
     }
 
@@ -657,7 +655,7 @@ export class TypeInference extends DispatcherTypeRef
         if (type == null)
         {
             let length = new VariableStmt([ new VariableDecl(new Name(['length']), this.createTypeRefById(TypeId.NUMBER), null, false)]);
-            type = new ClassStmt(new Name([name]), null, null, null, [length]);
+            type = new ClassStmt(new Name([name]), null, null, [length]);
             this.ctx.array_types.set(name, type);
         }
         let result = this.createTypeRef(name);

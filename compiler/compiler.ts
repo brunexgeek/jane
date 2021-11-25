@@ -147,15 +147,21 @@ export class Compiler
         let inf = new TypeInference(this.ctx);
         for (let unit of this.ctx.units.values())
             inf.processImports(unit);
-        //for (let unit of this.ctx.units.values())
-        //    inf.visitUnit(unit);
+        for (let unit of this.ctx.units.values())
+            inf.visitUnit(unit);
     }
 
     compile( fileName : string ) : boolean
     {
+        // generate AST
         this.parseSource(fileName);
         if (this.hasError) return false;
-        this.typeInference();
+        // TODO: process imports
+        // TODO: type inference for classes, global variables and function prototypes
+        // TODO: type inference for function and method bodies
+        // TODO: AST simplification (e.g. for...of -> for)
+        // TODO: AST optimizations (e.g. dead code elimination, promote objects to stack)
+        // TODO: code generation
         return true;
     }
 
