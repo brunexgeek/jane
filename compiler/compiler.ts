@@ -64,7 +64,7 @@ export class CompilationContext
     units : StrUnitMap = new StrUnitMap();
     //types : StrClassMap = new StrClassMap();
     namespaceStack : Name[] = [];
-    array_types: StrClassStmtMap;
+    array_types: StrClassStmtMap = new StrClassStmtMap();
 
 	constructor( listener : CompilationListener )
 	{

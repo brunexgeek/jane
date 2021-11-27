@@ -202,8 +202,23 @@ export class TypeInference extends DispatcherTypeRef
     }
 
     protected visitTernaryExpr(target: TernaryExpr): TypeRef {
-        // TODO: implement
-        return TypeRef.VOID;
+        let cond = this.dispatch(target.condition);
+        let left = this.dispatch(target.thenSide);
+        let right = this.dispatch(target.elseSide);
+        if (cond != null && left != null && right != null)
+        {
+            if (cond.tid != TypeId.BOOLEAN)
+            {
+                this.error(target.location, `Ternary condition expression must evaluate to a boolean value`);
+                return TypeRef.INVALID;
+            }
+            if (!this.checkCompatibleTypes(left, right))
+            {
+                this.error(target.location, `Incompatible types for ternary operator ('${left}' and '${right}')`);
+                return TypeRef.INVALID;
+            }
+            return left;
+        }
     }
 
     protected visitTemplateStringExpr(target: TemplateStringExpr): TypeRef
@@ -288,12 +303,14 @@ export class TypeInference extends DispatcherTypeRef
         {
             // check for known types
             let stmt : IStmt = this.unit.types.get(name);
+            if (!stmt) stmt = this.unit.functions.get(name);
+            if (!stmt) stmt = this.unit.enums.get(name);
             if (!stmt) stmt = this.unit.imports_.get(name);
-            if (stmt && stmt instanceof ClassStmt)
+            if (stmt)
             {
                 entry = new ScopeEntry();
                 entry.target = stmt;
-                entry.type = new TypeRef(TypeId.OBJECT, (<ClassStmt>stmt).name, 0);
+                entry.type = new TypeRef(TypeId.OBJECT, new Name([name]), 0);
                 entry.type.ref = stmt;
             }
         }
@@ -312,7 +329,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitStringLiteral(target: StringLiteral) : TypeRef
     {
-        return this.createTypeRefById(TypeId.STRING);
+        return target.resolvedType_ = this.createTypeRefById(TypeId.STRING);
     }
 
     visitNumberLiteral(target: NumberLiteral) : TypeRef
@@ -321,9 +338,9 @@ export class TypeInference extends DispatcherTypeRef
         {
             let value = Number.parseFloat(target.value);
             if (value > 3.4028234664e+38 || value < 1.1754943508e-38)
-                return this.createTypeRefById(TypeId.DOUBLE);
+                return target.resolvedType_ = this.createTypeRefById(TypeId.DOUBLE);
             else
-                return this.createTypeRefById(TypeId.FLOAT);
+                return target.resolvedType_ = this.createTypeRefById(TypeId.FLOAT);
         }
         else
         {
@@ -332,51 +349,53 @@ export class TypeInference extends DispatcherTypeRef
             let value = Number.parseInt(target.value);
             if (value > 0)
             {
-                if (value <= 0x7F) return this.createTypeRefById(TypeId.BYTE);
-                if (value <= 0xFF) return this.createTypeRefById(TypeId.UBYTE);
-                if (value <= 0x7FFF) return this.createTypeRefById(TypeId.SHORT);
-                if (value <= 0xFFFF) return this.createTypeRefById(TypeId.USHORT);
-                if (value <= 0x7FFFFFFF) return this.createTypeRefById(TypeId.INT);
-                if (value <= 0xFFFFFFFF) return this.createTypeRefById(TypeId.UINT);
-                if (value <= 0x7FFFFFFFFFFFFFFF) return this.createTypeRefById(TypeId.LONG);
-                return this.createTypeRefById(TypeId.ULONG);
+                if (value <= 0x7F) return target.resolvedType_ = this.createTypeRefById(TypeId.BYTE);
+                if (value <= 0xFF) return target.resolvedType_ = this.createTypeRefById(TypeId.UBYTE);
+                if (value <= 0x7FFF) return target.resolvedType_ = this.createTypeRefById(TypeId.SHORT);
+                if (value <= 0xFFFF) return target.resolvedType_ = this.createTypeRefById(TypeId.USHORT);
+                if (value <= 0x7FFFFFFF) return target.resolvedType_ = this.createTypeRefById(TypeId.INT);
+                if (value <= 0xFFFFFFFF) return target.resolvedType_ = this.createTypeRefById(TypeId.UINT);
+                if (value <= 0x7FFFFFFFFFFFFFFF) return target.resolvedType_ = this.createTypeRefById(TypeId.LONG);
+                return target.resolvedType_ = this.createTypeRefById(TypeId.ULONG);
             }
             else
             {
-                if (value <= 0x7F) return this.createTypeRefById(TypeId.BYTE);
-                if (value <= 0x7FFF) return this.createTypeRefById(TypeId.SHORT);
-                if (value <= 0x7FFFFFFF) return this.createTypeRefById(TypeId.INT);
-                return this.createTypeRefById(TypeId.LONG);
+                if (value <= 0x7F) return target.resolvedType_ = this.createTypeRefById(TypeId.BYTE);
+                if (value <= 0x7FFF) return target.resolvedType_ = this.createTypeRefById(TypeId.SHORT);
+                if (value <= 0x7FFFFFFF) return target.resolvedType_ = this.createTypeRefById(TypeId.INT);
+                return target.resolvedType_ = this.createTypeRefById(TypeId.LONG);
             }
         }
     }
 
     visitBoolLiteral(target: BoolLiteral) : TypeRef
     {
-        return this.createTypeRefById(TypeId.BOOLEAN);
+        return target.resolvedType_ = this.createTypeRefById(TypeId.BOOLEAN);
     }
 
     visitNameLiteral(target: NameLiteral) : TypeRef
     {
         let entry = this.find(target.value);
         if (entry == null)
-            throw this.error(target.location, `Cannot find name '${target.value}'`);
+        {
+            this.error(target.location, `Cannot find name '${target.value}'`);
+            return TypeRef.INVALID;
+        }
         else
         {
             //Logger.writeln('---- visitNameLiteral -> ' + target.value + ' is a ' + entry.type.qualified);
-            target.resolvedType_ = entry.type;
-            return entry.type;
+            return target.resolvedType_ = entry.type;
         }
     }
 
     visitGroup(target: Group) : TypeRef
     {
-        return this.dispatch(target.expr);
+        return target.resolvedType_ = this.dispatch(target.expr);
     }
 
     visitNullLiteral(target: NullLiteral) : TypeRef
     {
-        return TypeRef.VOID;
+        return target.resolvedType_ = this.createTypeRefById(TypeId.OBJECT);
     }
 
     visitLogicalExpr(target: LogicalExpr) : TypeRef
@@ -386,10 +405,13 @@ export class TypeInference extends DispatcherTypeRef
         if (left != null && right != null)
         {
             if (!this.checkCompatibleTypes(left, right))
-                throw this.error(target.location, 'Incompatible types for logical operator');
-            return new TypeRef(TypeId.BOOLEAN, new Name(['boolean']), 0);
+            {
+                this.error(target.location, 'Incompatible types for logical operator');
+                return TypeRef.INVALID;
+            }
+            return target.resolvedType_ = new TypeRef(TypeId.BOOLEAN, new Name(['boolean']), 0);
         }
-        return null;
+        return target.resolvedType_ = TypeRef.INVALID;
     }
 
     visitBinaryExpr(target: BinaryExpr) : TypeRef
@@ -399,12 +421,18 @@ export class TypeInference extends DispatcherTypeRef
         if (left != null && right != null)
         {
             if (!this.checkCompatibleTypes(left, right))
-                throw this.error(target.location, `Incompatible types for binary operator ('${left}' and '${right}')`);
+            {
+                this.error(target.location, `Incompatible types for binary operator ('${left}' and '${right}')`);
+                return TypeRef.INVALID;
+            }
             if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS)
-                throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
-            return left;
+            {
+                this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
+                return TypeRef.INVALID;
+            }
+            return target.resolvedType_ = left;
         }
-        return null;
+        return target.resolvedType_ = TypeRef.INVALID;
     }
 
     isNumeric( target : TypeRef )
@@ -448,15 +476,21 @@ export class TypeInference extends DispatcherTypeRef
         let left = this.dispatch(target.left);
         let right = this.dispatch(target.right);
         if (!this.isAssignable(left, right))
-            throw this.error(target.location, `Incompatible types for assignment ('${left}' and '${right}')`);
+        {
+            this.error(target.location, `Incompatible types for assignment ('${left}' and '${right}')`);
+            return TypeRef.INVALID;
+        }
         if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
-            throw this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
-        return left;
+        {
+            this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
+            return TypeRef.INVALID;
+        }
+        return target.resolvedType_ = left;
     }
 
     visitUnaryExpr(target: UnaryExpr) : TypeRef
     {
-        return this.dispatch(target.expr);
+        return target.resolvedType_ = this.dispatch(target.expr);
     }
 
     visitCallExpr(target: CallExpr) : TypeRef
@@ -464,25 +498,22 @@ export class TypeInference extends DispatcherTypeRef
         this.dispatch(target.callee);
         //if (!target.callee.resolvedType() || target.callee.resolvedType().isPrimitive())
         //    this.error(target.location, 'Only functions and methods can be called');
-        return target.callee.resolvedType();
+        return target.resolvedType_ = target.callee.resolvedType();
     }
 
     visitArrayExpr(target: ArrayExpr) : TypeRef
     {
         if (target.values.length > 0)
         {
-            let type = this.dispatch(target.values[0]);
-            let name = `array_1_${type.name}`;
-            let tref = this.createTypeRef(name);
-            tref.ref = <ClassStmt>this.unit.imports_.get(name);
-            return tref;
+            const type = this.dispatch(target.values[0]); // TODO: check all elements and use the biggest type
+            return target.resolvedType_ = new TypeRef(type.tid, type.name, type.dims+1, type.location);
         }
-        return TypeRef.INVALID;
+        return target.resolvedType_ = TypeRef.INVALID;
     }
 
     visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
     {
-        return this.dispatch(target.callee);
+        return target.resolvedType_ = this.dispatch(target.callee);
     }
 
     findMember( name : string, target : ClassStmt ) : IStmt
@@ -491,12 +522,12 @@ export class TypeInference extends DispatcherTypeRef
         {
             if (stmt instanceof FunctionStmt && stmt.name.canonical == name)
             {
-                if (!stmt.type.ref) this.dispatch(stmt.type);
+                if (!stmt.type?.ref) this.dispatch(stmt.type);
                 return stmt;
             }
             if (stmt instanceof PropertyStmt && stmt.name.canonical == name)
             {
-                if (!stmt.type.ref) this.dispatch(stmt.type);
+                if (!stmt.type?.ref) this.dispatch(stmt.type);
                 return stmt;
             }
             //if (stmt instanceof PropertyStmt) Logger.writeln('---- findMember: ' + stmt.name.canonical);
@@ -529,7 +560,8 @@ export class TypeInference extends DispatcherTypeRef
             if (stmt instanceof FunctionStmt)
                 return target.resolvedType_ = stmt.type;
         }
-        throw this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
+        this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
+        return TypeRef.INVALID;
     }
 
     visitOptChainingExpr(target: OptChainingExpr) : TypeRef
@@ -546,12 +578,13 @@ export class TypeInference extends DispatcherTypeRef
             if (stmt instanceof FunctionStmt)
                 return target.resolvedType_ = stmt.type;
         }
-        throw this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
+        this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
+        return TypeRef.INVALID;
     }
 
     visitNewExpr(target: NewExpr) : TypeRef
     {
-        return target.type = this.dispatch(target.type);
+        return target.type = target.resolvedType_ = this.dispatch(target.type);
     }
 
     visitModifier(target: Modifier) : TypeRef
@@ -661,7 +694,8 @@ export class TypeInference extends DispatcherTypeRef
         {
             imps += (<ClassStmt>name).name + ' ';
         }*/
-        throw this.error(type.location, `Unknown type '${name}'`);
+        this.error(type.location, `Unknown type '${name}'`);
+        return TypeRef.INVALID;
     }
 
     createArrayType( dims : number, ref : TypeRef ) : TypeRef
@@ -682,8 +716,8 @@ export class TypeInference extends DispatcherTypeRef
 
     visitTypeRef(target: TypeRef) : TypeRef
     {
-        if (target.dims > 0)
-            return this.createArrayType(target.dims, target);
+        //if (target.dims > 0)
+        //    return this.createArrayType(target.dims, target);
         return this.resolveType(target);
     }
 
@@ -742,7 +776,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitExpandExpr(target: ExpandExpr) : TypeRef
     {
-        return TypeRef.VOID; // unused
+        return target.resolvedType_ = TypeRef.INVALID; // unused
     }
 
     visitFunctionStmt(target: FunctionStmt) : TypeRef
@@ -870,10 +904,14 @@ export class TypeInference extends DispatcherTypeRef
     {
         try {
             this.unit = target;
-            for (let stmt of target.stmts) this.dispatch(stmt);
+            for (let stmt of target.stmts)
+            {
+                this.dispatch(stmt);
+            }
         } catch (error)
         {
             //this.ctx.listener.onError(error.location, error);
+            console.error(error);
         }
         return TypeRef.VOID; // unused
     }
@@ -892,7 +930,7 @@ export class TypeInference extends DispatcherTypeRef
     {
         if (!this.globalTypeChecking(unit))
             return false;
-        //this.visitUnit(unit);
+        this.visitUnit(unit);
         return true;
     }
 }

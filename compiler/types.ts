@@ -439,7 +439,11 @@ export class TypeRef implements INode
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitTypeRef(this); }
 	className() : string { return 'TypeRef'; }
-	toString() : string { return this.name.qualified; }
+	toString() : string {
+        let tname = this.name.qualified;
+        for (let i = 0; i < this.dims; ++i) tname += '[]';
+        return tname;
+    }
     get canonical() : string { return this.name.canonical; }
     get qualified() : string { return this.name.qualified; }
     get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
@@ -789,7 +793,7 @@ export class VariableDecl implements IStmt
 	className() : string { return 'VariableDecl'; }
 
     toString() {
-        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.name.qualified};`;
+        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.toString()};`;
     }
 }export class VariableStmt implements IStmt
 {

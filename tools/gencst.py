@@ -317,7 +317,11 @@ printType('TypeRef', [
     {'name' : 'dims', 'type' : 'number'},
     {'name' : 'ref', 'type' : 'IStmt', 'init' : 'null', 'ctor' : False},
     ], None, True)
-sys.stdout.write('''\ttoString() : string { return this.name.qualified; }
+sys.stdout.write('''\ttoString() : string {
+        let tname = this.name.qualified;
+        for (let i = 0; i < this.dims; ++i) tname += '[]';
+        return tname;
+    }
     get canonical() : string { return this.name.canonical; }
     get qualified() : string { return this.name.qualified; }
     get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
@@ -494,7 +498,7 @@ printType('VariableDecl', [
     ], 'IStmt', True)
 sys.stdout.write('''
     toString() {
-        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.name.qualified};`;
+        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.toString()};`;
     }
 }''')
 

@@ -65,7 +65,8 @@ import { Modifier,
     EnumDecl,
     VariableDecl,
     ChainingExpr,
-    OptChainingExpr } from './types';
+    OptChainingExpr,
+    IExpr} from './types';
 import { basename,
     Logger,
     StringBuffer } from './utils';
@@ -220,6 +221,15 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(false);
     }
 
+    protected resolvedType( target : IExpr, content : Field[] )
+    {
+        if (!target.resolvedType()) return;
+        let tname = target.resolvedType().name.qualified;
+        for (let i = 0; i < target.resolvedType().dims; ++i)
+            tname += '[]';
+        content.push({name:'resolvedType',value:tname});
+    }
+
     protected visitName(target: Name): void {
         let content : Field[] = [
             {name:'canonical',value:`"${target.canonical}"`}
@@ -232,10 +242,13 @@ export class WebAstPrinter extends DispatcherVoid
         let content : Field[] = [
             {name:'value',value:`"${target.value}"`}
         ];
+        this.resolvedType(target, content);
         this.empty_entity(target.className(), content);
     }
     protected visitTemplateStringExpr(target: TemplateStringExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('value', true);
         for (let item of target.value)
@@ -248,18 +261,21 @@ export class WebAstPrinter extends DispatcherVoid
         let content : Field[] = [
             {name:'value',value:target.value}
         ];
+        this.resolvedType(target, content);
         this.empty_entity(target.className(), content);
     }
     protected visitBoolLiteral(target: BoolLiteral): void {
         let content : Field[] = [
             {name:'value',value:target.converted?'true':'false'}
         ];
+        this.resolvedType(target, content);
         this.empty_entity(target.className(), content);
     }
     protected visitNameLiteral(target: NameLiteral): void {
         let content : Field[] = [
             {name:'value',value:target.value}
         ];
+        this.resolvedType(target, content);
         this.empty_entity(target.className(), content);
     }
     protected visitGroup(target: Group): void {
@@ -272,12 +288,15 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitNullLiteral(target: NullLiteral): void {
-        this.empty_entity(target.className());
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.empty_entity(target.className(), content);
     }
     protected visitLogicalExpr(target: LogicalExpr): void {
         let content : Field[] = [
             {name:'oper',value:target.oper.name}
         ];
+        this.resolvedType(target, content);
         this.open_entity(target.className(), true, content);
 
         this.open_entity('left', true);
@@ -294,6 +313,7 @@ export class WebAstPrinter extends DispatcherVoid
         let content : Field[] = [
             {name:'oper',value:target.oper.name},
         ];
+        this.resolvedType(target, content);
         this.open_entity(target.className(), true, content);
 
         this.open_entity('left', true);
@@ -310,6 +330,7 @@ export class WebAstPrinter extends DispatcherVoid
         let content : Field[] = [
             {name:'oper',value:target.oper.name},
         ];
+        this.resolvedType(target, content);
         this.open_entity(target.className(), true, content);
 
         this.open_entity('left', true);
@@ -327,6 +348,7 @@ export class WebAstPrinter extends DispatcherVoid
             {name:'oper',value:target.oper.name},
             {name:'style',value:target.post?'post':'pre'}
         ];
+        this.resolvedType(target, content);
         this.open_entity(target.className(), true, content);
 
         this.open_entity('expr', true);
@@ -336,7 +358,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitTypeCastExpr(target: TypeCastExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('expr', true);
         this.dispatch(target.expr);
@@ -349,7 +373,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitCallExpr(target: CallExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('callee', true);
         this.dispatch(target.callee);
@@ -363,7 +389,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitArrayExpr(target: ArrayExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('values', true);
         for (let item of target.values)
@@ -373,7 +401,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitArrayAccessExpr(target: ArrayAccessExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('callee', true);
         this.dispatch(target.callee);
@@ -386,7 +416,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitChainingExpr(target: ChainingExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('callee', true);
         this.dispatch(target.callee);
@@ -399,7 +431,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitOptChainingExpr(target: OptChainingExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('callee', true);
         this.dispatch(target.callee);
@@ -412,7 +446,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitNewExpr(target: NewExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('type', true);
         this.dispatch(target.type);
@@ -509,7 +545,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitTernaryExpr(target: TernaryExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('condition', true);
         this.dispatch(target.condition);
@@ -613,7 +651,9 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
     }
     protected visitExpandExpr(target: ExpandExpr): void {
-        this.open_entity(target.className(), true);
+        let content : Field[] = [];
+        this.resolvedType(target, content);
+        this.open_entity(target.className(), true, content);
 
         this.open_entity('name', true);
         this.dispatch(target.name);
@@ -880,7 +920,6 @@ export class WebAstPrinter extends DispatcherVoid
         this.close_entity(true);
         this.print('</ul></body></html>');
         let output = this.sbuf.toString();
-        console.log(output.length);
         this.sbuf.clear();
         return output;
     }
