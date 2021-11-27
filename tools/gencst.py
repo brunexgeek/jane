@@ -491,7 +491,12 @@ printType('VariableDecl', [
     {'name' : 'modifier', 'type' : 'Modifier', 'init' : 'null'},
     {'name' : 'unit', 'type' : 'Unit', 'init' : 'null', 'ctor' : False},
     {'name' : 'parent', 'type' : 'INode', 'init' : 'null', 'ctor' : False},
-    ], 'IStmt')
+    ], 'IStmt', True)
+sys.stdout.write('''
+    toString() {
+        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.name.qualified};`;
+    }
+}''')
 
 printType('VariableStmt', [
     {'name' : 'decls', 'type' : 'VariableDecl[]'},

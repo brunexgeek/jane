@@ -787,9 +787,11 @@ export class VariableDecl implements IStmt
 	}
 	accept( visitor : IVisitor ) : void { visitor.visitVariableDecl(this); }
 	className() : string { return 'VariableDecl'; }
-}
 
-export class VariableStmt implements IStmt
+    toString() {
+        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.name.qualified};`;
+    }
+}export class VariableStmt implements IStmt
 {
 	decls : VariableDecl[];
 	location : SourceLocation;
