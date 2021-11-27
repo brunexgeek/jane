@@ -77,18 +77,8 @@ import {
     SourceLocation,
     CompilationContext } from './compiler';
 
+import { ParseError } from './exception';
 import { Logger } from './utils';
-
-export class ParseError extends Error
-{
-    public location : SourceLocation;
-
-    constructor( message : string, location : SourceLocation )
-    {
-        super(`${message} at ${location.toString()}`);
-        this.location = location;
-    }
-}
 
 export class Parser
 {
@@ -367,7 +357,7 @@ export class Parser
         return new NamespaceStmt(name, stmts, modifier, location);
     }
 
-    parseArgument() : Parameter
+    parseParameter() : Parameter
     {
         let modifier = this.match(TokenType.PUBLIC);
         let vararg = this.match(TokenType.SPREAD);
@@ -386,10 +376,10 @@ export class Parser
             value = this.parseExpression();
         }
 
-        if (type == null && value == null)
-        {
-            throw this.error(name.location, 'Missing argument type');
-        }
+        //if (type == null && value == null)
+        //{
+        //    throw this.error(name.location, 'Missing argument type');
+        //}
 
         return new Parameter( new Name([name.lexeme]), type, value, vararg, name.location);
     }
@@ -418,7 +408,7 @@ export class Parser
         if (this.peekType() != TokenType.RIGHT_PAREN)
         {
             do {
-                args.push( this.parseArgument() );
+                args.push( this.parseParameter() );
             } while (this.match(TokenType.COMMA));
         }
         this.consume(TokenType.RIGHT_PAREN);
@@ -1052,7 +1042,7 @@ export class Parser
         if (this.peekType() != TokenType.RIGHT_PAREN)
         {
             do {
-                args.push( this.parseArgument() );
+                args.push( this.parseParameter() );
             } while (this.match(TokenType.COMMA));
         }
         this.consume(TokenType.RIGHT_PAREN);

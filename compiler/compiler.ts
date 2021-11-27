@@ -16,11 +16,12 @@
  *   limitations under the License.
  */
 
-import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap, StrClassStmtMap } from './types';
+import { IStmt, Unit, Name, ClassStmt, StrClassMap, StrUnitMap, StrClassStmtMap, VariableStmt } from './types';
 import { readfile, dirname, realpath, Logger } from './utils';
 import { Scanner, Tokenizer } from './tokenizer';
 import { Parser, createObject, createCallable, createError, createString } from './parser';
 import { TypeInference } from './typeinf';
+import { ParseError } from './exception';
 
 export class SourceLocation
 {
@@ -108,6 +109,13 @@ export class Compiler
         //this.ctx.types.set(type.name.qualified, type);
     }
 
+    error( location : SourceLocation, message : string ) : ParseError
+    {
+        let result = new ParseError(message, location);
+        this.ctx.listener.onError(location, result);
+        return result;
+    }
+
     parseSource( fileName : string ) : Unit
     {
         if (this.ctx.units.has(fileName)) return;
@@ -142,13 +150,63 @@ export class Compiler
         return unit;
     }
 
+    findGlobalSymbol( unit : Unit, name : string ) : IStmt
+    {
+        let stmt = <IStmt> unit.variables.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.functions.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.types.get(name);
+        if (stmt) return stmt;
+        stmt = <IStmt> unit.enums.get(name);
+        if (stmt) return stmt;
+        return null;
+    }
+
+    processImports()
+    {
+        for (let unit of this.ctx.units.values())
+        {
+            // check whether the imported symbols exist
+            let dir = dirname(unit.fileName);
+            for (let imp of unit.imports)
+            {
+                let source = realpath(dir + imp.source + '.ts');
+                let cunit = this.ctx.units.get(source);
+                if (!cunit)
+                {
+                    this.error(imp.location, `Missing symbols for ${source}`); // never should happen
+                    this.hasError = true;
+                }
+                for (let name of imp.names)
+                {
+                    let stmt = this.findGlobalSymbol(cunit, name.qualified);
+                    if (!stmt)
+                    {
+                        this.error(name.location, `Unable to find symbol ${name.qualified}`);
+                        this.hasError = true;
+                    }
+                    unit.imports_.set(name.qualified, stmt);
+                }
+            }
+
+            // append the built-in types
+            let type = createObject();
+            unit.imports_.set(type.name.qualified, type);
+            type = createCallable();
+            unit.imports_.set(type.name.qualified, type);
+            type = createError();
+            unit.imports_.set(type.name.qualified, type);
+            type = createString();
+            unit.imports_.set(type.name.qualified, type);
+        }
+    }
+
     typeInference()
     {
         let inf = new TypeInference(this.ctx);
         for (let unit of this.ctx.units.values())
-            inf.processImports(unit);
-        for (let unit of this.ctx.units.values())
-            inf.visitUnit(unit);
+            this.hasError = !inf.typeInference(unit);
     }
 
     compile( fileName : string ) : boolean
@@ -156,9 +214,10 @@ export class Compiler
         // generate AST
         this.parseSource(fileName);
         if (this.hasError) return false;
-        // TODO: process imports
-        // TODO: type inference for classes, global variables and function prototypes
-        // TODO: type inference for function and method bodies
+        this.processImports();
+        if (this.hasError) return false;
+        this.typeInference();
+        if (this.hasError) return false;
         // TODO: AST simplification (e.g. for...of -> for)
         // TODO: AST optimizations (e.g. dead code elimination, promote objects to stack)
         // TODO: code generation

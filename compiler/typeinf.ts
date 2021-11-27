@@ -71,7 +71,7 @@ import {
     VariableDecl} from './types';
 import { TokenType } from './tokenizer';
 import { realpath, dirname, Logger } from './utils';
-import { createObject, createCallable, createError, createString } from './parser';
+import { SemanticError } from './exception';
 
 class ScopeEntry
 {
@@ -120,18 +120,6 @@ class Scope
     }
 }
 
-export class SemanticError extends Error
-{
-    public location : SourceLocation;
-
-    constructor( message : string, location : SourceLocation = null )
-    {
-        //if (location) message += ' at ' + location.toString();
-        super(message);
-        this.location = location;
-    }
-}
-
 export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
@@ -144,6 +132,77 @@ export class TypeInference extends DispatcherTypeRef
         this.ctx = ctx;
     }
 
+    resolveTypeRef( type : TypeRef, required : boolean, context : string, location : SourceLocation = null ) : boolean
+    {
+        if (!type)
+        {
+            this.error(location, `Missing type in ${context}`);
+            return false;
+        }
+        else
+        if (!type.isPrimitive())
+        {
+            type.ref = this.resolveTypeByName(type.name);
+            if (!type.ref)
+            {
+                this.error(type.location, `Unknown type '${type.qualified}'`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    checkFunctionStmt( target : FunctionStmt ) : boolean
+    {
+        let success = true;
+
+        for (let param of target.params)
+            success = this.resolveTypeRef(param.type, true, 'parameter declaration', param.location) && success;
+        success = this.resolveTypeRef(target.type, true, 'return type', target.type ? target.type.location : target.location) && success;
+        return success;
+    }
+
+    checkPropertyStmt( target : PropertyStmt ) : boolean
+    {
+        return this.resolveTypeRef(target.type, true, 'property declaration', target.location);
+    }
+
+    checkVariableStmt( target : VariableStmt ) : boolean
+    {
+        let success = true;
+        for (let decl of target.decls)
+        {
+            success = this.resolveTypeRef(decl.type, true, 'variable declaration', decl.location) && success;
+        }
+        return success;
+    }
+
+    globalTypeChecking( unit : Unit ) : boolean
+    {
+        let success = true;
+        for (let stmt of unit.stmts)
+        {
+            if (stmt instanceof VariableStmt)
+                success = this.checkVariableStmt(stmt) && success;
+            else
+            if (stmt instanceof FunctionStmt)
+                success = this.checkFunctionStmt(stmt) && success;
+            else
+            if (stmt instanceof ClassStmt)
+            {
+                for (let stm of stmt.stmts)
+                {
+                    if (stm instanceof PropertyStmt)
+                        success = this.checkPropertyStmt(stm) && success;
+                    else
+                    if (stm instanceof FunctionStmt)
+                        success = this.checkFunctionStmt(stm) && success;
+                }
+            }
+        }
+        return success;
+    }
+
     protected visitTernaryExpr(target: TernaryExpr): TypeRef {
         // TODO: implement
         return TypeRef.VOID;
@@ -151,19 +210,6 @@ export class TypeInference extends DispatcherTypeRef
 
     protected visitTemplateStringExpr(target: TemplateStringExpr): TypeRef
     {
-        return null;
-    }
-
-    findSymbol( unit : Unit, name : string ) : IStmt
-    {
-        let stmt = <IStmt> unit.variables.get(name);
-        if (stmt) return stmt;
-        stmt = <IStmt> unit.functions.get(name);
-        if (stmt) return stmt;
-        stmt = <IStmt> unit.types.get(name);
-        if (stmt) return stmt;
-        stmt = <IStmt> unit.enums.get(name);
-        if (stmt) return stmt;
         return null;
     }
 
@@ -191,34 +237,6 @@ export class TypeInference extends DispatcherTypeRef
 
         this.top().insert(target.name.toString(), target, result);
         return result;
-    }
-
-    processImports( unit : Unit )
-    {
-        // check whether the imported symbols exist
-        let dir = dirname(unit.fileName);
-        for (let imp of unit.imports)
-        {
-            let source = realpath(dir + imp.source + '.ts');
-            let cunit = this.ctx.units.get(source);
-            if (!cunit) this.error(imp.location, `Missing symbols for ${source}`); // never should happen
-            for (let name of imp.names)
-            {
-                let stmt = this.findSymbol(cunit, name.qualified);
-                if (!stmt) this.error(name.location, `Unable to find symbol ${name.qualified}`);
-                unit.imports_.set(name.qualified, stmt);
-            }
-        }
-
-        // append the built-in types
-        let type = createObject();
-        unit.imports_.set(type.name.qualified, type);
-        type = createCallable();
-        unit.imports_.set(type.name.qualified, type);
-        type = createError();
-        unit.imports_.set(type.name.qualified, type);
-        type = createString();
-        unit.imports_.set(type.name.qualified, type);
     }
 
     visitForStmt(target: ForStmt): TypeRef
@@ -869,5 +887,13 @@ export class TypeInference extends DispatcherTypeRef
 
     protected visitEnumDecl(target: EnumDecl): TypeRef {
         throw new Error('Method not implemented.');
+    }
+
+    public typeInference( unit : Unit ) : boolean
+    {
+        if (!this.globalTypeChecking(unit))
+            return false;
+        this.visitUnit(unit);
+        return true;
     }
 }
