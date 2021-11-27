@@ -452,7 +452,7 @@ export class TypeRef implements INode
         return false;
     }
     private readonly PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
-            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string', 'void'];
     isPrimitive() : boolean {
         return this.PRIMITIVES.indexOf(this.name.qualified) >= 0;
     }

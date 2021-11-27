@@ -132,7 +132,7 @@ export class TypeInference extends DispatcherTypeRef
         this.ctx = ctx;
     }
 
-    resolveTypeRef( type : TypeRef, required : boolean, context : string, location : SourceLocation = null ) : boolean
+    resolveTypeRef( unit : Unit, type : TypeRef, context : string, location : SourceLocation = null ) : boolean
     {
         if (!type)
         {
@@ -142,7 +142,7 @@ export class TypeInference extends DispatcherTypeRef
         else
         if (!type.isPrimitive())
         {
-            type.ref = this.resolveTypeByName(type.name);
+            type.ref = this.resolveTypeByName(unit, type.name);
             if (!type.ref)
             {
                 this.error(type.location, `Unknown type '${type.qualified}'`);
@@ -152,27 +152,27 @@ export class TypeInference extends DispatcherTypeRef
         return true;
     }
 
-    checkFunctionStmt( target : FunctionStmt ) : boolean
+    checkFunctionStmt( unit : Unit, target : FunctionStmt ) : boolean
     {
         let success = true;
 
         for (let param of target.params)
-            success = this.resolveTypeRef(param.type, true, 'parameter declaration', param.location) && success;
-        success = this.resolveTypeRef(target.type, true, 'return type', target.type ? target.type.location : target.location) && success;
+            success = this.resolveTypeRef(unit, param.type, 'parameter declaration', param.location) && success;
+        success = this.resolveTypeRef(unit, target.type, 'return type', target.type ? target.type.location : target.location) && success;
         return success;
     }
 
-    checkPropertyStmt( target : PropertyStmt ) : boolean
+    checkPropertyStmt( unit : Unit, target : PropertyStmt ) : boolean
     {
-        return this.resolveTypeRef(target.type, true, 'property declaration', target.location);
+        return this.resolveTypeRef(unit, target.type, 'property declaration', target.location);
     }
 
-    checkVariableStmt( target : VariableStmt ) : boolean
+    checkVariableStmt( unit : Unit, target : VariableStmt ) : boolean
     {
         let success = true;
         for (let decl of target.decls)
         {
-            success = this.resolveTypeRef(decl.type, true, 'variable declaration', decl.location) && success;
+            success = this.resolveTypeRef(unit, decl.type, 'variable declaration', /*decl*/target.location) && success;
         }
         return success;
     }
@@ -183,20 +183,20 @@ export class TypeInference extends DispatcherTypeRef
         for (let stmt of unit.stmts)
         {
             if (stmt instanceof VariableStmt)
-                success = this.checkVariableStmt(stmt) && success;
+                success = this.checkVariableStmt(unit, stmt) && success;
             else
             if (stmt instanceof FunctionStmt)
-                success = this.checkFunctionStmt(stmt) && success;
+                success = this.checkFunctionStmt(unit, stmt) && success;
             else
             if (stmt instanceof ClassStmt)
             {
                 for (let stm of stmt.stmts)
                 {
                     if (stm instanceof PropertyStmt)
-                        success = this.checkPropertyStmt(stm) && success;
+                        success = this.checkPropertyStmt(unit, stm) && success;
                     else
                     if (stm instanceof FunctionStmt)
-                        success = this.checkFunctionStmt(stm) && success;
+                        success = this.checkFunctionStmt(unit, stm) && success;
                 }
             }
         }
@@ -588,16 +588,16 @@ export class TypeInference extends DispatcherTypeRef
     isPrimitiveType( type : string )
     {
         const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
-            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string'];
+            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string'];
         return PRIMITIVES.indexOf(type) >= 0;
     }
 
     createTypeRef( type : string ) : TypeRef
     {
         const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
-            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string', 'void'];
         const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
-            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
         let idx = PRIMITIVES.indexOf(type);
         if (idx >= 0)
             return new TypeRef(TYPES[idx], new Name([type]), 0);
@@ -607,25 +607,25 @@ export class TypeInference extends DispatcherTypeRef
     createTypeRefById( type : TypeId ) : TypeRef
     {
         const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
-            'ubyte', 'ushort', 'uint', 'ulong', 'number', 'string', 'void'];
+            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string', 'void'];
         const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
-            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
         let idx = TYPES.indexOf(type);
         if (idx >= 0)
             return new TypeRef(type, new Name([PRIMITIVES[idx]]), 0);
         return new TypeRef(TypeId.OBJECT, new Name(['Object']), 0);
     }
 
-    resolveTypeByName( type : Name ) : ClassStmt
+    resolveTypeByName( unit : Unit, type : Name ) : ClassStmt
     {
 
         let name = type.qualified;
         if (this.isPrimitiveType(name)) return null;
 
-        let clazz = this.unit.types.get(name);
+        let clazz = unit.types.get(name);
         if (clazz) return clazz;
 
-        let stmt = this.unit.imports_.get(name);
+        let stmt = unit.imports_.get(name);
         if (stmt && stmt instanceof ClassStmt) return  stmt;
 
         return null;
@@ -893,7 +893,7 @@ export class TypeInference extends DispatcherTypeRef
     {
         if (!this.globalTypeChecking(unit))
             return false;
-        this.visitUnit(unit);
+        //this.visitUnit(unit);
         return true;
     }
 }
