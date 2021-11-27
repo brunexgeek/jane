@@ -16,8 +16,8 @@
  *   limitations under the License.
  */
 
-declare let require: any;
-let fs = require("fs");
+/* @jane-skip */ declare let require: any;
+/* @jane-skip */ let fs = require("fs");
 
 export function readfile( fileName : string ) : string
 {

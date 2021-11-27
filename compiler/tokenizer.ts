@@ -95,120 +95,120 @@ export class TokenType
     private static tokens : TokenType[] = [];
 
     // Single-character tokens
-    static readonly LEFT_PAREN = new TokenType('LEFT_PAREN', '(');
-    static readonly RIGHT_PAREN = new TokenType('RIGHT_PAREN', ')');
-    static readonly LEFT_BRACE = new TokenType('LEFT_BRACE', '{');
-    static readonly RIGHT_BRACE = new TokenType('RIGHT_BRACE', '}');
-    static readonly LEFT_BRACKET = new TokenType('LEFT_BRACKET', '[');
-    static readonly RIGHT_BRACKET = new TokenType('RIGHT_BRACKET', ']');
-    static readonly COMMA = new TokenType('COMMA', ',');
-    static readonly DOT = new TokenType('DOT', '.');
-    static readonly SPREAD = new TokenType('SPREAD', '...');
-    static readonly MINUS = new TokenType('MINUS', '-');
-    static readonly PLUS = new TokenType('PLUS', '+');
-    static readonly SEMICOLON = new TokenType('SEMICOLON', ';');
-    static readonly SLASH = new TokenType('SLASH', '/');
-    static readonly STAR = new TokenType('STAR', '*');
-    static readonly COLON = new TokenType('COLON', ':');
-    static readonly QUESTION = new TokenType('QUESTION', '?');
-    static readonly MOD = new TokenType('MOD', '%');
-    static readonly MOD_EQUAL = new TokenType('MOD_EQUAL', '%=');
-    static readonly AND = new TokenType('AND', '&&');
-    static readonly AND_EQUAL = new TokenType('AND', '&&=');
-    static readonly BAND = new TokenType('BAND', '&');
-    static readonly BAND_EQUAL = new TokenType('BAND_EQUAL', '&=');
-    static readonly OR = new TokenType('OR', '||');
-    static readonly OR_EQUAL = new TokenType('OR', '||=');
-    static readonly EOF = new TokenType('EOF');
-    static readonly BOR = new TokenType('|');
-    static readonly BOR_EQUAL = new TokenType('BOR_EQUAL', '|=');
-    static readonly CHAINING = new TokenType('CHAINING', '?.');
-    static readonly NULLISH = new TokenType('NULLISH', '??');
-    static readonly NULLISH_EQUAL = new TokenType('NULLISH_EQUAL', '??=');
-    static readonly XOR = new TokenType('XOR', '^');
-    static readonly XOR_EQUAL = new TokenType('XOR_EQUAL', '^=');
+    static readonly LEFT_PAREN : TokenType = new TokenType('LEFT_PAREN', '(');
+    static readonly RIGHT_PAREN : TokenType = new TokenType('RIGHT_PAREN', ')');
+    static readonly LEFT_BRACE : TokenType = new TokenType('LEFT_BRACE', '{');
+    static readonly RIGHT_BRACE : TokenType = new TokenType('RIGHT_BRACE', '}');
+    static readonly LEFT_BRACKET : TokenType = new TokenType('LEFT_BRACKET', '[');
+    static readonly RIGHT_BRACKET : TokenType = new TokenType('RIGHT_BRACKET', ']');
+    static readonly COMMA : TokenType = new TokenType('COMMA', ',');
+    static readonly DOT : TokenType = new TokenType('DOT', '.');
+    static readonly SPREAD : TokenType = new TokenType('SPREAD', '...');
+    static readonly MINUS : TokenType = new TokenType('MINUS', '-');
+    static readonly PLUS : TokenType = new TokenType('PLUS', '+');
+    static readonly SEMICOLON : TokenType = new TokenType('SEMICOLON', ';');
+    static readonly SLASH : TokenType = new TokenType('SLASH', '/');
+    static readonly STAR : TokenType = new TokenType('STAR', '*');
+    static readonly COLON : TokenType = new TokenType('COLON', ':');
+    static readonly QUESTION : TokenType = new TokenType('QUESTION', '?');
+    static readonly MOD : TokenType = new TokenType('MOD', '%');
+    static readonly MOD_EQUAL : TokenType = new TokenType('MOD_EQUAL', '%=');
+    static readonly AND : TokenType = new TokenType('AND', '&&');
+    static readonly AND_EQUAL : TokenType = new TokenType('AND', '&&=');
+    static readonly BAND : TokenType = new TokenType('BAND', '&');
+    static readonly BAND_EQUAL : TokenType = new TokenType('BAND_EQUAL', '&=');
+    static readonly OR : TokenType = new TokenType('OR', '||');
+    static readonly OR_EQUAL : TokenType = new TokenType('OR', '||=');
+    static readonly EOF : TokenType = new TokenType('EOF');
+    static readonly BOR : TokenType = new TokenType('|');
+    static readonly BOR_EQUAL : TokenType = new TokenType('BOR_EQUAL', '|=');
+    static readonly CHAINING : TokenType = new TokenType('CHAINING', '?.');
+    static readonly NULLISH : TokenType = new TokenType('NULLISH', '??');
+    static readonly NULLISH_EQUAL : TokenType = new TokenType('NULLISH_EQUAL', '??=');
+    static readonly XOR : TokenType = new TokenType('XOR', '^');
+    static readonly XOR_EQUAL : TokenType = new TokenType('XOR_EQUAL', '^=');
 
-    static readonly BANG = new TokenType('BANG', '!');
-    static readonly INEQUALITY = new TokenType('INEQUALITY', '!=');
-    static readonly S_INEQUALITY = new TokenType('S_INEQUALITY', '!==');
-    static readonly EQUAL = new TokenType('EQUAL', '=');
-    static readonly EQUALITY = new TokenType('EQUALITY', '==');
-    static readonly S_EQUALITY = new TokenType('S_EQUALITY', '===');
-    static readonly GREATER = new TokenType('GREATER', '>');
-    static readonly SHR = new TokenType('SHR', '>>');
-    static readonly SHR_EQUAL = new TokenType('SHR_EQUAL', '>>=');
-    static readonly USHR = new TokenType('USHR', '>>>');
-    static readonly USHR_EQUAL = new TokenType('USHR_EQUAL', '>>>=');
-    static readonly GREATER_EQUAL = new TokenType('GREATER_EQUAL', '>=');
-    static readonly LESS = new TokenType('LESS', '<');
-    static readonly SHL = new TokenType('SHL', '<<');
-    static readonly SHL_EQUAL = new TokenType('SHL_EQUAL', '<<=');
-    static readonly LESS_EQUAL = new TokenType('LESS_EQUAL', '<=');
-    static readonly PLUS_EQUAL = new TokenType('PLUS_EQUAL', '+=');
-    static readonly MINUS_EQUAL = new TokenType('MINUS_EQUAL', '-=');
-    static readonly MUL_EQUAL = new TokenType('MUL_EQUAL', '*=');
-    static readonly DIV_EQUAL = new TokenType('DIV_EQUAL', '/=');
-    static readonly INCREMENT = new TokenType('INCREMENT', '++');
-    static readonly DECREMENT = new TokenType('DECREMENT', '--');
-    static readonly EXPONENT = new TokenType('EXPONENT', '**');
-    static readonly EXPONENT_EQUAL = new TokenType('EXPONENT_EQUAL', '**=');
-    static readonly TILDE = new TokenType('TILDE', '~');
+    static readonly BANG : TokenType = new TokenType('BANG', '!');
+    static readonly INEQUALITY : TokenType = new TokenType('INEQUALITY', '!=');
+    static readonly S_INEQUALITY : TokenType = new TokenType('S_INEQUALITY', '!==');
+    static readonly EQUAL : TokenType = new TokenType('EQUAL', '=');
+    static readonly EQUALITY : TokenType = new TokenType('EQUALITY', '==');
+    static readonly S_EQUALITY : TokenType = new TokenType('S_EQUALITY', '===');
+    static readonly GREATER : TokenType = new TokenType('GREATER', '>');
+    static readonly SHR : TokenType = new TokenType('SHR', '>>');
+    static readonly SHR_EQUAL : TokenType = new TokenType('SHR_EQUAL', '>>=');
+    static readonly USHR : TokenType = new TokenType('USHR', '>>>');
+    static readonly USHR_EQUAL : TokenType = new TokenType('USHR_EQUAL', '>>>=');
+    static readonly GREATER_EQUAL : TokenType = new TokenType('GREATER_EQUAL', '>=');
+    static readonly LESS : TokenType = new TokenType('LESS', '<');
+    static readonly SHL : TokenType = new TokenType('SHL', '<<');
+    static readonly SHL_EQUAL : TokenType = new TokenType('SHL_EQUAL', '<<=');
+    static readonly LESS_EQUAL : TokenType = new TokenType('LESS_EQUAL', '<=');
+    static readonly PLUS_EQUAL : TokenType = new TokenType('PLUS_EQUAL', '+=');
+    static readonly MINUS_EQUAL : TokenType = new TokenType('MINUS_EQUAL', '-=');
+    static readonly MUL_EQUAL : TokenType = new TokenType('MUL_EQUAL', '*=');
+    static readonly DIV_EQUAL : TokenType = new TokenType('DIV_EQUAL', '/=');
+    static readonly INCREMENT : TokenType = new TokenType('INCREMENT', '++');
+    static readonly DECREMENT : TokenType = new TokenType('DECREMENT', '--');
+    static readonly EXPONENT : TokenType = new TokenType('EXPONENT', '**');
+    static readonly EXPONENT_EQUAL : TokenType = new TokenType('EXPONENT_EQUAL', '**=');
+    static readonly TILDE : TokenType = new TokenType('TILDE', '~');
 
     // Literals
-    static readonly NAME = new TokenType('NAME');
-    static readonly TSTRING = new TokenType('TSTRING');
-    static readonly TSTRING_BEGIN = new TokenType('TSTRING_BEGIN');
-    static readonly TSTRING_END = new TokenType('TSTRING_END');
-    static readonly SSTRING = new TokenType('SSTRING');
-    static readonly DSTRING = new TokenType('DSTRING');
-    static readonly NUMBER = new TokenType('NUMBER');
+    static readonly NAME : TokenType = new TokenType('NAME');
+    static readonly TSTRING : TokenType = new TokenType('TSTRING');
+    static readonly TSTRING_BEGIN : TokenType = new TokenType('TSTRING_BEGIN');
+    static readonly TSTRING_END : TokenType = new TokenType('TSTRING_END');
+    static readonly SSTRING : TokenType = new TokenType('SSTRING');
+    static readonly DSTRING : TokenType = new TokenType('DSTRING');
+    static readonly NUMBER : TokenType = new TokenType('NUMBER');
 
     // Keywords
-    static readonly ENUM = new TokenType('ENUM', 'enum', true);
-    static readonly GET = new TokenType('GET', 'get');
-    static readonly SET = new TokenType('SET', 'set');
-    static readonly ELSE = new TokenType('ELSE', 'else', true);
-    static readonly FALSE = new TokenType('FALSE', 'false', true);
-    static readonly FUNCTION = new TokenType('FUNCTION', 'function', true);
-    static readonly FOR = new TokenType('FOR', 'for', true);
-    static readonly OF = new TokenType('OF', 'of', true);
-    static readonly IF = new TokenType('IF', 'if', true);
-    static readonly NIL = new TokenType('NIL', 'null', true);
-    static readonly RETURN = new TokenType('RETURN', 'return', true);
-    static readonly TRUE = new TokenType('TRUE', 'true', true);
-    static readonly LET = new TokenType('LET', 'let', true);
-    static readonly WHILE = new TokenType('WHILE', 'while', true);
-    static readonly DO = new TokenType('DO', 'do', true);
-    static readonly CONST = new TokenType('CONST', 'const', true);
-    static readonly CLASS = new TokenType('CLASS', 'class', true);
-    static readonly PUBLIC = new TokenType('PUBLIC', 'public', true);
-    static readonly PRIVATE = new TokenType('PRIVATE', 'private', true);
-    static readonly PROTECTED = new TokenType('PROTECTED', 'protected', true);
-    static readonly READONLY = new TokenType('READONLY', 'readonly', true);
-    static readonly EXTENDS = new TokenType('EXTENDS', 'extends', true);
-    static readonly IMPLEMENTS = new TokenType('IMPLEMENTS', 'implements', true);
-    static readonly INTERFACE = new TokenType('INTERFACE', 'interface', true);
-    static readonly NAMESPACE = new TokenType('NAMESPACE', 'namespace', true);
-    static readonly EXPORT = new TokenType('EXPORT', 'export', true);
-    static readonly THROW = new TokenType('THROW', 'throw', true);
-    static readonly TRY = new TokenType('TRY', 'try', true);
-    static readonly CATCH = new TokenType('CATCH', 'catch', true);
-    static readonly FINALLY = new TokenType('FINALLY', 'finally', true);
-    static readonly NEW = new TokenType('NEW', 'new', true);
-    static readonly SWITCH = new TokenType('SWITCH', 'switch', true);
-    static readonly CASE = new TokenType('CASE', 'case', true);
-    static readonly CONTINUE = new TokenType('CONTINUE', 'continue', true);
-    static readonly BREAK = new TokenType('BREAK', 'break', true);
-    static readonly INSTANCEOF = new TokenType('INSTANCEOF', 'instanceof', true);
-    static readonly IN = new TokenType('IN', 'in', true);
-    static readonly STATIC = new TokenType('STATIC', 'static', true);
-    static readonly DEFAULT = new TokenType('DEFAULT', 'default', true);
-    static readonly IMPORT = new TokenType('IMPORT', 'import', true);
-    static readonly FROM = new TokenType('FROM', 'from', true);
-    static readonly DECLARE = new TokenType('DECLARE', 'declare', true);
-    static readonly ABSTRACT = new TokenType('ABSTRACT', 'abstract', true);
-    static readonly TYPE = new TokenType('TYPE', 'type', false);
-    static readonly TYPEOF = new TokenType('TYPEOF', 'typeof', false);
+    static readonly ENUM : TokenType = new TokenType('ENUM', 'enum', true);
+    static readonly GET : TokenType = new TokenType('GET', 'get');
+    static readonly SET : TokenType = new TokenType('SET', 'set');
+    static readonly ELSE : TokenType = new TokenType('ELSE', 'else', true);
+    static readonly FALSE : TokenType = new TokenType('FALSE', 'false', true);
+    static readonly FUNCTION : TokenType = new TokenType('FUNCTION', 'function', true);
+    static readonly FOR : TokenType = new TokenType('FOR', 'for', true);
+    static readonly OF : TokenType = new TokenType('OF', 'of', true);
+    static readonly IF : TokenType = new TokenType('IF', 'if', true);
+    static readonly NIL : TokenType = new TokenType('NIL', 'null', true);
+    static readonly RETURN : TokenType = new TokenType('RETURN', 'return', true);
+    static readonly TRUE : TokenType = new TokenType('TRUE', 'true', true);
+    static readonly LET : TokenType = new TokenType('LET', 'let', true);
+    static readonly WHILE : TokenType = new TokenType('WHILE', 'while', true);
+    static readonly DO : TokenType = new TokenType('DO', 'do', true);
+    static readonly CONST : TokenType = new TokenType('CONST', 'const', true);
+    static readonly CLASS : TokenType = new TokenType('CLASS', 'class', true);
+    static readonly PUBLIC : TokenType = new TokenType('PUBLIC', 'public', true);
+    static readonly PRIVATE : TokenType = new TokenType('PRIVATE', 'private', true);
+    static readonly PROTECTED : TokenType = new TokenType('PROTECTED', 'protected', true);
+    static readonly READONLY : TokenType = new TokenType('READONLY', 'readonly', true);
+    static readonly EXTENDS : TokenType = new TokenType('EXTENDS', 'extends', true);
+    static readonly IMPLEMENTS : TokenType = new TokenType('IMPLEMENTS', 'implements', true);
+    static readonly INTERFACE : TokenType = new TokenType('INTERFACE', 'interface', true);
+    static readonly NAMESPACE : TokenType = new TokenType('NAMESPACE', 'namespace', true);
+    static readonly EXPORT : TokenType = new TokenType('EXPORT', 'export', true);
+    static readonly THROW : TokenType = new TokenType('THROW', 'throw', true);
+    static readonly TRY : TokenType = new TokenType('TRY', 'try', true);
+    static readonly CATCH : TokenType = new TokenType('CATCH', 'catch', true);
+    static readonly FINALLY : TokenType = new TokenType('FINALLY', 'finally', true);
+    static readonly NEW : TokenType = new TokenType('NEW', 'new', true);
+    static readonly SWITCH : TokenType = new TokenType('SWITCH', 'switch', true);
+    static readonly CASE : TokenType = new TokenType('CASE', 'case', true);
+    static readonly CONTINUE : TokenType = new TokenType('CONTINUE', 'continue', true);
+    static readonly BREAK : TokenType = new TokenType('BREAK', 'break', true);
+    static readonly INSTANCEOF : TokenType = new TokenType('INSTANCEOF', 'instanceof', true);
+    static readonly IN : TokenType = new TokenType('IN', 'in', true);
+    static readonly STATIC : TokenType = new TokenType('STATIC', 'static', true);
+    static readonly DEFAULT : TokenType = new TokenType('DEFAULT', 'default', true);
+    static readonly IMPORT : TokenType = new TokenType('IMPORT', 'import', true);
+    static readonly FROM : TokenType = new TokenType('FROM', 'from', true);
+    static readonly DECLARE : TokenType = new TokenType('DECLARE', 'declare', true);
+    static readonly ABSTRACT : TokenType = new TokenType('ABSTRACT', 'abstract', true);
+    static readonly TYPE : TokenType = new TokenType('TYPE', 'type', false);
+    static readonly TYPEOF : TokenType = new TokenType('TYPEOF', 'typeof', false);
 
     private constructor(name : string, lexeme : string = "", kword : boolean = false )
     {
@@ -269,7 +269,7 @@ export class Tokenizer
     fifo : Token[] = [];
     end : Token = new Token(TokenType.EOF, null, null);
     hasAborted : boolean = false;
-    tslevel = 0;
+    tslevel : number = 0;
 
     constructor( ctx : CompilationContext, scanner : Scanner )
     {
@@ -511,11 +511,18 @@ export class Tokenizer
         }
         else
         {
+            let content : string;
             while (!this.scanner.eof())
             {
-                while (!this.scanner.eof() && this.scanner.previous() != '*' ) this.scanner.advance();
-                if (this.scanner.match('/')) return;
-                this.scanner.advance();
+                while (!this.scanner.eof() && this.scanner.previous() != '*' ) content += this.scanner.advance();
+                if (this.scanner.match('/'))
+                {
+                    // check for '@jane-skip' to discard everything in the current line
+                    if (content.indexOf('@jane-skip') >= 0)
+                        while (!this.scanner.eof() && this.scanner.previous() != '\n' ) this.scanner.advance();
+                    return;
+                }
+                content += this.scanner.advance();
             }
             this.error(this.scanner.position, 'Unterminated block comment');
         }

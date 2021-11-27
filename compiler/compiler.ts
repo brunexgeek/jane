@@ -94,7 +94,7 @@ export class CompilerError extends Error
 export class Compiler
 {
     ctx : CompilationContext;
-    hasError = false;
+    hasError : boolean = false;
 
     constructor( listener : CompilationListener )
     {

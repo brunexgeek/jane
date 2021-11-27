@@ -171,9 +171,7 @@ export class TypeInference extends DispatcherTypeRef
     {
         let success = true;
         for (let decl of target.decls)
-        {
-            success = this.resolveTypeRef(unit, decl.type, 'variable declaration', /*decl*/target.location) && success;
-        }
+            success = this.resolveTypeRef(unit, decl.type, 'variable declaration', /* TODO: should use 'decl' */target.location) && success;
         return success;
     }
 
@@ -504,13 +502,13 @@ export class TypeInference extends DispatcherTypeRef
             //if (stmt instanceof PropertyStmt) Logger.writeln('---- findMember: ' + stmt.name.canonical);
         }
         if (target.extended && target.extended.ref)
-            return this.findMember(name, target.extended.ref);
+            return this.findMember(name, <ClassStmt> target.extended.ref);
         if (target.implemented)
         {
             for (let intf of target.implemented)
             {
                 if (!intf.ref) continue;
-                let result = this.findMember(name, intf.ref);
+                let result = this.findMember(name, <ClassStmt> intf.ref);
                 if (result) return result;
             }
         }
@@ -616,17 +614,18 @@ export class TypeInference extends DispatcherTypeRef
         return new TypeRef(TypeId.OBJECT, new Name(['Object']), 0);
     }
 
-    resolveTypeByName( unit : Unit, type : Name ) : ClassStmt
+    resolveTypeByName( unit : Unit, type : Name ) : IStmt
     {
 
         let name = type.qualified;
         if (this.isPrimitiveType(name)) return null;
 
-        let clazz = unit.types.get(name);
-        if (clazz) return clazz;
-
-        let stmt = unit.imports_.get(name);
-        if (stmt && stmt instanceof ClassStmt) return  stmt;
+        let stmt : IStmt = unit.types.get(name);
+        if (stmt) return stmt;
+        stmt = unit.enums.get(name);
+        if (stmt) return  stmt;
+        stmt = unit.imports_.get(name);
+        if (stmt && (stmt instanceof ClassStmt || stmt instanceof EnumStmt)) return  stmt;
 
         return null;
     }

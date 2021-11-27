@@ -87,8 +87,8 @@ export class Parser
     private stack : Token[] = [];
     private previous : Token = null;
     private unit : Unit = null;
-    private hasError = false;
-    private hasAborted = false;
+    private hasError : boolean = false;
+    private hasAborted : boolean = false;
 
     constructor( tok : Tokenizer, ctx : CompilationContext )
     {
@@ -1313,11 +1313,11 @@ export class Parser
     }
 }
 
-let errorName = new Name(['Error']);
-let objectName = new Name(['Object']);
-let objectRef = new TypeRef(TypeId.OBJECT, objectName, 0);
-let callableName = new Name(['ICallable']);
-let stringName = new Name(['string']);
+let errorName : Name = new Name(['Error']);
+let objectName : Name = new Name(['Object']);
+let objectRef : TypeRef = new TypeRef(TypeId.OBJECT, objectName, 0);
+let callableName : Name = new Name(['ICallable']);
+let stringName : Name = new Name(['string']);
 
 export function createObject() : ClassStmt
 {

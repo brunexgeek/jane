@@ -428,7 +428,7 @@ export class TypeRef implements INode
 	tid : TypeId;
 	name : Name;
 	dims : number;
-	ref : ClassStmt = null;
+	ref : IStmt = null;
 	location : SourceLocation;
 	constructor( tid : TypeId, name : Name, dims : number, location : SourceLocation = null )
 	{
@@ -712,7 +712,7 @@ toString() : string
             return true;
         for (let intf of this.implemented)
             if (intf.name.qualified == qname) return true;
-        if (this.extended && this.extended.ref)
+        if (this.extended && this.extended.ref && this.extended.ref instanceof ClassStmt)
             return this.extended.ref.isDerived(qname);
         return false;
     }

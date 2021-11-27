@@ -315,7 +315,7 @@ printType('TypeRef', [
     {'name' : 'tid', 'type' : 'TypeId'},
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'dims', 'type' : 'number'},
-    {'name' : 'ref', 'type' : 'ClassStmt', 'init' : 'null', 'ctor' : False},
+    {'name' : 'ref', 'type' : 'IStmt', 'init' : 'null', 'ctor' : False},
     ], None, True)
 sys.stdout.write('''\ttoString() : string { return this.name.qualified; }
     get canonical() : string { return this.name.canonical; }
@@ -464,7 +464,7 @@ sys.stdout.write('''toString() : string
             return true;
         for (let intf of this.implemented)
             if (intf.name.qualified == qname) return true;
-        if (this.extended && this.extended.ref)
+        if (this.extended && this.extended.ref && this.extended.ref instanceof ClassStmt)
             return this.extended.ref.isDerived(qname);
         return false;
     }

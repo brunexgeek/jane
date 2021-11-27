@@ -445,7 +445,7 @@ export class PortableGenerator extends DispatcherVoid
 
         // parent class
         if (target.extended?.ref)
-            this.generateStatic(target.extended.ref, true);
+            this.generateStatic( <ClassStmt> target.extended.ref, true);
         // current class
         for (let stmt of target.stmts)
         {
@@ -472,7 +472,7 @@ export class PortableGenerator extends DispatcherVoid
 
         // parent class
         if (target.extended?.ref)
-            this.generateDynamic(target.extended.ref, true);
+            this.generateDynamic(<ClassStmt> target.extended.ref, true);
         // current class
         for (let stmt of target.stmts)
         {
@@ -524,7 +524,7 @@ export class PortableGenerator extends DispatcherVoid
         let parent_name = null;
         if (target.extended?.ref)
         {
-            parent_name = this.nativeName(target.extended.ref.name);
+            parent_name = this.nativeName((<ClassStmt> target.extended.ref).name);
             this.writeln(`static void dyn_${parent_name}_ctor(struct dyn_${parent_name}*);`);
         }
 
@@ -590,7 +590,7 @@ export class PortableGenerator extends DispatcherVoid
         while (current != null)
         {
             output.push(current);
-            current = current.extended?.ref;
+            current = <ClassStmt> current.extended?.ref;
         }
         output.reverse();
         return output;
@@ -644,11 +644,11 @@ export class PortableGenerator extends DispatcherVoid
             for (let tref of clazz.implemented)
             {
                 if (!tref.ref) continue;
-                let idx = names.indexOf(tref.ref.name.qualified);
+                let idx = names.indexOf((<ClassStmt> tref.ref).name.qualified);
                 if (idx < 0)
                 {
-                    intfs.push(tref.ref);
-                    names.push(tref.ref.name.qualified);
+                    intfs.push(<ClassStmt> tref.ref);
+                    names.push((<ClassStmt> tref.ref).name.qualified);
                 }
             }
         }
