@@ -4,8 +4,10 @@ function test(blocks : uint[])
 {
   let a : uint, b : uint, c : uint, d : uint;
   let ab : uint, bc : uint, cd : uint, da : uint;
+  let h0 = 0, h1 = 1, h2 = 3, h3 = 3;
+  let first = true;
 
-  if (this.first) {
+  if (first) {
     a = blocks[0] - 1;
     a = (a << 3) | (a >>> 29);
     d = ((a & 0xefcdab89) | (~a & 0x98badcfe)) + blocks[1] + 271733878;
@@ -15,10 +17,10 @@ function test(blocks : uint[])
     b = ((c & d) | (~c & a)) + blocks[3] - 271733879;
     b = (b << 19) | (b >>> 13);
   } else {
-    a = this.h0;
-    b = this.h1;
-    c = this.h2;
-    d = this.h3;
+    a = h0;
+    b = h1;
+    c = h2;
+    d = h3;
     a += ((b & c) | (~b & d)) + blocks[0];
     a = (a << 3) | (a >>> 29);
     d += ((a & b) | (~a & c)) + blocks[1];
@@ -143,16 +145,16 @@ function test(blocks : uint[])
   b += (da ^ c) + blocks[15] + 1859775393;
   b = (b << 15) | (b >>> 17);
 
-  if (this.first) {
-    this.h0 = a + 1732584193 << 0;
-    this.h1 = b - 271733879 << 0;
-    this.h2 = c - 1732584194 << 0;
-    this.h3 = d + 271733878 << 0;
-    this.first = false;
+  if (first) {
+    h0 = a + 1732584193 << 0;
+    h1 = b - 271733879 << 0;
+    h2 = c - 1732584194 << 0;
+    h3 = d + 271733878 << 0;
+    first = false;
   } else {
-    this.h0 = this.h0 + a << 0;
-    this.h1 = this.h1 + b << 0;
-    this.h2 = this.h2 + c << 0;
-    this.h3 = this.h3 + d << 0;
+    h0 = h0 + a << 0;
+    h1 = h1 + b << 0;
+    h2 = h2 + c << 0;
+    h3 = h3 + d << 0;
   }
 }

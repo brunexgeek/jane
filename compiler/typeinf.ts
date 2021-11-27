@@ -241,7 +241,7 @@ export class TypeInference extends DispatcherTypeRef
         if (target.init)
         {
             let itype = this.dispatch(target.init);
-            if (result && !this.checkCompatibleTypes(result, itype))
+            if (result && !this.isAssignable(result, itype))
                 this.error(target.location, `Initialization incompatible with variable type ('${result}' and '${itype}'`);
 
             if (!result) result = itype;
@@ -334,6 +334,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitNumberLiteral(target: NumberLiteral) : TypeRef
     {
+        // TODO: treat 'char' as numeric type
         if (target.value.indexOf('.') >= 0)
         {
             let value = Number.parseFloat(target.value);
@@ -513,7 +514,9 @@ export class TypeInference extends DispatcherTypeRef
 
     visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
     {
-        return target.resolvedType_ = this.dispatch(target.callee);
+        // TODO: treat 'string' as readonly/const char array
+        const type = this.dispatch(target.callee);
+        return target.resolvedType_ = new TypeRef(type.tid, type.name, type.dims - 1, type.location);
     }
 
     findMember( name : string, target : ClassStmt ) : IStmt
@@ -852,10 +855,12 @@ export class TypeInference extends DispatcherTypeRef
 
     checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
     {
-        if (type1.tid == TypeId.BOOLEAN || type1.tid == TypeId.NUMBER)
-            return type2.qualified == type1.qualified;
         if (type1.tid == TypeId.VOID || type2.tid == TypeId.VOID)
             return false;
+        if (type1.tid != TypeId.BOOLEAN && type1.tid != TypeId.STRING)
+        {
+            // TODO: if operands are numeric, find the best fit between them
+        }
         return type1.qualified == type2.qualified;
     }
 

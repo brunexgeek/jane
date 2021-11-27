@@ -529,7 +529,7 @@ export class Parser
         while (this.match(TokenType.NULLISH))
         {
             let right = this.parseOr();
-            expr = new LogicalExpr(expr, operator, right, location);
+            expr = new BinaryExpr(expr, operator, right, location);
         }
 
         return expr;
