@@ -120,6 +120,13 @@ class Scope
     }
 }
 
+enum OperationType
+{
+    LOGICAL,
+    BINARY,
+    BITWISE
+}
+
 export class TypeInference extends DispatcherTypeRef
 {
     ctx : CompilationContext;
@@ -210,25 +217,27 @@ export class TypeInference extends DispatcherTypeRef
             if (cond.tid != TypeId.BOOLEAN)
             {
                 this.error(target.location, `Ternary condition expression must evaluate to a boolean value`);
-                return TypeRef.INVALID;
+                return target.resolvedType_ = TypeRef.INVALID;
             }
-            if (!this.checkCompatibleTypes(left, right))
+            if (!this.checkCompatibleTypes(left, right, OperationType.BINARY))
             {
                 this.error(target.location, `Incompatible types for ternary operator ('${left}' and '${right}')`);
-                return TypeRef.INVALID;
+                return target.resolvedType_ = TypeRef.INVALID;
             }
-            return left;
+            return target.resolvedType_ = left;
         }
     }
 
     protected visitTemplateStringExpr(target: TemplateStringExpr): TypeRef
     {
-        return null;
+        for (let expr of target.value)
+            this.dispatch(expr);
+        return target.resolvedType_ = this.createTypeRefById(TypeId.STRING);
     }
 
     visitTypeCastExpr(target: TypeCastExpr): TypeRef
     {
-        return this.dispatch(target.type);
+        return target.resolvedType_ = this.dispatch(target.type);
     }
 
     visitPropertyStmt(target: PropertyStmt): TypeRef
@@ -405,7 +414,7 @@ export class TypeInference extends DispatcherTypeRef
         let right = this.dispatch(target.right);
         if (left != null && right != null)
         {
-            if (!this.checkCompatibleTypes(left, right))
+            if (!this.checkCompatibleTypes(left, right, OperationType.LOGICAL))
             {
                 this.error(target.location, 'Incompatible types for logical operator');
                 return TypeRef.INVALID;
@@ -421,17 +430,17 @@ export class TypeInference extends DispatcherTypeRef
         let right = this.dispatch(target.right);
         if (left != null && right != null)
         {
-            if (!this.checkCompatibleTypes(left, right))
+            if (!this.checkCompatibleTypes(left, right, OperationType.BINARY))
             {
                 this.error(target.location, `Incompatible types for binary operator ('${left}' and '${right}')`);
                 return TypeRef.INVALID;
             }
-            if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS)
+            if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS && target.oper != TokenType.NULLISH)
             {
                 this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
                 return TypeRef.INVALID;
             }
-            return target.resolvedType_ = left;
+            return target.resolvedType_ = left; // TODO: use the best fit between left and right
         }
         return target.resolvedType_ = TypeRef.INVALID;
     }
@@ -448,7 +457,8 @@ export class TypeInference extends DispatcherTypeRef
             target.tid == TypeId.ULONG ||
             target.tid == TypeId.FLOAT ||
             target.tid == TypeId.DOUBLE ||
-            target.tid == TypeId.NUMBER);
+            target.tid == TypeId.NUMBER ||
+            target.tid == TypeId.CHAR);
     }
 
     isAssignable( lhs : TypeRef, rhs : TypeRef )
@@ -481,7 +491,8 @@ export class TypeInference extends DispatcherTypeRef
             this.error(target.location, `Incompatible types for assignment ('${left}' and '${right}')`);
             return TypeRef.INVALID;
         }
-        if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS_EQUAL && target.oper != TokenType.EQUAL)
+        const SOPERS = [TokenType.PLUS_EQUAL, TokenType.EQUAL, TokenType.NULLISH_EQUAL];
+        if (left.tid == TypeId.STRING && SOPERS.indexOf(target.oper) < 0)
         {
             this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
             return TypeRef.INVALID;
@@ -682,19 +693,13 @@ export class TypeInference extends DispatcherTypeRef
 
     resolveType( type : TypeRef ) : TypeRef
     {
-        /*if (type.isGeneric)
-        {
-            let generic = this.findGeneric(type.name.qualified);
-            if (!generic) throw this.error(type.location, `Unknown generic type '${type.name.qualified}'`);
-            this.specializeGeneric(generic, type.generics);
-        }*/
-
         let name = type.qualified;
-        if (this.isPrimitiveType(name)) return null;
+        if (this.isPrimitiveType(name)) return this.createTypeRef(name);
 
         let clazz = this.unit.types.get(name);
         if (clazz)
         {
+            type.tid = TypeId.OBJECT;
             type.ref = clazz;
             return type;
         }
@@ -702,15 +707,11 @@ export class TypeInference extends DispatcherTypeRef
         let stmt = this.unit.imports_.get(name);
         if (stmt && stmt instanceof ClassStmt)
         {
+            type.tid = TypeId.OBJECT;
             type.ref = stmt;
             return type;
         }
 
-        /*let imps = '';
-        for (const name of this.unit.imports_.values())
-        {
-            imps += (<ClassStmt>name).name + ' ';
-        }*/
         this.error(type.location, `Unknown type '${name}'`);
         return TypeRef.INVALID;
     }
@@ -810,7 +811,7 @@ export class TypeInference extends DispatcherTypeRef
             this.dispatch(param.type);
             this.top().insert(param.name.canonical, param, param.type);
         }
-        if (target.parent instanceof ClassStmt)
+        if (target.parent instanceof ClassStmt && !target.parent.isInterface)
         {
             let type = new TypeRef(TypeId.OBJECT, target.parent.name, 0);
             type.ref = target.parent;
@@ -867,9 +868,34 @@ export class TypeInference extends DispatcherTypeRef
         return TypeRef.VOID; // unused
     }
 
-    checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef ) : boolean
+    checkCompatibleTypes( type1 : TypeRef, type2 : TypeRef, oper : OperationType ) : boolean
     {
-        if (type1.tid == TypeId.VOID || type2.tid == TypeId.VOID)
+        const NTYPES : TypeId[] = [TypeId.BYTE,  TypeId.SHORT,  TypeId.INT,  TypeId.LONG,
+            TypeId.CHAR, TypeId.UBYTE,  TypeId.USHORT, TypeId.UINT,
+            TypeId.ULONG, TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER];
+
+        // logical operator
+        if (oper == OperationType.LOGICAL)
+            return type1.tid == TypeId.BOOLEAN && type2.tid == TypeId.BOOLEAN;
+        // bitwise operator
+        const numerics = (NTYPES.indexOf(type1.tid) >= 0) && (NTYPES.indexOf(type2.tid) >= 0);
+        if (oper == OperationType.BITWISE)
+            return numerics;
+        // binary operator
+        if (numerics)
+            return true;
+        if (type1.tid != type2.tid || type1.tid == TypeId.INVALID || type1.tid == TypeId.VOID)
+            return false;
+        if (type1.tid == TypeId.OBJECT)
+            return (<ClassStmt>type1.ref)?.name.qualified == (<ClassStmt>type2.ref)?.name.qualified;
+        if (type1.tid == TypeId.FUNCTION)
+            return (<FunctionStmt>type1.ref)?.name.qualified == (<FunctionStmt>type2.ref)?.name.qualified; // TODO: compare signatures
+        return true;
+    }
+
+    findFittestType( type1 : TypeRef, type2 : TypeRef ) : TypeRef
+    {
+       /* if (type1.tid == TypeId.VOID || type2.tid == TypeId.VOID)
             return false;
 
         const STYPES : TypeId[] = [TypeId.BYTE,  TypeId.SHORT,  TypeId.INT,  TypeId.LONG, TypeId.LONG];
@@ -878,20 +904,20 @@ export class TypeInference extends DispatcherTypeRef
         if (type1.tid != TypeId.BOOLEAN && type1.tid != TypeId.STRING)
         {
             // TODO: if operands are numeric, find the best fit between them
-        }
-        return type1.qualified == type2.qualified;
+        }*/
+        return null;
     }
 
     visitVariableDecl(target: VariableDecl) : TypeRef
     {
         let result : TypeRef = null;
         if (target.type)
-            result = this.dispatch(target.type);
+            result = target.type = this.dispatch(target.type);
         if (target.init)
         {
             let itype = this.dispatch(target.init);
             if (result && !this.isAssignable(result, itype))
-                this.error(target.location, `Initialize incompatible with variable type ('${result}' and '${itype}'`);
+                this.error(target.location, `Initializer expression incompatible with variable type ('${result}' and '${itype}')`);
 
             if (!result) result = itype;
         }
