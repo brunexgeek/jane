@@ -493,6 +493,10 @@ export class WebAstPrinter extends DispatcherVoid
         let content : Field[] = [
             {name:'name', value:target.qualified},
         ];
+        if (target.isClass)
+            content.push({name:'isClass', value:'true'});
+        if (target.isFunction)
+            content.push({name:'isFunction', value:'true'});
         if (target.dims > 0)
             content.push({name:'dims', value:target.dims.toString()});
         if (target.isPrimitive())

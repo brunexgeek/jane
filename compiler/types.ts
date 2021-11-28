@@ -41,7 +41,8 @@ export enum TypeId
     STRING,
     BOOLEAN,
     CHAR,
-    OBJECT
+    OBJECT,
+    FUNCTION
 }
 
 export interface INode
@@ -396,6 +397,7 @@ get isStatic() : boolean { return this.values && this.values.indexOf(TokenType.S
 export class ReturnStmt implements IStmt
 {
 	expr : IExpr;
+	parent : FunctionStmt = null;
 	location : SourceLocation;
 	constructor( expr : IExpr, location : SourceLocation = null )
 	{
@@ -428,7 +430,7 @@ export class TypeRef implements INode
 	tid : TypeId;
 	name : Name;
 	dims : number;
-	ref : IStmt = null;
+	ref_ : IStmt = null;
 	location : SourceLocation;
 	constructor( tid : TypeId, name : Name, dims : number, location : SourceLocation = null )
 	{
@@ -440,13 +442,32 @@ export class TypeRef implements INode
 	accept( visitor : IVisitor ) : void { visitor.visitTypeRef(this); }
 	className() : string { return 'TypeRef'; }
 	toString() : string {
-        let tname = this.name.qualified;
-        for (let i = 0; i < this.dims; ++i) tname += '[]';
-        return tname;
+        if (this.tid == TypeId.FUNCTION) {
+            if (this.ref && this.ref instanceof FunctionStmt)
+                return this.ref.toString();
+            else
+                return '<<function>>';
+        }
+        else {
+            let tname = this.name.qualified;
+            for (let i = 0; i < this.dims; ++i) tname += '[]';
+            return tname;
+        }
     }
     get canonical() : string { return this.name.canonical; }
     get qualified() : string { return this.name.qualified; }
     get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
+    get isFunction() : boolean { return this.ref && this.ref instanceof FunctionStmt; }
+    get isClass() : boolean { return this.ref && this.ref instanceof ClassStmt; }
+    get ref() : IStmt { return this.ref_; }
+    set ref( ref : IStmt ) {
+        this.ref_ = ref;
+        if (ref && ref instanceof FunctionStmt)
+            this.name = new Name([this.toString()]);
+        else
+        if (ref && ref instanceof ClassStmt)
+            this.name = ref.name;
+    }
     static readonly VOID : TypeRef = new TypeRef(TypeId.VOID, new Name(['void']), 0);
     static readonly INVALID : TypeRef = new TypeRef(TypeId.INVALID, new Name(['invalid']), 0);
     isDerived( qname : string ) : boolean
@@ -663,7 +684,8 @@ export class FunctionStmt implements IStmt
             if (!first) result += ',';
             first = false;
             if (par.vararg) result += '...';
-            result += `${par.name.toString()}:${par.type.toString()}`;
+            //result += `${par.name.toString()}:${par.type.toString()}`;
+            result += `:${par.type.toString()}`;
         }
         result += `):${this.type.toString()}`;
         return result;

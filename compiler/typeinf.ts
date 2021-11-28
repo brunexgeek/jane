@@ -496,10 +496,12 @@ export class TypeInference extends DispatcherTypeRef
 
     visitCallExpr(target: CallExpr) : TypeRef
     {
-        this.dispatch(target.callee);
-        //if (!target.callee.resolvedType() || target.callee.resolvedType().isPrimitive())
-        //    this.error(target.location, 'Only functions and methods can be called');
-        return target.resolvedType_ = target.callee.resolvedType();
+        // TODO: make sure target.callee is a function
+        let type = this.dispatch(target.callee);
+        if (!type.isFunction || !type.ref || !(type.ref instanceof FunctionStmt))
+            this.error(target.location, 'Callee must be a function');
+        type = (<FunctionStmt>type.ref).type;
+        return target.resolvedType_ = type;
     }
 
     visitArrayExpr(target: ArrayExpr) : TypeRef
@@ -509,13 +511,19 @@ export class TypeInference extends DispatcherTypeRef
             const type = this.dispatch(target.values[0]); // TODO: check all elements and use the biggest type
             return target.resolvedType_ = new TypeRef(type.tid, type.name, type.dims+1, type.location);
         }
-        return target.resolvedType_ = TypeRef.INVALID;
+        return target.resolvedType_ = TypeRef.INVALID; // TODO: empty array match any type
     }
 
     visitArrayAccessExpr(target: ArrayAccessExpr) : TypeRef
     {
-        // TODO: treat 'string' as readonly/const char array
         const type = this.dispatch(target.callee);
+        if (type.dims == 0)
+        {
+            if (type.tid == TypeId.STRING)
+                return target.resolvedType_ = this.createTypeRefById(TypeId.CHAR);
+            this.error(target.location, 'Expression is not an array');
+            return target.resolvedType_ = TypeRef.INVALID;
+        }
         return target.resolvedType_ = new TypeRef(type.tid, type.name, type.dims - 1, type.location);
     }
 
@@ -551,9 +559,7 @@ export class TypeInference extends DispatcherTypeRef
 
     visitChainingExpr(target: ChainingExpr) : TypeRef
     {
-        //Logger.writeln('---- visitFieldExpr -> ' + target.callee.className());
         let type = this.dispatch(target.callee);
-        //Logger.writeln('---- visitFieldExpr -> ' + type.ref.name.qualified);
         if (type.ref && type.ref instanceof ClassStmt)
         {
             let stmt = this.findMember(target.name.canonical, type.ref);
@@ -561,7 +567,11 @@ export class TypeInference extends DispatcherTypeRef
                 return target.resolvedType_ = stmt.type;
             else
             if (stmt instanceof FunctionStmt)
-                return target.resolvedType_ = stmt.type;
+            {
+                type = this.createTypeRefById(TypeId.FUNCTION);
+                type.ref = stmt;
+                return target.resolvedType_ = type;
+            }
         }
         this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
         return TypeRef.INVALID;
@@ -569,9 +579,8 @@ export class TypeInference extends DispatcherTypeRef
 
     visitOptChainingExpr(target: OptChainingExpr) : TypeRef
     {
-        //Logger.writeln('---- visitFieldExpr -> ' + target.callee.className());
+        // TODO: returned type may not be primitive (since '.?' can result in null)
         let type = this.dispatch(target.callee);
-        //Logger.writeln('---- visitFieldExpr -> ' + type.ref.name.qualified);
         if (type.ref && type.ref instanceof ClassStmt)
         {
             let stmt = this.findMember(target.name.canonical, type.ref);
@@ -579,7 +588,11 @@ export class TypeInference extends DispatcherTypeRef
                 return target.resolvedType_ = stmt.type;
             else
             if (stmt instanceof FunctionStmt)
-                return target.resolvedType_ = stmt.type;
+            {
+                type = this.createTypeRefById(TypeId.FUNCTION);
+                type.ref = stmt;
+                return target.resolvedType_ = type;
+            }
         }
         this.error(target.location, 'Cannot find \'' + target.name.canonical + '\'');
         return TypeRef.INVALID;
@@ -641,9 +654,10 @@ export class TypeInference extends DispatcherTypeRef
     createTypeRefById( type : TypeId ) : TypeRef
     {
         const PRIMITIVES : string[] = ['boolean','void','char','byte', 'short', 'int', 'long',
-            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string', 'void'];
+            'ubyte', 'ushort', 'uint', 'ulong', 'float', 'double', 'number', 'string', 'void', 'Function'];
         const TYPES : TypeId[] = [TypeId.BOOLEAN, TypeId.VOID, TypeId.CHAR,TypeId.BYTE, TypeId.SHORT, TypeId.INT, TypeId.LONG,
-            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER, TypeId.STRING, TypeId.VOID];
+            TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.ULONG, TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER, TypeId.STRING,
+            TypeId.VOID, TypeId.FUNCTION];
         let idx = TYPES.indexOf(type);
         if (idx >= 0)
             return new TypeRef(type, new Name([PRIMITIVES[idx]]), 0);
@@ -857,6 +871,10 @@ export class TypeInference extends DispatcherTypeRef
     {
         if (type1.tid == TypeId.VOID || type2.tid == TypeId.VOID)
             return false;
+
+        const STYPES : TypeId[] = [TypeId.BYTE,  TypeId.SHORT,  TypeId.INT,  TypeId.LONG, TypeId.LONG];
+        const UTYPES : TypeId[] = [TypeId.UBYTE, TypeId.USHORT, TypeId.UINT, TypeId.CHAR, TypeId.ULONG];
+        const FTYPES : TypeId[] = [TypeId.FLOAT, TypeId.DOUBLE, TypeId.NUMBER];
         if (type1.tid != TypeId.BOOLEAN && type1.tid != TypeId.STRING)
         {
             // TODO: if operands are numeric, find the best fit between them

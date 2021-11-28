@@ -87,7 +87,7 @@ function expressions6( cond : boolean ) : char
     let value : MyClass;
     value = new MyClass();
     // optional chaining and function call
-    value?.run();
+    let result = value?.run();
     // member access, computed member access and grouping
-    return (value.value[0]);
+    return (value.value[0]) + result[0];
 }

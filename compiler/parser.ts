@@ -1137,7 +1137,7 @@ export class Parser
         if (this.peekType() != TokenType.SEMICOLON)
             expr = this.parseExpression();
         this.consume(TokenType.SEMICOLON);
-        return new ReturnStmt(expr);
+        return new ReturnStmt(expr); // TODO: set parent
     }
 
     parseIfThenElse() : IStmt

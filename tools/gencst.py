@@ -168,7 +168,8 @@ export enum TypeId
     STRING,
     BOOLEAN,
     CHAR,
-    OBJECT
+    OBJECT,
+    FUNCTION
 }
 
 export interface INode
@@ -302,7 +303,8 @@ printType('BlockStmt', [
     ], 'IStmt')
 
 printType('ReturnStmt', [
-    {'name' : 'expr', 'type' : 'IExpr'}
+    {'name' : 'expr', 'type' : 'IExpr'},
+    {'name' : 'parent', 'type' : 'FunctionStmt', 'init':'null', 'ctor':False}
     ], 'IStmt')
 
 printType('NamespaceStmt', [
@@ -315,16 +317,35 @@ printType('TypeRef', [
     {'name' : 'tid', 'type' : 'TypeId'},
     {'name' : 'name', 'type' : 'Name'},
     {'name' : 'dims', 'type' : 'number'},
-    {'name' : 'ref', 'type' : 'IStmt', 'init' : 'null', 'ctor' : False},
+    {'name' : 'ref_', 'type' : 'IStmt', 'init' : 'null', 'ctor' : False},
     ], None, True)
 sys.stdout.write('''\ttoString() : string {
-        let tname = this.name.qualified;
-        for (let i = 0; i < this.dims; ++i) tname += '[]';
-        return tname;
+        if (this.tid == TypeId.FUNCTION) {
+            if (this.ref && this.ref instanceof FunctionStmt)
+                return this.ref.toString();
+            else
+                return '<<function>>';
+        }
+        else {
+            let tname = this.name.qualified;
+            for (let i = 0; i < this.dims; ++i) tname += '[]';
+            return tname;
+        }
     }
     get canonical() : string { return this.name.canonical; }
     get qualified() : string { return this.name.qualified; }
     get nullable() : boolean { return this.tid == TypeId.STRING || this.tid == TypeId.OBJECT; }
+    get isFunction() : boolean { return this.ref && this.ref instanceof FunctionStmt; }
+    get isClass() : boolean { return this.ref && this.ref instanceof ClassStmt; }
+    get ref() : IStmt { return this.ref_; }
+    set ref( ref : IStmt ) {
+        this.ref_ = ref;
+        if (ref && ref instanceof FunctionStmt)
+            this.name = new Name([this.toString()]);
+        else
+        if (ref && ref instanceof ClassStmt)
+            this.name = ref.name;
+    }
     static readonly VOID : TypeRef = new TypeRef(TypeId.VOID, new Name(['void']), 0);
     static readonly INVALID : TypeRef = new TypeRef(TypeId.INVALID, new Name(['invalid']), 0);
     isDerived( qname : string ) : boolean
@@ -425,7 +446,8 @@ sys.stdout.write('''
             if (!first) result += ',';
             first = false;
             if (par.vararg) result += '...';
-            result += `${par.name.toString()}:${par.type.toString()}`;
+            //result += `${par.name.toString()}:${par.type.toString()}`;
+            result += `:${par.type.toString()}`;
         }
         result += `):${this.type.toString()}`;
         return result;
