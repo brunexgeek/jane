@@ -110,6 +110,14 @@ function parse_arguments( args : string[] )
             demandOption: true
         }
     })
+    .command('compile', 'Perform syntatic and semantic analysis', {
+        input: {
+            description: 'Source filename',
+            alias: 'i',
+            type: 'string',
+            demandOption: true
+        }
+    })
     .demandCommand(1, 'No command specified')
     .help()
     .alias('help', 'h')

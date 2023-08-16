@@ -35,11 +35,11 @@ class Color {
     static scale(k: number, v: Color) { return new Color(k * v.r, k * v.g, k * v.b); }
     static plus(v1: Color, v2: Color) { return new Color(v1.r + v2.r, v1.g + v2.g, v1.b + v2.b); }
     static times(v1: Color, v2: Color) { return new Color(v1.r * v2.r, v1.g * v2.g, v1.b * v2.b); }
-    static white = new Color(1.0, 1.0, 1.0);
-    static grey = new Color(0.5, 0.5, 0.5);
-    static black = new Color(0.0, 0.0, 0.0);
-    static background = Color.black;
-    static defaultColor = Color.black;
+    static white : Color = new Color(1.0, 1.0, 1.0);
+    static grey : Color = new Color(0.5, 0.5, 0.5);
+    static black : Color = new Color(0.0, 0.0, 0.0);
+    static background : Color = Color.black;
+    static defaultColor : Color = Color.black;
     static legalize(d : number) : number
     {
 	return d > 1 ? 1 : d;
@@ -166,7 +166,7 @@ namespace Surfaces {
         reflect(pos : Vector) : number { return 0.7; }
         roughness: number = 250;
     }
-    export let shiny = new ShinySurface();
+    export let shiny : ShinySurface = new ShinySurface();
     class CheckerSurface implements Surface
     {
         diffuse(pos : Vector) : Color {
@@ -186,12 +186,12 @@ namespace Surfaces {
         }
         roughness: number = 150;
     }
-    export let checkerboard = new CheckerSurface();
+    export let checkerboard : CheckerSurface = new CheckerSurface();
 }
 
 
 class RayTracer {
-    private maxDepth = 5;
+    private maxDepth : number = 5;
 
     private intersections(ray: Ray, scene: Scene) {
         let closest = +Infinity;

@@ -171,6 +171,11 @@ export class TypeInference extends DispatcherTypeRef
 
     checkPropertyStmt( unit : Unit, target : PropertyStmt ) : boolean
     {
+        if (target.type == null)
+        {
+            this.error(target.location, "Missing type anotation");
+            return false;
+        }
         return this.resolveTypeRef(unit, target.type, 'property declaration', target.location);
     }
 
@@ -178,14 +183,29 @@ export class TypeInference extends DispatcherTypeRef
     {
         let success = true;
         for (let decl of target.decls)
-            success = this.resolveTypeRef(unit, decl.type, 'variable declaration', /* TODO: should use 'decl' */target.location) && success;
+        {
+            if (decl.type == null)
+            {
+                this.error(decl.location, "Missing type anotation");
+                success = false;
+            }
+            else
+            {
+                success = this.resolveTypeRef(unit, decl.type, 'variable declaration', decl.location) && success;
+            }
+        }
         return success;
     }
 
     globalTypeChecking( unit : Unit ) : boolean
     {
+        return this.checkStmts(unit, unit.stmts);
+    }
+
+    checkStmts( unit : Unit, stmts : IStmt[] ) : boolean
+    {
         let success = true;
-        for (let stmt of unit.stmts)
+        for (let stmt of stmts)
         {
             if (stmt instanceof VariableStmt)
                 success = this.checkVariableStmt(unit, stmt) && success;
@@ -204,6 +224,9 @@ export class TypeInference extends DispatcherTypeRef
                         success = this.checkFunctionStmt(unit, stm) && success;
                 }
             }
+            else
+            if (stmt instanceof NamespaceStmt)
+                success = this.checkStmts(unit, stmt.stmts) && success;
         }
         return success;
     }
@@ -430,14 +453,19 @@ export class TypeInference extends DispatcherTypeRef
         let right = this.dispatch(target.right);
         if (left != null && right != null)
         {
+            if (left.tid == TypeId.STRING || right.tid == TypeId.STRING)
+            {
+                const STYPES : TokenType[] = [TokenType.PLUS, TokenType.NULLISH, TokenType.EQUALITY, TokenType.S_EQUALITY, TokenType.INEQUALITY, TokenType.S_INEQUALITY];
+                if (STYPES.indexOf(target.oper) < 0)
+                {
+                    this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
+                    return TypeRef.INVALID;
+                }
+                return target.resolvedType_ = this.createTypeRefById(TypeId.STRING);
+            }
             if (!this.checkCompatibleTypes(left, right, OperationType.BINARY))
             {
                 this.error(target.location, `Incompatible types for binary operator ('${left}' and '${right}')`);
-                return TypeRef.INVALID;
-            }
-            if (left.tid == TypeId.STRING && target.oper != TokenType.PLUS && target.oper != TokenType.NULLISH)
-            {
-                this.error(target.location, `The operator ${target.oper.lexeme} cannot be used on strings`);
                 return TypeRef.INVALID;
             }
             return target.resolvedType_ = left; // TODO: use the best fit between left and right
@@ -509,10 +537,16 @@ export class TypeInference extends DispatcherTypeRef
     {
         // TODO: make sure target.callee is a function
         let type = this.dispatch(target.callee);
-        if (!type.isFunction || !type.ref || !(type.ref instanceof FunctionStmt))
+        if (!type || !type.isFunction || !type.ref || !(type.ref instanceof FunctionStmt))
+        {
             this.error(target.location, 'Callee must be a function');
-        type = (<FunctionStmt>type.ref).type;
-        return target.resolvedType_ = type;
+            return target.resolvedType_ = null;
+        }
+        else
+        {
+            type = (<FunctionStmt>type.ref).type;
+            return target.resolvedType_ = type;
+        }
     }
 
     visitArrayExpr(target: ArrayExpr) : TypeRef
@@ -884,12 +918,10 @@ export class TypeInference extends DispatcherTypeRef
         // binary operator
         if (numerics)
             return true;
+        if (type1.tid == TypeId.OBJECT && type2.tid == TypeId.OBJECT)
+            return type1.ref && type2.ref && (<ClassStmt>type1.ref).name.qualified == (<ClassStmt>type2.ref).name.qualified;
         if (type1.tid != type2.tid || type1.tid == TypeId.INVALID || type1.tid == TypeId.VOID)
             return false;
-        if (type1.tid == TypeId.OBJECT)
-            return (<ClassStmt>type1.ref)?.name.qualified == (<ClassStmt>type2.ref)?.name.qualified;
-        if (type1.tid == TypeId.FUNCTION)
-            return (<FunctionStmt>type1.ref)?.name.qualified == (<FunctionStmt>type2.ref)?.name.qualified; // TODO: compare signatures
         return true;
     }
 

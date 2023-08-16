@@ -422,7 +422,11 @@ export class Parser
         else
             type = new TypeRef(TypeId.OBJECT, new Name(['void']), 0);
 
-        let block = this.parseBlock();
+        let block : BlockStmt = null;
+        if (this.check(TokenType.SEMICOLON))
+            this.advance();
+        else
+            block = this.parseBlock();
 
         return new FunctionStmt(name, args, type, block, modifier, name.location);
     }
@@ -821,6 +825,7 @@ export class Parser
         if (this.match(TokenType.FALSE)) return new BoolLiteral(false, location);
         if (this.match(TokenType.TRUE)) return new BoolLiteral(true, location);
         if (this.match(TokenType.NIL)) return new NullLiteral(location);
+        if (this.match(TokenType.UNDEF)) return new NullLiteral(location);
         if (this.peekType() == TokenType.NAME)
             return new NameLiteral(this.advance().lexeme, location);
         if (this.match(TokenType.NUMBER))
@@ -1096,7 +1101,7 @@ export class Parser
         {
             case TokenType.LET:
             case TokenType.CONST:
-                throw this.error(this.peek().location, `'${cur.lexeme}' declarations can only be declared inside a block.`);
+                throw this.error(this.peek().location, `'${cur.lexeme}' declarations can only appear inside a block.`);
             case TokenType.IF:
                 return this.parseIfThenElse();
             case TokenType.RETURN:
@@ -1194,7 +1199,7 @@ export class Parser
             // is it a variable declaration?
             if (this.peekType() == TokenType.LET || this.peekType() == TokenType.CONST)
             {
-                init = this.parseVariableStmt(null, false);
+                init = this.parseVariableStmt(null, false, false);
             }
             else
                 // only accept expression statements
@@ -1260,18 +1265,19 @@ export class Parser
             type = this.parseTypeRef();
         if (this.match(TokenType.EQUAL))
             value = this.parseExpression();
-        //if (type == null && value == null)
-        //    throw this.error(tname.location, 'Missing argument type');
-        return new VariableDecl(name, type, value, constant, modifier);
+        return new VariableDecl(name, type, value, constant, modifier, tname.location);
     }
 
-    parseVariableStmt( modifier : Modifier, semicolon : boolean = true ) : VariableStmt
+    parseVariableStmt( modifier : Modifier, semicolon : boolean = true, validate : boolean = true ) : VariableStmt
     {
         let decls : VariableDecl[] = [];
         let constant = this.advance().type == TokenType.CONST;
         let loc = this.peek().location;
         do {
-            decls.push( this.parseVariableDecl(constant, modifier) );
+            let vdcl = this.parseVariableDecl(constant, modifier);
+            if (validate && vdcl.type == null && vdcl.init == null)
+                throw this.error(vdcl.location, "Missing type anotation or initialization value");
+            decls.push(vdcl);
         } while(this.match(TokenType.COMMA));
         if (semicolon) this.consume(TokenType.SEMICOLON);
         return new VariableStmt(decls, loc);

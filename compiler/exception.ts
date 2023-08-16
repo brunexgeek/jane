@@ -6,7 +6,10 @@ export class ParseError extends Error
 
     constructor( message : string, location : SourceLocation )
     {
-        super(`${message} at ${location.toString()}`);
+        if (location)
+            super(`${message} at ${location.toString()}`);
+        else
+            super(`${message}`);
         this.location = location;
     }
 }

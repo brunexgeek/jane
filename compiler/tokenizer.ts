@@ -174,6 +174,7 @@ export class TokenType
     static readonly OF : TokenType = new TokenType('OF', 'of', true);
     static readonly IF : TokenType = new TokenType('IF', 'if', true);
     static readonly NIL : TokenType = new TokenType('NIL', 'null', true);
+    static readonly UNDEF : TokenType = new TokenType('UNDEF', 'undefined', true);
     static readonly RETURN : TokenType = new TokenType('RETURN', 'return', true);
     static readonly TRUE : TokenType = new TokenType('TRUE', 'true', true);
     static readonly LET : TokenType = new TokenType('LET', 'let', true);

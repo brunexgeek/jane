@@ -815,7 +815,7 @@ export class VariableDecl implements IStmt
 	className() : string { return 'VariableDecl'; }
 
     toString() {
-        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type.toString()};`;
+        return `${this.constant ? 'const' : 'let'} ${this.name.canonical} : ${this.type?.toString()};`;
     }
 }export class VariableStmt implements IStmt
 {

@@ -58,6 +58,15 @@ export interface CompilationListener
 	onFinish() : void;
 }
 
+enum CompilerStage
+{
+    IDLE,
+    PARSER,
+    TYPECHECKER,
+    OPTIMIZER,
+    GENERATOR
+}
+
 export class CompilationContext
 {
 	listener : CompilationListener;
@@ -65,6 +74,7 @@ export class CompilationContext
     //types : StrClassMap = new StrClassMap();
     namespaceStack : Name[] = [];
     array_types: StrClassStmtMap = new StrClassStmtMap();
+    lastStage : CompilerStage = CompilerStage.IDLE;
 
 	constructor( listener : CompilationListener )
 	{
@@ -93,8 +103,8 @@ export class CompilerError extends Error
 
 export class Compiler
 {
-    ctx : CompilationContext;
-    hasError : boolean = false;
+    public ctx : CompilationContext;
+    private hasError : boolean = false;
 
     constructor( listener : CompilationListener )
     {
@@ -109,7 +119,7 @@ export class Compiler
         //this.ctx.types.set(type.name.qualified, type);
     }
 
-    error( location : SourceLocation, message : string ) : ParseError
+    private error( location : SourceLocation, message : string ) : ParseError
     {
         let result = new ParseError(message, location);
         this.ctx.listener.onError(location, result);
@@ -118,7 +128,12 @@ export class Compiler
 
     parseSource( fileName : string ) : Unit
     {
-        if (this.ctx.units.has(fileName)) return;
+        if (this.ctx.units.has(fileName))
+            //throw new ParseError(`File ${fileName} already parsed`, null);
+            return this.ctx.units.get(fileName);
+        if (this.ctx.lastStage != CompilerStage.IDLE && this.ctx.lastStage != CompilerStage.PARSER)
+            throw new ParseError('Invalid state', null);
+        this.ctx.lastStage = CompilerStage.PARSER;
 
         Logger.writeln(`Parsing '${fileName}'`);
         let source : string = readfile(fileName);
@@ -140,9 +155,6 @@ export class Compiler
                     this.parseSource(path);
                 }
             }
-
-            //let prom = new NodePromoter();
-            //prom.process(unit);
         }
         else
             this.hasError = true;
@@ -163,7 +175,7 @@ export class Compiler
         return null;
     }
 
-    processImports()
+    private processImports() : boolean
     {
         for (let unit of this.ctx.units.values())
         {
@@ -200,13 +212,24 @@ export class Compiler
             type = createString();
             unit.imports_.set(type.name.qualified, type);
         }
+
+        return !this.hasError;
     }
 
-    typeInference()
+    typeCheck() : boolean
     {
-        let inf = new TypeInference(this.ctx);
-        for (let unit of this.ctx.units.values())
-            this.hasError = !inf.typeInference(unit);
+        if (this.ctx.lastStage != CompilerStage.PARSER)
+            throw new ParseError('Invalid state', null);
+        this.ctx.lastStage = CompilerStage.TYPECHECKER;
+
+        this.processImports();
+        if (!this.hasError)
+        {
+            let inf = new TypeInference(this.ctx);
+            for (let unit of this.ctx.units.values())
+                this.hasError ||= !inf.typeInference(unit);
+        }
+        return !this.hasError;
     }
 
     compile( fileName : string ) : boolean
@@ -214,9 +237,7 @@ export class Compiler
         // generate AST
         this.parseSource(fileName);
         if (this.hasError) return false;
-        this.processImports();
-        if (this.hasError) return false;
-        this.typeInference();
+        this.typeCheck();
         if (this.hasError) return false;
         // TODO: AST simplification (e.g. for...of -> for)
         // TODO: AST optimizations (e.g. dead code elimination, promote objects to stack)
